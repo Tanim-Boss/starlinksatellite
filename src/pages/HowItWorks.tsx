@@ -417,7 +417,7 @@ export function HowItWorks() {
                     </p>
                   </Prose>
                   <div className="mt-5">
-                    <LinkArrow href="#/beam">Open the beam lab — watch a real handover</LinkArrow>
+                    <LinkArrow href="#/beam">Open the handover simulation — watch the beam move</LinkArrow>
                   </div>
                 </Reveal>
               </Chapter>

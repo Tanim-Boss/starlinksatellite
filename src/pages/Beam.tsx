@@ -1,62 +1,32 @@
-import { BeamLab } from "@/components/beam/BeamLab";
+import { HandoverSim } from "@/components/handover/HandoverSim";
+import { AntennaDiagram } from "@/components/handover/AntennaDiagram";
 import { Eyebrow, LinkArrow, Reveal, SectionHeading } from "@/components/site/primitives";
 import { NextPageCTA } from "@/components/home/HomeSections";
-import { BEAM_MASK_DEG } from "@/lib/beam";
+import { HONESTY_NOTES, SCIENCE_QA } from "@/lib/handoverContent";
+import { ELEVATION_MASK_DEG, OBSERVER, SCENARIO } from "@/lib/handover";
 import { Link } from "@/lib/router";
 
-const STEPS = [
-  {
-    k: "01",
-    t: "Acquire",
-    d: "The terminal looks at the sky above its mask, works out where each satellite is, and picks the highest one. A beam exists only where the phases say it does.",
-  },
-  {
-    k: "02",
-    t: "Track",
-    d: "The satellite sweeps across the sky at roughly a degree per second. The terminal rewrites the phase offset on all 1,280 elements every few microseconds. Nothing tilts.",
-  },
-  {
-    k: "03",
-    t: "Prepare",
-    d: "Before the current satellite gets low, the network reserves the next one. A second link is brought up while the first is still carrying traffic — make-before-break.",
-  },
-  {
-    k: "04",
-    t: "Re-aim",
-    d: "The phase pattern is recalculated and the beam jumps to the new satellite. The old link is released. Your video call does not notice.",
-  },
+const BADGES = [
+  "3 satellites · A / B / C",
+  "550 km shell",
+  `${ELEVATION_MASK_DEG}° elevation mask`,
+  "make-before-break",
+  "phased-array steering",
 ];
 
-/** Figures from Branch Education's teardown of Dishy and the Starlink spacecraft. */
-const HARDWARE = [
-  { v: "1,280", u: "elements", d: "Patch antennas on one flat PCB, roughly 55 cm across, in a hexagonal lattice. No horn, no reflector." },
-  { v: "20", u: "beamformers", d: "Each coordinates 32 front-end modules; each module drives two antennas. That is the whole steering chain." },
-  { v: "~3,500×", u: "gain", d: "The combined main beam is far stronger than 1,280 elements adding up linearly — interference concentrates it." },
-  { v: "~100°", u: "field of view", d: "The cone of sky the beam can be steered across without physically moving the panel." },
-  { v: "4", u: "arrays per satellite", d: "Two on the spacecraft serve terminals, two serve ground stations — plus laser terminals on newer models." },
-  { v: "64QAM", u: "modulation", d: "Six bits per symbol, encoded in amplitude and phase. The beam is the pipe; this is what fills it." },
-];
-
-const HONESTY = [
-  {
-    t: "A representative fleet, not live telemetry",
-    d: "The sky is populated by the same 528-satellite subset the 3D explorer uses, propagated from published shell altitudes and inclinations with a circular two-body model. The real constellation has more than 11,000 spacecraft; this is a geometric stand-in.",
-  },
-  {
-    t: "A simple handover policy",
-    d: "Here the terminal keeps a satellite until it drops to 30° elevation, then switches to the highest satellite above the 25° mask. Real scheduling also weighs capacity, obstructions, ground-station visibility and network load.",
-  },
-  {
-    t: "An intentionally slow re-aim",
-    d: "The visible swing between satellites is stretched to eight simulated seconds so you can follow it. The real array re-tunes in microseconds; a handover is effectively instant.",
-  },
-  {
-    t: "Schematic hardware",
-    d: "The aperture drawing is a 40 × 32 lattice and the gain plot is an ideal 16-element array factor. Dishy actually uses 1,280 elements in a hexagonal lattice, 20 beamformer chips and roughly a 100° field of view.",
-  },
+const FLOW = [
+  { n: "01", t: "SAT-A connected", bn: "A-এর সঙ্গে link" },
+  { n: "02", t: "SAT-B becomes suitable", bn: "B উপযুক্ত হচ্ছে" },
+  { n: "03", t: "Connection transfers", bn: "beam B-তে যাচ্ছে" },
+  { n: "04", t: "SAT-B connected", bn: "B এখন active" },
+  { n: "05", t: "SAT-C becomes suitable", bn: "C এগিয়ে আসছে" },
+  { n: "06", t: "Connection transfers", bn: "B → C handover" },
 ];
 
 export function Beam() {
+  const first = SCENARIO.events[0];
+  const second = SCENARIO.events[1];
+
   return (
     <>
       <section className="relative overflow-hidden border-b border-white/[0.06] pt-28 md:pt-36">
@@ -65,83 +35,211 @@ export function Beam() {
           className="pointer-events-none absolute -right-24 top-0 h-80 w-80 rounded-full bg-signal/[0.08] blur-3xl"
           aria-hidden
         />
-        <div className="page-shell relative pb-10">
+        <div className="page-shell relative pb-8">
           <Reveal>
-            <Eyebrow>Beam lab</Eyebrow>
-            <h1 className="mt-5 max-w-3xl text-[clamp(2.2rem,5.4vw,3.8rem)] font-semibold leading-[1.02] tracking-[-0.03em] text-white">
-              Your dish never moves.
+            <Eyebrow>Handover lab</Eyebrow>
+            <h1 className="mt-5 max-w-3xl text-[clamp(2.1rem,5.2vw,3.6rem)] font-semibold leading-[1.04] tracking-[-0.03em] text-white">
+              How a Starlink dish switches
               <br />
-              <span className="text-gradient">Its beam does.</span>
+              <span className="text-gradient">between satellites.</span>
             </h1>
-            <p className="mt-5 max-w-2xl text-[15px] leading-relaxed text-muted md:text-[17px]">
-              A Starlink terminal has no motor, no gimbal and no moving dish. It is a flat grid of
-              1,280 tiny antennas that steers a radio beam electronically — and every couple of
-              minutes it walks that beam across the sky onto a completely different satellite. This
-              page animates that handover using real orbital geometry.
+            <p
+              lang="bn"
+              className="bangla mt-4 max-w-2xl text-[15px] leading-[1.9] text-signal/90 md:text-[16px]"
+            >
+              একটা interactive handover simulation — দেখুন কীভাবে dish এক satellite থেকে পরের
+              satellite-এ connection transfer করে, অথচ পুরো dish ঘোরে না।
             </p>
-            <div className="mt-7 flex flex-wrap items-center gap-2">
-              {["0 moving parts", "1,280 antenna elements", `${BEAM_MASK_DEG}° elevation mask`, "~1 switch every 2 min"].map(
-                (m) => (
-                  <span
-                    key={m}
-                    className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 font-mono text-[9px] uppercase tracking-[0.12em] text-muted"
-                  >
-                    {m}
-                  </span>
-                ),
-              )}
+            <p className="mt-4 max-w-2xl text-[13.5px] leading-relaxed text-muted md:text-[15px]">
+              Three satellites cross the same patch of sky at {OBSERVER.name}. One fixed dish, one
+              electronically steered beam, two handovers — A → B, then B → C. Run it, step through it,
+              or scrub the timeline. The orbit geometry is real; the handover policy is a teaching
+              simplification.
+            </p>
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              {BADGES.map((b) => (
+                <span
+                  key={b}
+                  className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 font-mono text-[9px] uppercase tracking-[0.12em] text-muted"
+                >
+                  {b}
+                </span>
+              ))}
             </div>
             <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2">
-              <LinkArrow href="#/how-it-works@terminal">How beamforming works</LinkArrow>
-              <a
-                href="https://www.youtube.com/watch?v=qs2QcycggWU"
-                target="_blank"
-                rel="noreferrer noopener"
-                className="group inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-faint transition-colors hover:text-white"
-              >
-                Branch Education explainer <span aria-hidden>↗</span>
-              </a>
+              <LinkArrow href="#handover-sim">Jump to the simulation</LinkArrow>
+              <LinkArrow href="#dish">How the dish steers without moving</LinkArrow>
             </div>
           </Reveal>
         </div>
       </section>
 
-      <div className="page-shell py-8 md:py-10">
+      <div id="handover-sim" className="page-shell scroll-mt-24 py-8 md:py-10">
         <Reveal>
-          <BeamLab />
+          <HandoverSim />
         </Reveal>
 
-        {/* How a handover works */}
+        {/* flow strip ------------------------------------------------------ */}
+        <div className="mt-10 md:mt-12">
+          <Reveal>
+            <SectionHeading
+              eyebrow="The loop, in one line"
+              title="A → B → C, and back to A."
+              lede="Every switch repeats the same five moves: acquire, track, prepare, transfer, release. The second handover is not special — it is the same machinery running again."
+            />
+          </Reveal>
+          <Reveal delay={60}>
+            <ol className="mt-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {FLOW.map((f) => (
+                <li
+                  key={f.n}
+                  className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.02] px-3.5 py-3"
+                >
+                  <span className="font-mono text-[10px] text-signal">{f.n}</span>
+                  <span className="h-px flex-1 bg-white/10" />
+                  <span className="text-right">
+                    <span className="block text-[12px] text-ink">{f.t}</span>
+                    <span lang="bn" className="bangla mt-0.5 block text-[11px] text-faint">
+                      {f.bn}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </Reveal>
+          <Reveal delay={90}>
+            <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.12em] text-faint">
+              In this model the switches land at {Math.round(first?.tSec ?? 0)} s and{" "}
+              {Math.round(second?.tSec ?? 0)} s of a {SCENARIO.durationSec} s loop · real handovers
+              happen roughly every 2–4 minutes
+            </p>
+          </Reveal>
+        </div>
+
+        {/* Dish close-up / antenna ---------------------------------------- */}
+        <div id="dish" className="mt-12 scroll-mt-24 md:mt-16">
+          <Reveal>
+            <SectionHeading
+              eyebrow="Inside the dish"
+              title="Nothing tilts. The signal does."
+              lede="A Starlink terminal is a flat panel of patch antennas. Steering the beam means changing the phase of each element — not turning the hardware."
+            />
+          </Reveal>
+
+          <div className="mt-7 grid gap-5 lg:grid-cols-[1.1fr_0.9fr] lg:gap-7">
+            <Reveal>
+              <AntennaDiagram />
+            </Reveal>
+
+            <Reveal delay={60}>
+              <div className="space-y-3">
+                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+                  <h3 lang="bn" className="bangla-heading text-[14px] font-semibold text-white">
+                    Electronic beam steering আসলে কী?
+                  </h3>
+                  <p lang="bn" className="bangla mt-2 text-[12.5px] leading-[1.9] text-muted">
+                    ডিশের ভেতরে শত শত ছোট antenna element বসানো থাকে। প্রতিটি element থেকে একই
+                    signal পাঠানো হয়, কিন্তু প্রতিটির phase সামান্য আলাদা। কোনো নির্দিষ্ট দিকে
+                    তরঙ্গগুলো মিলে গিয়ে শক্তিশালী হয় (constructive interference), অন্য দিকে
+                    দুর্বল হয়ে যায়। ফলে element-গুলোর phase বদলালেই beam-এর দিক বদলায় —
+                    কোনো মোটর, কোনো ঘোরানো অংশ লাগে না।
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-warn/25 bg-warn/[0.05] p-4">
+                  <h3 lang="bn" className="bangla-heading text-[13.5px] font-semibold text-warn">
+                    যান্ত্রিক দিক ও handover এক নয়
+                  </h3>
+                  <p lang="bn" className="bangla mt-2 text-[12px] leading-[1.9] text-muted">
+                    সাধারণ Starlink dish-টি ইনস্টল করার সময় একটি নির্দিষ্ট tilt-এ বসানো হয় এবং
+                    এরপর আর ঘোরে না। satellite track করা এবং handover — দুটোই ঘটে electronic beam
+                    steering-এ। handover-এর সময় পুরো dish মোটরে ঘুরে satellite অনুসরণ করে — এটি
+                    ভুল ধারণা।
+                  </p>
+                  <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.1em] text-warn/80">
+                    not a motorised tracking dish
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+                  <h3 lang="bn" className="bangla-heading text-[13.5px] font-semibold text-white">
+                    Elevation, visibility আর connection-এর সম্পর্ক
+                  </h3>
+                  <p lang="bn" className="bangla mt-2 text-[12px] leading-[1.9] text-muted">
+                    elevation কমলে satellite আরও দূরে, দিগন্তের কাছে থাকে — বাতাস ও বাধা বেশি,
+                    signal দুর্বল। তাই {ELEVATION_MASK_DEG}°-এর নিচের satellite ব্যবহার করা হয় না।
+                    আরও গুরুত্বপূর্ণ: শুধু “নিকটতম” satellite নয়, visibility, elevation, capacity,
+                    routing — সব মিলিয়ে ঠিক হয় কোন satellite-এ beam যাবে।
+                  </p>
+                </div>
+              </div>
+            </Reveal>
+          </div>
+        </div>
+
+        {/* Science Q&A ---------------------------------------------------- */}
         <div className="mt-12 md:mt-16">
           <Reveal>
             <SectionHeading
-              eyebrow="What just happened"
-              title="Four steps, repeated all day."
-              lede="The dish is a fixed flat panel. Everything you saw in the animation above happens in the timing of the signals, not in the hardware."
+              eyebrow="বাংলায় বিজ্ঞান"
+              title="প্রশ্ন ও উত্তর।"
+              lede="The six questions students ask first, answered in Bangla — each one tied to something happening in the simulation above."
             />
           </Reveal>
-          <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {STEPS.map((s, i) => (
-              <Reveal key={s.k} delay={i * 50}>
-                <div className="h-full rounded-xl border border-white/[0.08] bg-white/[0.02] p-4">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-[10px] text-signal">{s.k}</span>
-                    <span className="h-px flex-1 bg-white/10" />
+          <div className="mt-6 grid gap-3 md:grid-cols-2">
+            {SCIENCE_QA.map((qa, i) => (
+              <Reveal key={qa.q} delay={i * 40}>
+                <div className="h-full rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="mt-0.5 font-mono text-[9px] text-signal/80">0{i + 1}</span>
+                    <div>
+                      <h3 lang="bn" className="bangla-heading text-[13.5px] font-semibold text-white">
+                        {qa.q}
+                      </h3>
+                      <p lang="bn" className="bangla mt-1.5 text-[12px] leading-[1.9] text-muted">
+                        {qa.a}
+                      </p>
+                    </div>
                   </div>
-                  <h3 className="mt-2.5 text-[13.5px] font-medium text-white">{s.t}</h3>
-                  <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted">{s.d}</p>
                 </div>
               </Reveal>
             ))}
           </div>
+        </div>
+
+        {/* Honesty -------------------------------------------------------- */}
+        <div className="mt-12 md:mt-16">
+          <Reveal>
+            <SectionHeading
+              eyebrow="মডেল সম্পর্কে সৎ কথা"
+              title="What is real here, what is simplified."
+              lede="Every shortcut is labelled, because a teaching model that pretends to be telemetry teaches the wrong thing."
+            />
+          </Reveal>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            {HONESTY_NOTES.map((h, i) => (
+              <Reveal key={h.t} delay={i * 40}>
+                <div className="h-full rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[9px] text-signal/70">0{i + 1}</span>
+                    <h3 lang="bn" className="bangla-heading text-[12.5px] font-medium text-ink">
+                      {h.t}
+                    </h3>
+                  </div>
+                  <p lang="bn" className="bangla mt-1.5 text-[11.5px] leading-[1.85] text-muted">
+                    {h.d}
+                  </p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+
           <Reveal delay={80}>
-            <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-xl border border-signal/20 bg-signal/[0.04] px-4 py-3">
-              <p className="text-[11.5px] leading-relaxed text-muted">
-                Try it: press <span className="text-ink">Next switch</span> to jump to a handover,
-                click any satellite in the sky to hold the beam on it, or drag the elevation chart to
-                scrub through the half hour. Then use{" "}
-                <span className="text-ink">Break down this switch</span> for a frame-by-frame worked
-                example of that particular change of satellite.
+            <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-xl border border-signal/20 bg-signal/[0.04] px-4 py-3">
+              <p lang="bn" className="bangla text-[11.5px] leading-[1.85] text-muted">
+                এখানে দেখানো সব মান simulation-generated example — বাস্তব satellite telemetry নয়।
+                SpaceX-এর প্রকৃত handover ও scheduling algorithm প্রকাশ্য নয়, এবং পরিস্থিতিভেদে
+                তা ভিন্নভাবে কাজ করতে পারে।
               </p>
               <div className="ml-auto flex items-center gap-4">
                 <LinkArrow href="#/explorer">See the whole fleet</LinkArrow>
@@ -150,110 +248,43 @@ export function Beam() {
           </Reveal>
         </div>
 
-        {/* Hardware numbers, straight from the source video */}
-        <div className="mt-12 md:mt-16">
+        {/* Go deeper ------------------------------------------------------ */}
+        <div className="mt-10 grid gap-3 sm:grid-cols-2">
           <Reveal>
-            <SectionHeading
-              eyebrow="Inside Dishy"
-              title="The hardware, by the numbers."
-              lede="Figures from Branch Education's teardown of a Starlink terminal and spacecraft — the same pieces this page animates."
-            />
-          </Reveal>
-          <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {HARDWARE.map((h, i) => (
-              <Reveal key={h.u} delay={i * 40}>
-                <div className="h-full rounded-xl border border-white/[0.08] bg-white/[0.02] p-4">
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="font-mono text-[20px] font-semibold leading-none text-signal">{h.v}</span>
-                    <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-faint">{h.u}</span>
-                  </div>
-                  <p className="mt-2.5 text-[11.5px] leading-relaxed text-muted">{h.d}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-
-        {/* Honesty + source */}
-        <div className="mt-12 grid gap-8 md:mt-16 lg:grid-cols-[1.15fr_0.85fr] lg:gap-12">
-          <Reveal>
-            <SectionHeading
-              eyebrow="Honesty about the model"
-              title="What is real here, and what is simplified."
-              lede="The geometry is real enough to be useful and simplified enough to run in a browser. Every shortcut is labelled."
-            />
-            <div className="mt-6 space-y-2.5">
-              {HONESTY.map((h, i) => (
-                <div key={h.t} className="flex gap-3.5 rounded-xl border border-white/[0.07] bg-white/[0.02] p-3.5">
-                  <span className="mt-0.5 font-mono text-[9px] text-signal/70">0{i + 1}</span>
-                  <div>
-                    <h3 className="text-[12.5px] font-medium text-ink">{h.t}</h3>
-                    <p className="mt-1 text-[11px] leading-relaxed text-muted">{h.d}</p>
-                  </div>
-                </div>
-              ))}
+            <div className="h-full rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5">
+              <h3 className="text-[13px] font-medium text-white">Go deeper</h3>
+              <div className="mt-3 space-y-2.5">
+                <Link to="/how-it-works" section="terminal" className="block text-[12px] text-muted hover:text-signal">
+                  Chapter 04 — the dish on your roof
+                </Link>
+                <Link to="/how-it-works" section="handover" className="block text-[12px] text-muted hover:text-signal">
+                  Chapter 08 — handing you off invisibly
+                </Link>
+                <Link to="/numbers" className="block text-[12px] text-muted hover:text-signal">
+                  Numbers — the altitude / latency trade-off
+                </Link>
+              </div>
             </div>
           </Reveal>
-
-          <Reveal delay={80}>
-            <div className="space-y-4">
-              <a
-                href="https://www.youtube.com/watch?v=qs2QcycggWU"
-                target="_blank"
-                rel="noreferrer noopener"
-                className="group block overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#0b1a2b] via-[#081120] to-[#0a0f1d] p-5 transition-colors hover:border-signal/40"
-              >
-                <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.16em] text-faint">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full border border-signal/40 bg-signal/10 text-[10px] text-signal">
-                    ▶
-                  </span>
-                  Source explainer · YouTube
-                </div>
-                <h3 className="mt-4 text-[17px] font-semibold leading-snug text-white group-hover:text-signal">
-                  How does Starlink satellite internet work?
-                </h3>
-                <p className="mt-2 text-[12px] leading-relaxed text-muted">
-                  Branch Education&apos;s 3D teardown of Dishy McFlatface: patch antennas, phase
-                  shifting, beamforming, beam steering and 64QAM — the video this page follows.
-                </p>
-                <span className="mt-4 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-signal">
-                  Watch on YouTube <span aria-hidden>↗</span>
-                </span>
-              </a>
-
-              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5">
-                <h3 className="text-[13px] font-medium text-white">Go deeper</h3>
-                <div className="mt-3 space-y-2.5">
-                  <Link to="/how-it-works" section="terminal" className="block text-[12px] text-muted hover:text-signal">
-                    Chapter 04 — the dish on your roof
-                  </Link>
-                  <Link to="/how-it-works" section="handover" className="block text-[12px] text-muted hover:text-signal">
-                    Chapter 08 — handing you off invisibly
-                  </Link>
-                  <Link to="/numbers" className="block text-[12px] text-muted hover:text-signal">
-                    Numbers — the altitude / latency trade-off
-                  </Link>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5">
-                <h3 className="text-[13px] font-medium text-white">The numbers used here</h3>
-                <dl className="mt-3 space-y-2 text-[11px]">
-                  {[
-                    ["Earth radius", "6,371 km"],
-                    ["Shell 1 altitude", "550 km"],
-                    ["Shell 1 inclination", "53.0°"],
-                    ["Terminal", "47.6° N, 122.4° W"],
-                    ["Elevation mask", `${BEAM_MASK_DEG}°`],
-                    ["Ku-band", "12.2 GHz"],
-                  ].map(([k, v]) => (
-                    <div key={k} className="flex items-baseline justify-between gap-3 border-b border-white/[0.06] pb-1.5 last:border-0 last:pb-0">
-                      <dt className="text-faint">{k}</dt>
-                      <dd className="font-mono text-ink">{v}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
+          <Reveal delay={60}>
+            <div className="h-full rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5">
+              <h3 className="text-[13px] font-medium text-white">The numbers used in this simulation</h3>
+              <dl className="mt-3 space-y-2 text-[11px]">
+                {[
+                  ["Earth radius", "6,371 km"],
+                  ["Shell altitude", "550 km"],
+                  ["Elevation mask", `${ELEVATION_MASK_DEG}°`],
+                  ["Handover floor", "40°"],
+                  ["Simulated switch 1", `${Math.round(first?.tSec ?? 0)} s`],
+                  ["Simulated switch 2", `${Math.round(second?.tSec ?? 0)} s`],
+                  ["Observer", `${OBSERVER.latLabel} ${OBSERVER.lonLabel}`],
+                ].map(([k, v]) => (
+                  <div key={k} className="flex items-baseline justify-between gap-3 border-b border-white/[0.06] pb-1.5 last:border-0 last:pb-0">
+                    <dt className="text-faint">{k}</dt>
+                    <dd className="font-mono text-ink">{v}</dd>
+                  </div>
+                ))}
+              </dl>
             </div>
           </Reveal>
         </div>
@@ -262,8 +293,8 @@ export function Beam() {
           <Reveal>
             <NextPageCTA
               eyebrow="Next"
-              title="Now zoom out."
-              body="Put this dish on a spinning Earth, add the other shells, gateways, laser links and 11,000 satellites, and watch the whole constellation move."
+              title="Now put it on a spinning planet."
+              body="Zoom out from this one dish to the whole constellation: four shells, orbital planes, gateways, laser links and thousands of satellites moving at once."
               to="/explorer"
               cta="Open the 3D explorer"
             />

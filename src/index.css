@@ -395,3 +395,26 @@ body {
     min-width: 780px;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Bangla copy                                                        */
+/* ------------------------------------------------------------------ */
+
+/* The display face (Space Grotesk) has no Bengali glyphs, so Bangla copy
+   falls back to the platform's Bengali face with a roomier line height —
+   matras collide at Latin line-heights. */
+.bangla {
+  font-family: "Noto Sans Bengali", "Hind Siliguri", "Baloo Da 2", "Nirmala UI",
+    "Bangla Sangam MN", "Kohinoor Bangla", "Noto Serif Bengali", system-ui, sans-serif;
+  letter-spacing: 0;
+  line-height: 1.95;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+.bangla-heading {
+  font-family: "Noto Sans Bengali", "Hind Siliguri", "Baloo Da 2", "Nirmala UI",
+    "Bangla Sangam MN", "Kohinoor Bangla", system-ui, sans-serif;
+  line-height: 1.5;
+  letter-spacing: 0;
+}

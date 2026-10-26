@@ -15,7 +15,7 @@ Three Fiber.
 | --- | --- |
 | `#/` | Overview — the four-step signal path, why low orbit wins, laser mesh, handovers, key numbers |
 | `#/how-it-works` | Nine-chapter explainer with interactive figures and a scroll-spy chapter rail |
-| `#/beam` | Beam lab — one terminal's sky, animated handovers, the phased array and its beam pattern |
+| `#/beam` | Handover lab — an interactive 3D simulation of one dish switching satellites A → B → C, in Bangla and English |
 | `#/explorer` | 3D constellation explorer: five views, speed control, layers, satellite inspector, coverage probe |
 | `#/numbers` | Orbit sandbox, latency budget and the fibre-vs-space crossover chart |
 | `#/faq` | Short answers to the common questions, plus sources |
@@ -28,15 +28,16 @@ any static host — including a single file.
 - **Signal path** — click through uplink → relay → gateway → return, or switch to
   the laser route.
 - **Phased array** — drag the beam angle; watch the phase step and timing change.
-- **Beam lab** — a 30-minute session of one terminal: the sky map shows every
-  satellite in view, the beam steering onto each one, and the moment it jumps
-  to the next. Scrub the elevation chart, lock onto a satellite by hand, and
-  watch the phase ramp on the 1,280-element aperture.
-- **One handover, frame by frame** — a worked example of a single real switch
-  from that session: both satellites' true tracks across the sky, the reserved
-  second link, the swing between them, and the elevation, azimuth, slant range,
-  light time and phase step on either side of the cut. Step through track →
-  prepare → re-aim → locked, or pick any of the session's handovers.
+- **Handover sim** — a real-time 3D scene: one fixed dish, three satellites on
+  scripted passes, communication beams, orbital sky paths and the terminal's
+  25° coverage cone. Play, pause, scrub, step through the six stages of a
+  handover, or loop A → B → C. Play / pause, 0.25×–2× speed, layer toggles and
+  ground / space / dish-close-up cameras are all in the panel.
+- **Live status panel** — the serving satellite, the next candidate, elevation,
+  azimuth, visibility, slant range, light time and handover progress, all read
+  from the same deterministic simulation state as the 3D scene.
+- **Phased-array figure** — pick a target elevation and watch the element phase
+  offsets change while the panel itself stays perfectly still.
 - **Spot beams** — hover the cells to see how frequency bands are reused.
 - **Satellite anatomy** — hover the numbered callouts to inspect the hardware.
 - **Coverage map** — click anywhere to count covering satellites in the model.
@@ -58,11 +59,17 @@ altitude-o-meter compresses the distance to geostationary orbit, and the orbit
 sandbox draws altitude 6× exaggerated while computing the footprint from the
 true radius and altitude.
 
-The beam lab is a geometric session too: the terminal at 47.6° N in Puget
-Sound keeps a satellite until it drops to 30° elevation, then re-aims at the
-highest one above the 25° mask. Real scheduling also weighs capacity,
-obstructions and gateway visibility, and the visible re-aim is slowed down for
-legibility.
+The handover lab is an explicitly labelled teaching model. Three satellite
+passes over a terminal at 47.6° N in Puget Sound are scripted for clarity,
+while range, light time and geometry come from a real 550 km circular orbit
+(slant range is solved from the elevation). The handover policy is deliberately
+simple: the terminal keeps its satellite until that satellite falls below a 40°
+switch floor, then moves to a visible altitude candidate above 40°, as long as
+it is above the 25° mask. Real scheduling also weighs capacity, obstructions,
+gateway routing and network load; the actual SpaceX handover algorithm is not
+public. The loop runs at 20× real time at 1× speed and every handover is
+labelled as a conceptual simplification — the paired beams are make-before-break
+made visible, not a claim about every real handover.
 
 The 3D model is **not live telemetry**: satellites are propagated with a simple
 circular two-body model from published shell parameters. Distances are to scale
@@ -90,13 +97,14 @@ src/
     site/                 header, footer, primitives, FAQ accordion
     home/                 home-page sections
     diagrams/             the interactive SVG figures
-    beam/                 the beam lab (sky map, aperture, timeline)
+    handover/             the handover lab (3D scene, phased-array face, SVG figure, status UI)
     explorer/             UI around the 3D scene
     three/                cinematic hero globe
     scene/                reusable three.js layers (Earth, satellites, links…)
   lib/
     astro.ts              orbital mechanics, shells, coverage, gateways
-    beam.ts               terminal look angles, the sample session, beam steering
+    handover.ts           three-satellite pass model, handover policy, scenario steps
+    handoverContent.ts    Bangla step copy, science Q&A and honesty notes
     content.ts            editorial copy and chapter metadata
     router.tsx            tiny hash router
     worldPath.ts          Natural Earth land outlines for the 2D map
@@ -106,7 +114,7 @@ public/textures/          Earth day / night / cloud maps (served locally)
 ## Credits
 
 - Earth textures from the [three.js](https://threejs.org) examples (MIT).
-- The beam lab follows the explanation in Branch Education's
+- The phased-array explanation follows Branch Education's
   [How does Starlink satellite internet work?](https://www.youtube.com/watch?v=qs2QcycggWU)
   (phased arrays, beamforming, beam steering, 64QAM).
 - Land outlines derived from [Natural Earth](https://www.naturalearthdata.com)
