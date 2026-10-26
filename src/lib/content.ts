@@ -6,7 +6,7 @@
 export const NAV = [
   { label: "Overview", path: "/" },
   { label: "How it works", path: "/how-it-works" },
-  { label: "Beam lab", path: "/beam" },
+  { label: "Handover lab", path: "/beam" },
   { label: "3D explorer", path: "/explorer" },
   { label: "Numbers", path: "/numbers" },
   { label: "FAQ", path: "/faq" },
