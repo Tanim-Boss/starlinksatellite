@@ -21,7 +21,7 @@ Three Fiber.
 | `#/faq` | Short answers to the common questions, plus sources |
 
 Routing is hash-based (`#/how-it-works@lasers`), so the built site works from
-any static host — including a single file.
+any static host, including a sub-folder and a single file.
 
 ## Interactive figures
 
@@ -86,48 +86,82 @@ This project is not affiliated with SpaceX.
 
 ```bash
 npm install
-npm run dev      # http://localhost:3000
-npm run build    # single-file build in dist/
-npm run preview  # serves dist/ on http://localhost:3000
+npm run dev           # http://localhost:3000
+npm run typecheck     # tsc --noEmit (TypeScript 7)
+npm run build         # code-split build in dist/ (the default)
+npm run build:single  # portable one-file build in dist-single/
+npm run preview       # serves dist/ on http://localhost:3000
+npm run test          # typecheck + both jsdom suites
 npm run test:smoke    # every route mounts in jsdom, including no-WebGL fallbacks
 npm run test:antenna  # drives the beam lab controls end-to-end in jsdom
 ```
 
-`npm run dev` serves every module separately (~11 MB of JavaScript on a first
-load, because three.js and drei are not bundled); that is fast to edit but slow
-over a network. To look at what a visitor actually downloads, use
-`npm run build && npm run preview` — one gzipped HTML file, about 500 kB.
+`npm run build` emits a normal Vite build: the shell and the current page are
+the only JavaScript needed for the first paint (about 75 kB gzipped), and each
+route, the diagrams and three.js are separate chunks fetched when they are
+needed. `npm run build:single` inlines everything into `dist-single/index.html`
+(~475 kB gzipped) for hosts that only accept one file; both outputs copy the
+Earth textures to `textures/` next to the HTML.
+
+`npm run dev` still serves modules individually; the Vite `warmup` list now
+covers every component directory so the first visit to the overview or the
+explainer does not have to compile the whole diagram graph on demand.
+
+### Toolchain
+
+TypeScript **7**, Vite **8**, React **19.3**, Tailwind CSS **4.3** and
+three.js **0.186**. `tsconfig.json` no longer uses `baseUrl` — it was removed in
+TS 7 — so the `@/*` alias is a plain relative `paths` entry. Tailwind utilities
+use the v4 names (`bg-linear-to-*`, `shrink-0`), and the project type-checks
+with `verbatimModuleSyntax`.
+
+If you host the site under a sub-path (a project page, for example), build with
+`npx vite build --base=/your-path/`; textures and chunks are resolved from
+`import.meta.env.BASE_URL` and the build's base, not from the domain root.
 
 ## Loading
 
 The page is deliberately built to show words before it shows WebGL:
 
-- **A boot screen in `index.html`.** Inline HTML and CSS, painted before React
-  (or the 1.6 MB engine) exists, then replaced by the app on first render. It
-  also reports itself if the bundle is still loading after 12 seconds.
-- **Fonts are not render-blocking.** Google Fonts is requested with
-  `media="print"` and swapped in on load, with the system stack as the fallback,
-  so a slow or blocked font host cannot leave the tab blank.
+- **Routes are code-split.** The entry bundle contains the shell and nothing
+  else; each page, the interactive figures and three.js arrive as separate
+  chunks. A visitor reads the overview before the hero globe has downloaded.
+- **A boot screen in `index.html`.** Inline HTML and CSS, painted before any
+  script exists, then replaced by the app on first render. It also watches the
+  start-up: a script error, a failed module or a bundle that never arrives is
+  reported in words with a single retry button, instead of leaving visitors to
+  guess and reload.
+- **Fonts are not render-blocking.** Google Fonts is preloaded and promoted to a
+  stylesheet when it arrives, with the system stack as the fallback, so a slow
+  or blocked font host cannot leave the tab blank.
 - **The 3D scenes mount late and politely.** `SceneGate` waits until the canvas
   is near the viewport and the browser is idle, so text, figures and navigation
   paint first. It also probes for WebGL once, shows a labelled placeholder while
   the engine arrives, and swaps in an explanation instead of a blank box when
-  the device cannot do 3D at all.
+  the device cannot do 3D at all. A lost WebGL context is caught and offered a
+  retry, so a driver reset no longer needs a page reload.
+- **Scroll reveals can never hide content.** The visible state is the default;
+  a block is only hidden after mount, and only when it is below the fold. If the
+  observer never fires — background tab, restricted webview, old browser — a
+  timer and the page lifecycle reveal it anyway.
+- **Animated figures park themselves.** The SVG animations stop when they are
+  off screen or the tab is hidden, and run at 30 fps, so the long pages stay
+  smooth on a phone.
 - **Errors are contained.** Every canvas sits behind an `ErrorBoundary`, and so
-  does each page: a shader that will not compile, a lost context or a driver
+  does each page: a shader that will not compile, a failed chunk or a driver
   reset costs the model, not the article.
-- **Textures are compressed.** The Earth day and night maps are re-encoded for
-  the size they are drawn at (940 kB → 274 kB) and the day map is preloaded at
-  low priority.
+- **Textures are compressed and on demand.** The Earth day and night maps are
+  re-encoded for the size they are drawn at (940 kB → 274 kB) and only fetched
+  once the lazy 3D chunk mounts, so they are not part of the first load.
 
 ## Structure
 
 ```
 src/
   App.tsx                 route switch + page frame
-  pages/                  Home, HowItWorks, Beam, PhasedArray, Explorer, Numbers, Faq
+  pages/                  Home, HowItWorks, PhasedArray, Explorer, Numbers, Faq
   components/
-    site/                 header, footer, primitives, FAQ accordion
+    site/                 header, footer, primitives, FAQ accordion, scene gate/posters
     home/                 home-page sections
     diagrams/             the interactive SVG figures
     antenna/              phased-array beam lab (scene, panel lattice, beam/wave/pattern layers, sky, controls, close-up, guide)
@@ -139,11 +173,20 @@ src/
     content.ts            editorial copy and chapter metadata
     phasedArray.ts        phased-array model: phases, array factor, cut metrics, satellites
     antennaContent.ts     beam-lab lesson copy, guided steps, assumptions
-    router.tsx            tiny hash router
+    router.tsx            tiny hash router + retrying section scroll
+    preload.ts            route-chunk prefetching (idle + hover)
+    useViewportActivity.ts pauses animations that nobody can see
     worldPath.ts          Natural Earth land outlines for the 2D map
 public/textures/          Earth day / night / cloud maps (served locally)
 scripts/                  smoke test + jsdom interaction test for the beam lab
+vite.config.ts            dev server + code-split build
+vite.config.singlefile.ts one-file build used by `npm run build:single`
 ```
+
+The jsdom smoke test also guards the loading behaviour: it fails if the boot
+screen survives the first render, if a page ever has more than one `<h1>`, if a
+`<main>` is nested inside another one, if a scroll reveal is left hidden, or if
+a deep link and a real nav click fail to swap pages.
 
 ## Credits
 

@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "@/lib/useMediaQuery";
+import { useViewportActive } from "@/lib/useViewportActivity";
 
 const IDS = [4471, 4488, 4505];
 const PERIOD = 8;
@@ -13,16 +14,29 @@ export function HandoverDemo() {
   const [time, setTime] = useState(0);
   const [speed, setSpeed] = useState(1);
   const [traffic, setTraffic] = useState("both");
-  const running = playing && !reduced;
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const onScreen = useViewportActive(stageRef);
+  // The loop only runs while the figure is on screen and the tab is visible.
+  // It used to tick at 60 fps for the whole session on two different pages,
+  // which is enough re-rendering to make scrolling stutter on a phone.
+  const running = playing && !reduced && onScreen;
+  const animating = playing && !reduced;
 
   useEffect(() => {
     if (!running) return;
     let frame = 0;
     let last = performance.now();
+    let pending = 0;
     const tick = (now: number) => {
       const dt = Math.min((now - last) / 1000, 0.1);
       last = now;
-      setTime((t) => t + dt * speed);
+      pending += dt * speed;
+      // 30 fps is plenty for a schematic and halves the React work.
+      if (pending >= 1 / 30) {
+        const step = pending;
+        pending = 0;
+        setTime((t) => t + step);
+      }
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
@@ -44,7 +58,7 @@ export function HandoverDemo() {
   const buttonClass = "rounded-full border border-white/15 px-3 py-1.5 text-xs text-ink hover:border-signal/60 focus-visible:outline-2 focus-visible:outline-signal";
 
   return (
-    <div className="panel overflow-hidden">
+    <div ref={stageRef} className="panel overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/[0.07] px-5 py-4">
         <div>
           <h3 className="text-sm font-semibold text-white">Your dish. A moving sky. One connection.</h3>
@@ -58,7 +72,7 @@ export function HandoverDemo() {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white/[0.02] px-5 py-3">
-        <p className="font-mono text-[11px] text-signal" role="status">{preparing ? `Preparing SAT ${IDS[next]}` : `Tracking SAT ${target.id}`} · {running ? "running" : "paused"}</p>
+        <p className="font-mono text-[11px] text-signal" role="status">{preparing ? `Preparing SAT ${IDS[next]}` : `Tracking SAT ${target.id}`} · {animating ? "running" : "paused"}</p>
         <div className="flex flex-wrap gap-4 text-xs text-muted">
           <label>Data <select aria-label="Data flow direction" className="ml-2 rounded border border-white/15 bg-[#0a1523] p-1 text-ink" value={traffic} onChange={(e) => setTraffic(e.target.value)}>
             <option value="both">Send + receive</option><option value="up">Send only</option><option value="down">Receive only</option>

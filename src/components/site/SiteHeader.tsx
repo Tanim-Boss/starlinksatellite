@@ -6,7 +6,7 @@ import { cn } from "@/utils/cn";
 function Wordmark() {
   return (
     <span className="flex items-center gap-2.5">
-      <span className="relative flex h-8 w-8 items-center justify-center rounded-[10px] border border-signal/40 bg-gradient-to-br from-signal/20 to-beam/10">
+      <span className="relative flex h-8 w-8 items-center justify-center rounded-[10px] border border-signal/40 bg-linear-to-br from-signal/20 to-beam/10">
         <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" aria-hidden>
           <circle cx="12" cy="12" r="3.1" fill="#3ddbd9" />
           <ellipse
@@ -42,16 +42,29 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => {
+    // Scroll handlers fire dozens of times a second. Reading layout and
+    // re-rendering the nav on every event is what makes a long page feel
+    // heavy, so measure at most once per frame and only update the bar when
+    // the rounded percentage actually changes.
+    let frame = 0;
+    const read = () => {
+      frame = 0;
       const y = window.scrollY;
       setScrolled(y > 12);
       const max = document.documentElement.scrollHeight - window.innerHeight;
-      setProgress(max > 0 ? Math.min(1, y / max) : 0);
+      const next = max > 0 ? Math.min(1, Math.max(0, y / max)) : 0;
+      setProgress((previous) =>
+        Math.abs(previous - next) < 0.005 ? previous : next,
+      );
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(read);
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
     return () => {
+      if (frame) cancelAnimationFrame(frame);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
@@ -92,7 +105,7 @@ export function SiteHeader() {
                 >
                   {item.label}
                   {active && (
-                    <span className="absolute inset-x-3 -bottom-px h-px bg-gradient-to-r from-transparent via-signal to-transparent" />
+                    <span className="absolute inset-x-3 -bottom-px h-px bg-linear-to-r from-transparent via-signal to-transparent" />
                   )}
                 </Link>
               );
@@ -140,7 +153,7 @@ export function SiteHeader() {
         </div>
         <div className="h-px w-full bg-white/[0.04]">
           <div
-            className="h-px bg-gradient-to-r from-signal/60 to-beam/60 transition-[width] duration-150"
+            className="h-px bg-linear-to-r from-signal/60 to-beam/60 transition-[width] duration-150"
             style={{ width: `${progress * 100}%` }}
           />
         </div>

@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "@/lib/useMediaQuery";
+import { useViewportActive } from "@/lib/useViewportActivity";
 
 const ARRAY_CX = 350;
 const ARRAY_Y = 330;
@@ -14,20 +15,35 @@ const BEAM_LEN = 250;
 export function PhasedArray() {
   const reduced = useReducedMotion();
   const [angle, setAngle] = useState(32); // degrees from vertical
-  const [auto, setAuto] = useState(!reduced);
+  // On by default; the reduced-motion preference and visibility gate the loop
+  // rather than switching the control off before the preference is known.
+  const [auto, setAuto] = useState(true);
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const active = useViewportActive(stageRef);
+  const running = auto && !reduced && active;
 
+  // Elapsed animation time lives in a ref so pausing (scrolling away, reduced
+  // motion, unticking the box) resumes the sweep where it stopped.
+  const elapsed = useRef(0);
   useEffect(() => {
-    if (!auto || reduced) return;
+    if (!running) return;
     let raf = 0;
-    let t0 = performance.now();
+    let last = performance.now();
+    let lastPaint = 0;
     const loop = (now: number) => {
-      const s = (now - t0) / 1000;
-      setAngle(34 + 22 * Math.sin(s * 0.55));
+      const dt = Math.min((now - last) / 1000, 0.1);
+      last = now;
+      elapsed.current += dt;
+      // 30 fps: the beam sweeps at the same speed with half the re-renders.
+      if (now - lastPaint >= 1000 / 30) {
+        lastPaint = now;
+        setAngle(34 + 22 * Math.sin(elapsed.current * 0.55));
+      }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [auto, reduced]);
+  }, [running]);
 
   const rad = (angle * Math.PI) / 180;
   const satX = ARRAY_CX - Math.sin(rad) * BEAM_LEN;
@@ -37,7 +53,7 @@ export function PhasedArray() {
   const delayPs = 42 * Math.sin(rad);
 
   return (
-    <div className="panel overflow-hidden">
+    <div ref={stageRef} className="panel overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.07] px-5 py-4">
         <div>
           <h3 className="text-sm font-semibold text-white">Steering a beam with timing</h3>

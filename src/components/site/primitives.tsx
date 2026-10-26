@@ -1,10 +1,31 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { cn } from "@/utils/cn";
 
 /* -------------------------------------------------------------------------- */
 /* Scroll reveal                                                              */
 /* -------------------------------------------------------------------------- */
 
+function motionIsReduced(): boolean {
+  try {
+    return (
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Fades a block in as it reaches the viewport — as an enhancement only.
+ *
+ * The visible state is the default. A block is hidden *after* mount, and only
+ * when it is genuinely below the fold, so nothing on this site can ever be
+ * stranded invisible: no observer, a throttled background tab, a webview that
+ * never delivers intersection callbacks, or a slow device all end with the
+ * text on screen. That failure mode used to make the overview and the
+ * explainer look blank until a visitor reloaded.
+ */
 export function Reveal({
   children,
   delay = 0,
@@ -17,33 +38,65 @@ export function Reveal({
   as?: "div" | "section" | "li" | "span";
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
-  const [shown, setShown] = useState(false);
+  const [hidden, setHidden] = useState(false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    if (typeof IntersectionObserver === "undefined") {
-      setShown(true);
-      return;
+    if (typeof window === "undefined") return;
+    if (motionIsReduced() || typeof IntersectionObserver === "undefined") return;
+    if (document.visibilityState === "hidden") return;
+
+    const viewport = window.innerHeight || document.documentElement.clientHeight || 0;
+    const rect = el.getBoundingClientRect();
+    // Anything with a visible pixel (or already scrolled past) is painted
+    // straight away: hiding and re-showing content that is on screen is what
+    // caused the flash/reload behaviour this replaced.
+    if (rect.top < viewport * 0.99 || rect.bottom < 0) return;
+
+    setHidden(true);
+
+    let done = false;
+    let timer = 0;
+
+    function reveal() {
+      if (done) return;
+      done = true;
+      window.clearTimeout(timer);
+      window.removeEventListener("pageshow", onPageShow);
+      document.removeEventListener("visibilitychange", onVisibility);
+      io.disconnect();
+      setHidden(false);
     }
+
+    const onPageShow = () => reveal();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") reveal();
+    };
+
     const io = new IntersectionObserver(
       (entries) => {
-        for (const e of entries) {
-          if (e.isIntersecting) {
-            setShown(true);
-            io.disconnect();
-          }
-        }
+        if (entries.some((entry) => entry.isIntersecting)) reveal();
       },
-      { rootMargin: "0px 0px -8% 0px", threshold: 0.08 },
+      // Any intersection at all reveals it, including a single pixel peeking
+      // over the bottom edge; the block is only ever hidden when it is fully
+      // below the fold.
+      { rootMargin: "0px", threshold: 0 },
     );
+
     io.observe(el);
-    // Safety net: reveal anyway after a moment, so content is never trapped
-    // invisible by an observer that never fires.
-    const fallback = window.setTimeout(() => setShown(true), 1400);
+    // Safety nets: an idle callback that never arrives, a tab that was in the
+    // background, or a restored bfcache page must all still reveal.
+    timer = window.setTimeout(reveal, 1800);
+    window.addEventListener("pageshow", onPageShow);
+    document.addEventListener("visibilitychange", onVisibility);
+
     return () => {
+      done = true;
+      window.clearTimeout(timer);
+      window.removeEventListener("pageshow", onPageShow);
+      document.removeEventListener("visibilitychange", onVisibility);
       io.disconnect();
-      window.clearTimeout(fallback);
     };
   }, []);
 
@@ -52,8 +105,9 @@ export function Reveal({
   return (
     <Component
       ref={ref}
-      className={cn("reveal", shown && "is-in", className)}
-      style={{ transitionDelay: `${delay}ms` }}
+      data-reveal={hidden ? "hidden" : "in"}
+      className={cn("reveal", className)}
+      style={{ "--reveal-delay": `${delay}ms` } as CSSProperties}
     >
       {children}
     </Component>

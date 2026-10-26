@@ -38,6 +38,8 @@ export function Explorer() {
       </section>
 
       <div className="page-shell py-8 md:py-10">
+        {/* The stage's panels use h3s; this keeps the outline intact. */}
+        <h2 className="sr-only">The interactive constellation model</h2>
         <Reveal>
           <ExplorerStage />
         </Reveal>

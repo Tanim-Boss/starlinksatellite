@@ -1,13 +1,23 @@
 import * as THREE from "three";
 
+/**
+ * Resolve a file from `public/` against the deployed base instead of the
+ * domain root, so the guide keeps its textures when it is hosted under a
+ * sub-path (a project page, a sub-folder, a preview URL). `BASE_URL` is "/"
+ * by default, which yields the same URLs as before.
+ */
+const base =
+  (typeof import.meta !== "undefined" && import.meta.env?.BASE_URL) || "/";
+const local = (file: string) => `${base}${file}`;
+
 /** Local copies ship with the site; the CDNs are fallbacks only. */
 export const EARTH_URLS = [
-  "/textures/earth-day.jpg",
+  local("textures/earth-day.jpg"),
   "https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg",
 ];
 
 export const NIGHT_URLS = [
-  "/textures/earth-night.jpg",
+  local("textures/earth-night.jpg"),
   "https://threejs.org/examples/textures/planets/earth_lights_2048.png",
 ];
 

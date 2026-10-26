@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   EARTH_RADIUS_KM,
   SHELLS,
@@ -36,7 +36,7 @@ const Chapter = ({
   children,
 }: {
   id: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) => (
   <article id={id} className="scroll-mt-28 border-t border-white/[0.08] py-14 first:border-0 first:pt-0 md:py-16">
     {children}
@@ -63,7 +63,7 @@ const ChapterHeader = ({
   </Reveal>
 );
 
-const Prose = ({ children }: { children: React.ReactNode }) => (
+const Prose = ({ children }: { children: ReactNode }) => (
   <div className="max-w-2xl space-y-4 text-[14px] leading-[1.75] text-muted md:text-[14.5px]">
     {children}
   </div>
@@ -167,8 +167,9 @@ export function HowItWorks() {
             </div>
           </aside>
 
-          {/* Chapters */}
-          <main className="pb-4">
+          {/* Chapters. A <section>, not a nested <main>: there is already one
+              landmark in App, and nesting them is invalid HTML. */}
+          <div className="pb-4">
             {/* Mobile chapter strip */}
             <div className="sticky top-16 z-30 -mx-5 border-b border-white/[0.06] bg-[#04060d]/95 px-5 py-2 backdrop-blur-md lg:hidden">
               <div className="flex gap-1.5 overflow-x-auto pb-0.5">
@@ -692,7 +693,7 @@ export function HowItWorks() {
                 </Reveal>
               </div>
             </div>
-          </main>
+          </div>
         </div>
       </div>
     </>

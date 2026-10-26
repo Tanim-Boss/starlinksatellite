@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { cn } from "@/utils/cn";
 import { ErrorBoundary } from "./ErrorBoundary";
 
@@ -31,6 +31,11 @@ export function supportsWebGL(): boolean {
   return webglSupport;
 }
 
+/** Drops the cached probe so "Try again" can ask the browser a second time. */
+function forgetWebGLSupport() {
+  webglSupport = null;
+}
+
 /* -------------------------------------------------------------------------- */
 /* Deferred mounting                                                          */
 /* -------------------------------------------------------------------------- */
@@ -42,7 +47,7 @@ type IdleWindow = Window & {
 
 /**
  * True once the element has come near the viewport *and* the browser has a
- * spare moment. Keeps the three.js + WebGL start-up (and the ~1.6 MB of engine
+ * spare moment. Keeps the three.js + WebGL start-up (and the ~700 kB of engine
  * code behind it) off the critical path, so text, images and navigation paint
  * first instead of waiting behind a canvas that may be below the fold.
  */
@@ -138,14 +143,31 @@ function SceneLoading({ caption, poster }: { caption: string; poster?: ReactNode
   );
 }
 
-/** Shown when the page cannot have a 3D scene at all. */
-function SceneUnavailable({ title, body }: { title: string; body: string }) {
+/** Shown when the page cannot have a 3D scene at all, or it stopped working. */
+function SceneUnavailable({
+  title,
+  body,
+  onRetry,
+}: {
+  title: string;
+  body: string;
+  onRetry?: () => void;
+}) {
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-[#04070f] px-6 py-8">
       <div className="max-w-sm text-center">
         <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-warn">3D view off</p>
         <p className="mt-2 text-[13px] font-medium leading-snug text-ink">{title}</p>
         <p className="mt-2 text-[11.5px] leading-relaxed text-muted">{body}</p>
+        {onRetry && (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="mt-4 rounded-full border border-signal/40 bg-signal/10 px-4 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-signal transition-colors hover:border-signal hover:bg-signal/20 hover:text-white"
+          >
+            Try again
+          </button>
+        )}
       </div>
     </div>
   );
@@ -174,8 +196,9 @@ interface SceneGateProps {
 /**
  * Mounts a three.js canvas only when it is actually needed, and never lets it
  * break the page: while it loads it shows a placeholder, if WebGL is missing it
- * shows a short explanation, and if the scene throws it is swapped out instead
- * of blanking the site.
+ * shows a short explanation, and if the scene throws or the GPU drops the
+ * context it is swapped out instead of blanking the site. Both failure states
+ * offer a retry, so a lost context no longer means reloading the page.
  *
  * Render it inside a `relative` element with a real height — it fills that box.
  */
@@ -190,6 +213,8 @@ export function SceneGate({
 }: SceneGateProps) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [webgl, setWebgl] = useState<boolean | null>(null);
+  const [contextLost, setContextLost] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const ready = useReadyToRender(ref, rootMargin);
 
   // Probe after mount, never during render: the check touches the DOM and
@@ -198,14 +223,50 @@ export function SceneGate({
     setWebgl(supportsWebGL());
   }, []);
 
+  // A GPU reset, a driver update or too many live contexts kills the canvas
+  // silently. Listen for it so the box can offer a retry instead of sitting
+  // black until the visitor thinks to reload the page.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const onLost = (event: Event) => {
+      event.preventDefault();
+      setContextLost(true);
+    };
+    const onRestored = () => {
+      setContextLost(false);
+      setAttempt((value) => value + 1);
+    };
+    el.addEventListener("webglcontextlost", onLost, true);
+    el.addEventListener("webglcontextrestored", onRestored, true);
+    return () => {
+      el.removeEventListener("webglcontextlost", onLost, true);
+      el.removeEventListener("webglcontextrestored", onRestored, true);
+    };
+  }, []);
+
+  const retry = useCallback(() => {
+    forgetWebGLSupport();
+    setWebgl(supportsWebGL());
+    setContextLost(false);
+    setAttempt((value) => value + 1);
+  }, []);
+
   return (
     <div ref={ref} className={cn("absolute inset-0 overflow-hidden", className)}>
       {webgl === false ? (
-        <SceneUnavailable title={unavailableTitle} body={unavailableBody} />
+        <SceneUnavailable title={unavailableTitle} body={unavailableBody} onRetry={retry} />
+      ) : contextLost ? (
+        <SceneUnavailable
+          title="The 3D view lost its graphics context."
+          body="The graphics driver reset, which happens after a long session, a GPU switch or a driver update. The rest of the page is unaffected."
+          onRetry={retry}
+        />
       ) : ready ? (
         <ErrorBoundary
+          key={attempt}
           label="3D scene"
-          fallback={<SceneUnavailable title={unavailableTitle} body={unavailableBody} />}
+          fallback={<SceneUnavailable title={unavailableTitle} body={unavailableBody} onRetry={retry} />}
         >
           {children}
         </ErrorBoundary>
