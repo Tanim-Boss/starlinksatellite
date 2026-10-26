@@ -404,6 +404,122 @@ export function lightTimeMs(rangeKm: number) {
   return (rangeKm / 299792.458) * 1000;
 }
 
+/** Great-circle angle between two look directions, degrees. */
+export function angularSeparation(
+  a: { el: number; az: number },
+  b: { el: number; az: number },
+) {
+  const e1 = a.el * DEG;
+  const e2 = b.el * DEG;
+  const dz = (b.az - a.az) * DEG;
+  const c = Math.sin(e1) * Math.sin(e2) + Math.cos(e1) * Math.cos(e2) * Math.cos(dz);
+  return Math.acos(clamp(c, -1, 1)) * RAD;
+}
+
+/**
+ * The handovers that actually replace an existing link (the first acquisition
+ * of the session has nothing to hand over from).
+ */
+export function linkHandovers(timeline: BeamTimeline) {
+  return timeline.handovers.filter((h) => h.fromId !== null);
+}
+
+/** The handover closest to a given instant, or null if there are none. */
+export function nearestHandover(timeline: BeamTimeline, tSec: number): BeamHandover | null {
+  let best: BeamHandover | null = null;
+  let bestGap = Infinity;
+  for (const h of linkHandovers(timeline)) {
+    const gap = Math.abs(h.tSec - tSec);
+    if (gap < bestGap) {
+      bestGap = gap;
+      best = h;
+    }
+  }
+  return best;
+}
+
+/** First and last second (session time) at which a track sits above the mask. */
+export function maskSpan(track: BeamTrack) {
+  let first = -1;
+  let last = -1;
+  for (let i = 0; i < track.el.length; i++) {
+    if (track.el[i] >= BEAM_MASK_DEG) {
+      if (first < 0) first = i;
+      last = i;
+    }
+  }
+  return {
+    riseSec: first < 0 ? null : first * BEAM_STEP_SEC,
+    setSec: last < 0 ? null : last * BEAM_STEP_SEC,
+  };
+}
+
+export interface HandoverLeg {
+  track: BeamTrack;
+  /** Look angles at the instant of the switch. */
+  look: LookAngle;
+  /** Elevation change over the 20 s before the switch, degrees per minute. */
+  rateDegPerMin: number;
+  phaseDeg: number;
+  delayPs: number;
+  lightMs: number;
+  riseSec: number | null;
+  setSec: number | null;
+}
+
+export interface HandoverDetail {
+  tSec: number;
+  clock: string;
+  from: HandoverLeg;
+  to: HandoverLeg;
+  /** Angle on the sky between the two satellites at the switch, degrees. */
+  swingDeg: number;
+  azSwingDeg: number;
+  elGainDeg: number;
+  rangeGainKm: number;
+  lightGainMs: number;
+  phaseFromDeg: number;
+  phaseToDeg: number;
+}
+
+function legAt(track: BeamTrack, tSec: number, span = 20): HandoverLeg {
+  const look = sampleTrack(track, tSec);
+  const earlier = sampleTrack(track, tSec - span);
+  const { riseSec, setSec } = maskSpan(track);
+  return {
+    track,
+    look,
+    rateDegPerMin: ((look.el - earlier.el) / span) * 60,
+    phaseDeg: phaseStepDeg(look.el),
+    delayPs: phaseDelayPs(look.el),
+    lightMs: lightTimeMs(look.rangeKm),
+    riseSec,
+    setSec,
+  };
+}
+
+/** Everything a worked example of one handover needs, in one place. */
+export function handoverDetail(timeline: BeamTimeline, h: BeamHandover): HandoverDetail {
+  const fromTrack = timeline.byId.get(h.fromId ?? -1);
+  const toTrack = timeline.byId.get(h.toId);
+  if (!fromTrack || !toTrack) throw new Error("handover references a satellite outside the timeline");
+  const from = legAt(fromTrack, h.tSec);
+  const to = legAt(toTrack, h.tSec);
+  return {
+    tSec: h.tSec,
+    clock: formatClock(h.tSec),
+    from,
+    to,
+    swingDeg: angularSeparation(from.look, to.look),
+    azSwingDeg: Math.abs(angleDelta(from.look.az, to.look.az)),
+    elGainDeg: to.look.el - from.look.el,
+    rangeGainKm: to.look.rangeKm - from.look.rangeKm,
+    lightGainMs: to.lightMs - from.lightMs,
+    phaseFromDeg: from.phaseDeg,
+    phaseToDeg: to.phaseDeg,
+  };
+}
+
 export function formatClock(sec: number) {
   const s = Math.max(0, Math.round(sec));
   const m = Math.floor(s / 60);
