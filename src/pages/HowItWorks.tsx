@@ -19,6 +19,7 @@ import { SpotBeams } from "@/components/diagrams/SpotBeams";
 import { CoverageMap } from "@/components/diagrams/CoverageMap";
 import { ShellDiagram } from "@/components/diagrams/ShellDiagram";
 import { LaserMesh } from "@/components/diagrams/LaserMesh";
+import { HandoverDemo } from "@/components/diagrams/HandoverDemo";
 import { PassTimeline } from "@/components/diagrams/PassTimeline";
 import { LatencyBudget } from "@/components/diagrams/LatencyBudget";
 import { NextPageCTA } from "@/components/home/HomeSections";
@@ -584,7 +585,8 @@ export function HowItWorks() {
                   lede={CHAPTERS[7].lede}
                 />
                 <Reveal delay={60} className="mt-8">
-                  <PassTimeline />
+                  <HandoverDemo />
+                  <div className="mt-6"><PassTimeline /></div>
                 </Reveal>
                 <Reveal delay={80} className="mt-6">
                   <Prose>

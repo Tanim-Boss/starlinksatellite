@@ -1,243 +1,136 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useReducedMotion } from "@/lib/useMediaQuery";
 
-const W = 900;
-const DISH_X = 450;
-const SAT_Y = 150;
-const GROUND_Y = 296;
-const SPEED = 46; // px per second
-const IN_VIEW = 250;
+const IDS = [4471, 4488, 4505];
+const PERIOD = 8;
+const UP = "#3ddbd9";
+const DOWN = "#f6ba68";
 
-/**
- * Shows why a moving constellation still feels like a fixed connection:
- * satellites slide across the sky, the terminal tracks whichever is best,
- * and the link is handed over before the current one sets.
- */
+/** Educational model: accelerated motion and scheduled links, not network telemetry. */
 export function HandoverDemo() {
   const reduced = useReducedMotion();
-  const [t, setT] = useState(0);
-  const [log, setLog] = useState<{ id: number; at: number }[]>([]);
-  const lastTarget = useRef<number | null>(null);
-  const tRef = useRef(0);
+  const [playing, setPlaying] = useState(true);
+  const [time, setTime] = useState(0);
+  const [speed, setSpeed] = useState(1);
+  const [traffic, setTraffic] = useState("both");
+  const running = playing && !reduced;
 
   useEffect(() => {
-    if (reduced) return;
-    let raf = 0;
+    if (!running) return;
+    let frame = 0;
     let last = performance.now();
-    let acc = 0;
-    const loop = (now: number) => {
+    const tick = (now: number) => {
       const dt = Math.min((now - last) / 1000, 0.1);
       last = now;
-      tRef.current += dt * SPEED;
-      acc += dt;
-      if (acc > 0.06) {
-        acc = 0;
-        setT(tRef.current);
-      }
-      raf = requestAnimationFrame(loop);
+      setTime((t) => t + dt * speed);
+      frame = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
-  }, [reduced]);
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [running, speed]);
 
-  // Satellites loop across the view, staggered.
-  const sats = [-0.55, 0.02, 0.58].map((offset, i) => {
-    const raw = ((t * 0.001 + offset) % 1 + 1) % 1;
-    const x = -140 + raw * (W + 280);
-    return { id: 4471 + i * 17, x, y: SAT_Y + (i === 1 ? 14 : 0) };
+  const cycle = Math.floor(time / PERIOD);
+  const phase = (time % PERIOD) / PERIOD;
+  const active = cycle % 3;
+  const next = (active + 1) % 3;
+  const preparing = phase >= 0.75;
+  const sats = IDS.map((id, i) => {
+    const relative = i === active ? 0 : i === next ? -1 : 1;
+    const x = 450 + relative * 240 + phase * 240;
+    return { id, x, y: 100 + Math.pow((x - 450) / 360, 2) * 55 };
   });
-
-  // Choose the satellite closest to overhead and in view.
-  const candidates = sats.filter((s) => Math.abs(s.x - DISH_X) < IN_VIEW);
-  candidates.sort((a, b) => Math.abs(a.x - DISH_X) - Math.abs(b.x - DISH_X));
-  const target = candidates[0] ?? null;
-
-  useEffect(() => {
-    if (!target) return;
-    if (lastTarget.current !== target.id) {
-      lastTarget.current = target.id;
-      setLog((l) => [{ id: target.id, at: Date.now() }, ...l].slice(0, 3));
-    }
-  }, [target?.id]);
+  const target = sats[active];
+  const upcoming = sats[next];
+  const buttonClass = "rounded-full border border-white/15 px-3 py-1.5 text-xs text-ink hover:border-signal/60 focus-visible:outline-2 focus-visible:outline-signal";
 
   return (
     <div className="panel overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.07] px-5 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/[0.07] px-5 py-4">
         <div>
-          <h3 className="text-sm font-semibold text-white">Handover, illustrated</h3>
-          <p className="mt-0.5 text-[11px] text-faint">One link at a time — until the next satellite takes over</p>
+          <h3 className="text-sm font-semibold text-white">Your dish. A moving sky. One connection.</h3>
+          <p className="mt-1 text-[11px] text-faint">Interactive handoff + two-way data flow · accelerated illustration</p>
         </div>
-        <span className="inline-flex items-center gap-2 rounded-full border border-signal/30 bg-signal/10 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-signal">
-          <span className="h-1.5 w-1.5 rounded-full bg-signal animate-blink" />
-          {target ? `linked · sat ${target.id}` : "re-acquiring"}
-        </span>
+        <div className="flex flex-wrap gap-2">
+          {!reduced && <button className={buttonClass} onClick={() => setPlaying(!playing)}>{playing ? "Pause" : "Play"}</button>}
+          <button className={buttonClass} onClick={() => { setTime((Math.floor(time / PERIOD) + 1) * PERIOD); }}>Next satellite →</button>
+          <button className={buttonClass} onClick={() => setTime(0)}>Reset</button>
+        </div>
       </div>
 
-      <div className="figure-scroll">
-      <svg viewBox={`0 0 ${W} 320`} className="w-full" role="img" aria-label="Animation of satellites moving across the sky while a ground terminal hands off its link from one satellite to the next">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white/[0.02] px-5 py-3">
+        <p className="font-mono text-[11px] text-signal" role="status">{preparing ? `Preparing SAT ${IDS[next]}` : `Tracking SAT ${target.id}`} · {running ? "running" : "paused"}</p>
+        <div className="flex flex-wrap gap-4 text-xs text-muted">
+          <label>Data <select aria-label="Data flow direction" className="ml-2 rounded border border-white/15 bg-[#0a1523] p-1 text-ink" value={traffic} onChange={(e) => setTraffic(e.target.value)}>
+            <option value="both">Send + receive</option><option value="up">Send only</option><option value="down">Receive only</option>
+          </select></label>
+          <label>Speed <select aria-label="Simulation speed" className="ml-2 rounded border border-white/15 bg-[#0a1523] p-1 text-ink" value={speed} onChange={(e) => setSpeed(Number(e.target.value))}>
+            <option value={0.5}>0.5×</option><option value={1}>1×</option><option value={2}>2×</option>
+          </select></label>
+        </div>
+      </div>
+
+      <svg viewBox="0 0 900 420" className="w-full bg-[#060b16]" role="img" aria-label={`Dish connected to satellite ${target.id}. Cyan packets travel up to the satellite; amber packets travel down to the dish. ${preparing ? `Satellite ${IDS[next]} is being prepared for handoff.` : "The beam electronically tracks the moving satellite."}`}>
         <defs>
-          <linearGradient id="ho-sky" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#071020" />
-            <stop offset="100%" stopColor="#050a14" />
-          </linearGradient>
-          <linearGradient id="ho-beam" x1="0" y1="1" x2="0" y2="0">
-            <stop offset="0%" stopColor="#3ddbd9" stopOpacity="0.5" />
-            <stop offset="100%" stopColor="#3ddbd9" stopOpacity="0.04" />
-          </linearGradient>
-          <linearGradient id="ho-ground" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#0c1c28" />
-            <stop offset="100%" stopColor="#050c14" />
-          </linearGradient>
-          <radialGradient id="ho-glow">
-            <stop offset="0%" stopColor="#3ddbd9" stopOpacity="0.5" />
-            <stop offset="100%" stopColor="#3ddbd9" stopOpacity="0" />
-          </radialGradient>
+          <linearGradient id="ho-beam" x1="0" y1="1" x2="0" y2="0"><stop stopColor={UP} stopOpacity="0.22"/><stop offset="1" stopColor={UP} stopOpacity="0.02"/></linearGradient>
         </defs>
+        {[70, 140, 210, 280].map((y) => <line key={y} x1="25" x2="875" y1={y} y2={y} stroke="#172638" strokeDasharray="2 10"/>)}
+        <path d="M50 168 Q450 15 850 168" fill="none" stroke="#294052" strokeDasharray="5 8"/>
+        <text x="30" y="32" fill="#8a9cb4" fontSize="12" fontFamily="monospace">LEO SATELLITES →</text>
+        <text x="870" y="32" textAnchor="end" fill="#8a9cb4" fontSize="11">Not to scale</text>
+        <path d="M0 365 Q450 345 900 365 V420 H0 Z" fill="#0b1b27" stroke="#294052"/>
 
-        <rect width={W} height="320" fill="url(#ho-sky)" />
-
-        {/* altitude / sky grid */}
-        {[116, 150, 184, 218, 252].map((y) => (
-          <line key={y} x1="0" x2={W} y1={y} y2={y} stroke="rgba(148,176,224,0.06)" strokeDasharray="2 10" />
-        ))}
-        <line x1="0" x2={W} y1={SAT_Y + 42} y2={SAT_Y + 42} stroke="rgba(61,219,217,0.2)" strokeDasharray="3 8" />
-        <text x="14" y={SAT_Y + 2} style={{ fontSize: 10.6, fontFamily: "JetBrains Mono, monospace", letterSpacing: 1.2 }} fill="#60799a">
-          550 km · LEO
-        </text>
-
-        {/* footprint bands */}
-        {sats.map((s) => {
-          const r = 150;
-          const isTarget = target?.id === s.id;
-          return (
-            <g key={`f${s.id}`}>
-              <ellipse
-                cx={s.x}
-                cy="292"
-                rx={r}
-                ry="14"
-                fill={isTarget ? "rgba(61,219,217,0.13)" : "rgba(61,219,217,0.045)"}
-                stroke={isTarget ? "rgba(61,219,217,0.45)" : "rgba(61,219,217,0.14)"}
-              />
-            </g>
-          );
+        {preparing && <g>
+          <line x1="450" y1="322" x2={upcoming.x} y2={upcoming.y + 12} stroke="#a4a1ff" strokeDasharray="6 7" strokeWidth="2"/>
+          <text x={upcoming.x} y={upcoming.y + 40} fill="#bcbaff" textAnchor="middle" fontSize="12">NEXT LINK · PREPARING</text>
+        </g>}
+        <path d={`M432 322 L${target.x - 18} ${target.y} L${target.x + 18} ${target.y} L468 322 Z`} fill="url(#ho-beam)"/>
+        {(["up", "down"] as const).map((direction) => {
+          if (traffic !== "both" && traffic !== direction) return null;
+          const up = direction === "up";
+          const offset = up ? -7 : 7;
+          const color = up ? UP : DOWN;
+          return <g key={direction}>
+            <line x1={450 + offset} y1="322" x2={target.x + offset} y2={target.y + 14} stroke={color} strokeOpacity="0.45" strokeWidth="1.5"/>
+            {[0, 1, 2, 3, 4].map((n) => {
+              const p = (time * 0.7 + n / 5) % 1;
+              const f = up ? p : 1 - p;
+              const x = 450 + (target.x - 450) * f + offset;
+              const y = 322 + (target.y + 14 - 322) * f;
+              const angle = Math.atan2((target.y + 14 - 322) * (up ? 1 : -1), (target.x - 450) * (up ? 1 : -1)) * 180 / Math.PI;
+              return <path key={n} d="M-5 -3 L5 0 L-5 3 Z" fill={color} transform={`translate(${x} ${y}) rotate(${angle})`}/>;
+            })}
+          </g>;
         })}
-
-        {/* ground */}
-        <path d={`M0 ${GROUND_Y} H900 V320 H0 Z`} fill="url(#ho-ground)" />
-        <line x1="0" x2="900" y1={GROUND_Y} y2={GROUND_Y} stroke="#2b5871" strokeWidth="1.2" />
-
-        {/* house + dish */}
-        <g transform={`translate(${DISH_X} ${GROUND_Y}) scale(1.25)`}>
-          <path d="M-32 0 L-32 -26 L32 -26 L32 0 Z" fill="#0e2030" stroke="#33526f" />
-          <path d="M-40 -26 L0 -50 L40 -26" fill="none" stroke="#3b5f7d" strokeWidth="2" strokeLinejoin="round" />
-          <rect x="-9" y="-16" width="18" height="10" rx="1.5" fill="#132a3c" stroke="#2d5875" strokeWidth="0.8" />
-          <g transform="translate(-22 -52)">
-            <rect x="-9" y="-4" width="18" height="4" rx="2" fill="#123244" stroke="#3ddbd9" strokeWidth="1" />
-            <rect x="-1" y="0" width="2" height="5" fill="#2c4a63" />
-          </g>
+        {sats.map((sat, i) => <g key={sat.id} transform={`translate(${sat.x} ${sat.y})`}>
+          <circle r="31" fill={i === active ? "#3ddbd912" : "transparent"} stroke={i === active ? UP : "transparent"}/>
+          <path d="M-39 -9 H-16 V9 H-39 Z M16 -9 H39 V9 H16 Z" fill="#102d42" stroke={i === active ? UP : "#49617b"}/>
+          <rect x="-12" y="-13" width="24" height="26" rx="4" fill="#203e50" stroke={i === active ? "#b8ffff" : "#758ba2"}/>
+          <text y="-43" textAnchor="middle" fill={i === active ? UP : "#8a9cb4"} fontFamily="monospace" fontSize="12">SAT {sat.id}</text>
+        </g>)}
+        <g transform="translate(450 329)">
+          <path d="M0 0 V28 M-20 30 L0 18 L20 30" fill="none" stroke="#8297aa" strokeWidth="4"/>
+          <rect x="-29" y="-10" width="58" height="10" rx="5" fill="#d0e4ea" stroke={UP} strokeWidth="2"/>
         </g>
-
-        {/* satellites */}
-        {sats.map((s) => {
-          const isTarget = target?.id === s.id;
-          return (
-            <g key={s.id} transform={`translate(${s.x} ${s.y})`}>
-              {isTarget && <circle r="42" fill="url(#ho-glow)" />}
-              <g transform="scale(0.62)">
-                <rect x="-40" y="-8" width="20" height="16" rx="2" fill="#10293a" stroke={isTarget ? "#3ddbd9" : "#2c6a75"} />
-                <rect x="20" y="-8" width="20" height="16" rx="2" fill="#10293a" stroke={isTarget ? "#3ddbd9" : "#2c6a75"} />
-                <rect x="-14" y="-12" width="28" height="24" rx="3" fill="#14394a" stroke={isTarget ? "#7ee7e2" : "#39778a"} strokeWidth="1.4" />
-                <rect x="-9" y="14" width="18" height="4" rx="2" fill="#0e2634" stroke={isTarget ? "#3ddbd9" : "#2c6a75"} />
-              </g>
-              <text
-                y="-30"
-                textAnchor="middle"
-                style={{ fontSize: 10, fontFamily: "JetBrains Mono, monospace", letterSpacing: 0.8 }}
-                fill={isTarget ? "#7ee7e2" : "#455a72"}
-              >
-                {s.id}
-              </text>
-            </g>
-          );
-        })}
-
-        {/* active beam */}
-        {target && (
-          <g>
-            <path
-              d={`M${DISH_X - 22} ${GROUND_Y - 54} L ${target.x} ${target.y + 16} L ${DISH_X + 22} ${GROUND_Y - 54}`}
-              fill="url(#ho-beam)"
-              opacity="0.45"
-            />
-            <line
-              x1={DISH_X - 22}
-              y1={GROUND_Y - 54}
-              x2={target.x}
-              y2={target.y + 14}
-              stroke="#3ddbd9"
-              strokeWidth="1.6"
-              className="animate-dash"
-            />
-            <circle cx={target.x} cy={target.y + 14} r="2.6" fill="#e8fffe" />
-          </g>
-        )}
-
-        <text x="450" y="315" textAnchor="middle" style={{ fontSize: 9.5, fontFamily: "JetBrains Mono, monospace", letterSpacing: 1.4 }} fill="#5f7595">
-          THE FOOTPRINTS MOVE WITH THE SATELLITES
-        </text>
+        <text x="450" y="387" textAnchor="middle" fill="#d6e8f0" fontSize="13">YOUR DISH · ELECTRONIC BEAM STEERING</text>
+        <text x="30" y="410" fill={UP} fontSize="12">▲ Uplink · send data</text>
+        <text x="870" y="410" textAnchor="end" fill={DOWN} fontSize="12">▼ Downlink · receive data</text>
       </svg>
-      </div>
 
-      <div className="grid gap-px border-t border-white/[0.07] bg-white/[0.07] sm:grid-cols-[1fr_auto]">
-        <div className="bg-[#060b16] p-5">
-          <h4 className="font-mono text-[10px] uppercase tracking-[0.16em] text-faint">
-            What you don&apos;t notice
-          </h4>
-          <ol className="mt-3 space-y-2 text-[13px] leading-relaxed text-muted">
-            <li className="flex gap-2.5">
-              <span className="font-mono text-[11px] text-signal">01</span>
-              <span>A satellite sinks toward the horizon as another rises behind it.</span>
-            </li>
-            <li className="flex gap-2.5">
-              <span className="font-mono text-[11px] text-signal">02</span>
-              <span>
-                The network schedules the next link <span className="text-ink">before</span> the old
-                one drops — make-before-break.
-              </span>
-            </li>
-            <li className="flex gap-2.5">
-              <span className="font-mono text-[11px] text-signal">03</span>
-              <span>Your traffic moves to the new satellite; the old link is released.</span>
-            </li>
-          </ol>
-        </div>
-        <div className="bg-[#060b16] p-5 sm:w-56">
-          <h4 className="font-mono text-[10px] uppercase tracking-[0.16em] text-faint">
-            Link log
-          </h4>
-          <ul className="mt-3 space-y-2">
-            {log.length === 0 && (
-              <li className="font-mono text-[11px] text-faint">waiting for first lock…</li>
-            )}
-            {log.map((entry, i) => (
-              <li
-                key={`${entry.id}-${entry.at}`}
-                className="flex items-center justify-between gap-2 font-mono text-[11px]"
-              >
-                <span className={i === 0 ? "text-signal" : "text-faint"}>SAT {entry.id}</span>
-                <span className={i === 0 ? "text-ink" : "text-faint/70"}>
-                  {i === 0 ? "linked" : "released"}
-                </span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-3 text-[10px] leading-relaxed text-faint">
-            Illustrative timing. Real handovers are scheduled by the network from precise orbit
-            predictions and terminal telemetry.
-          </p>
-        </div>
+      <div className="grid gap-px border-t border-white/[0.07] bg-white/[0.07] md:grid-cols-3">
+        {[
+          ["01 · TRACK", "The dish stays still", "Its phased array steers the radio beam electronically as the serving satellite moves across the sky."],
+          ["02 · PREPARE", preparing ? `Next: SAT ${IDS[next]}` : "Watch for the dotted link", "In this model, the final quarter of each pass highlights the next scheduled satellite. The dotted line is preparation, not a second data stream."],
+          ["03 · SWITCH", `${cycle} handoff${cycle === 1 ? "" : "s"} completed`, "At the switch, uplink and downlink packets move to the new satellite. Your dish does not physically turn to follow each one."],
+        ].map(([step, title, body]) => <div key={step} className="bg-[#060b16] p-5">
+          <p className="font-mono text-[10px] tracking-widest text-signal">{step}</p>
+          <h4 className="mt-2 text-sm font-medium text-white">{title}</h4>
+          <p className="mt-2 text-xs leading-relaxed text-muted">{body}</p>
+        </div>)}
       </div>
+      <p className="border-t border-white/[0.07] px-5 py-3 text-[11px] leading-relaxed text-faint">
+        Educational simulation, not live Starlink telemetry. Eight simulation seconds per handoff is illustrative; real scheduling also depends on coverage, capacity and network conditions. Packet spacing is symbolic, not measured throughput. The satellite forwards traffic via gateways or inter-satellite links to the internet (not shown).
+        {reduced && " Reduced motion is enabled: use Next satellite to step through handoffs."}
+      </p>
     </div>
   );
 }
