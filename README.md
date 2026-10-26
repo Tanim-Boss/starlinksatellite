@@ -32,6 +32,11 @@ any static host — including a single file.
   satellite in view, the beam steering onto each one, and the moment it jumps
   to the next. Scrub the elevation chart, lock onto a satellite by hand, and
   watch the phase ramp on the 1,280-element aperture.
+- **One handover, frame by frame** — a worked example of a single real switch
+  from that session: both satellites' true tracks across the sky, the reserved
+  second link, the swing between them, and the elevation, azimuth, slant range,
+  light time and phase step on either side of the cut. Step through track →
+  prepare → re-aim → locked, or pick any of the session's handovers.
 - **Spot beams** — hover the cells to see how frequency bands are reused.
 - **Satellite anatomy** — hover the numbered callouts to inspect the hardware.
 - **Coverage map** — click anywhere to count covering satellites in the model.

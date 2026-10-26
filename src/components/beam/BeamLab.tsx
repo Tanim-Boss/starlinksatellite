@@ -9,6 +9,8 @@ import {
   inViewAt,
   lightTimeMs,
   linkEndsAt,
+  linkHandovers,
+  nearestHandover,
   nextHandover,
   phaseDelayPs,
   phaseStepDeg,
@@ -24,6 +26,7 @@ import { SkyMap, SkyMapLegend } from "./SkyMap";
 import { SideElevation } from "./SideElevation";
 import { ArrayAperture, BeamPattern } from "./Aperture";
 import { ElevationTimeline } from "./ElevationTimeline";
+import { HandoverAnatomy } from "./HandoverAnatomy";
 
 const SPEEDS = [5, 12, 30, 60];
 const button =
@@ -47,6 +50,20 @@ export function BeamLab() {
   const [manualId, setManualId] = useState<number | null>(null);
   const [hoverId, setHoverId] = useState<number | null>(null);
   const acc = useRef(0);
+
+  // The worked example below the main panel tracks its own handover index.
+  const handovers = useMemo(() => linkHandovers(timeline), [timeline]);
+  const [handoverIndex, setHandoverIndex] = useState(0);
+  const anatomyRef = useRef<HTMLDivElement>(null);
+
+  const explainSwitch = () => {
+    const near = nearestHandover(timeline, time);
+    if (near) {
+      const i = handovers.findIndex((h) => h.tSec === near.tSec);
+      if (i >= 0) setHandoverIndex(i);
+    }
+    anatomyRef.current?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+  };
 
   useEffect(() => {
     if (!playing) return;
@@ -188,13 +205,22 @@ export function BeamLab() {
             </span>
             {status}
           </p>
-          <p className="font-mono text-[9.5px] text-faint">
-            {manualId !== null
-              ? `Link ends in ${manualEnd ? formatClock(manualEnd - time) : "—"}`
-              : `Next handover in ${nextIn !== null ? formatClock(nextIn) : "—"}`}
-            {" · "}
-            {playing ? `${speed}× real time` : "paused"}
-          </p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <p className="font-mono text-[9.5px] text-faint">
+              {manualId !== null
+                ? `Link ends in ${manualEnd ? formatClock(manualEnd - time) : "—"}`
+                : `Next handover in ${nextIn !== null ? formatClock(nextIn) : "—"}`}
+              {" · "}
+              {playing ? `${speed}× real time` : "paused"}
+            </p>
+            <button
+              type="button"
+              onClick={explainSwitch}
+              className="rounded-full border border-signal/30 bg-signal/10 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.1em] text-signal transition-colors hover:border-signal/60 hover:text-white"
+            >
+              Break down this switch ↓
+            </button>
+          </div>
         </div>
 
         <div className="grid gap-px bg-white/[0.07] lg:grid-cols-[minmax(0,1fr)_338px]">
@@ -339,6 +365,11 @@ export function BeamLab() {
             setPlaying(false);
           }}
         />
+      </div>
+
+      {/* One handover, in detail -------------------------------------------- */}
+      <div ref={anatomyRef} className="scroll-mt-24">
+        <HandoverAnatomy timeline={timeline} index={handoverIndex} onIndex={setHandoverIndex} />
       </div>
 
       {/* Aperture ----------------------------------------------------------- */}

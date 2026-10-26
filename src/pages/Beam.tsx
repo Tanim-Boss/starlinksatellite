@@ -139,7 +139,9 @@ export function Beam() {
               <p className="text-[11.5px] leading-relaxed text-muted">
                 Try it: press <span className="text-ink">Next switch</span> to jump to a handover,
                 click any satellite in the sky to hold the beam on it, or drag the elevation chart to
-                scrub through the half hour.
+                scrub through the half hour. Then use{" "}
+                <span className="text-ink">Break down this switch</span> for a frame-by-frame worked
+                example of that particular change of satellite.
               </p>
               <div className="ml-auto flex items-center gap-4">
                 <LinkArrow href="#/explorer">See the whole fleet</LinkArrow>
