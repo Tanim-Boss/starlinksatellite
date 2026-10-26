@@ -102,7 +102,7 @@ export function SiteHeader() {
           <div className="flex items-center gap-2">
             <Link
               to="/explorer"
-              className="hidden items-center gap-2 rounded-full border border-signal/40 bg-signal/10 px-4 py-2 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-signal transition-all hover:border-signal hover:bg-signal/20 hover:text-white sm:inline-flex"
+              className="hidden items-center gap-2 rounded-full border border-signal/40 bg-signal/10 px-4 py-2 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-signal transition-all hover:border-signal hover:bg-signal/20 hover:text-white lg:inline-flex"
             >
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full rounded-full bg-signal opacity-70 animate-blink" />

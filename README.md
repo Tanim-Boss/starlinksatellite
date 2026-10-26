@@ -15,6 +15,7 @@ Three Fiber.
 | --- | --- |
 | `#/` | Overview — the four-step signal path, why low orbit wins, laser mesh, handovers, key numbers |
 | `#/how-it-works` | Nine-chapter explainer with interactive figures and a scroll-spy chapter rail |
+| `#/beam` | Beam lab — one terminal's sky, animated handovers, the phased array and its beam pattern |
 | `#/explorer` | 3D constellation explorer: five views, speed control, layers, satellite inspector, coverage probe |
 | `#/numbers` | Orbit sandbox, latency budget and the fibre-vs-space crossover chart |
 | `#/faq` | Short answers to the common questions, plus sources |
@@ -27,6 +28,10 @@ any static host — including a single file.
 - **Signal path** — click through uplink → relay → gateway → return, or switch to
   the laser route.
 - **Phased array** — drag the beam angle; watch the phase step and timing change.
+- **Beam lab** — a 30-minute session of one terminal: the sky map shows every
+  satellite in view, the beam steering onto each one, and the moment it jumps
+  to the next. Scrub the elevation chart, lock onto a satellite by hand, and
+  watch the phase ramp on the 1,280-element aperture.
 - **Spot beams** — hover the cells to see how frequency bands are reused.
 - **Satellite anatomy** — hover the numbered callouts to inspect the hardware.
 - **Coverage map** — click anywhere to count covering satellites in the model.
@@ -47,6 +52,12 @@ Two figures deliberately bend scale for legibility and say so in the UI: the
 altitude-o-meter compresses the distance to geostationary orbit, and the orbit
 sandbox draws altitude 6× exaggerated while computing the footprint from the
 true radius and altitude.
+
+The beam lab is a geometric session too: the terminal at 47.6° N in Puget
+Sound keeps a satellite until it drops to 30° elevation, then re-aims at the
+highest one above the 25° mask. Real scheduling also weighs capacity,
+obstructions and gateway visibility, and the visible re-aim is slowed down for
+legibility.
 
 The 3D model is **not live telemetry**: satellites are propagated with a simple
 circular two-body model from published shell parameters. Distances are to scale
@@ -74,11 +85,13 @@ src/
     site/                 header, footer, primitives, FAQ accordion
     home/                 home-page sections
     diagrams/             the interactive SVG figures
+    beam/                 the beam lab (sky map, aperture, timeline)
     explorer/             UI around the 3D scene
     three/                cinematic hero globe
     scene/                reusable three.js layers (Earth, satellites, links…)
   lib/
     astro.ts              orbital mechanics, shells, coverage, gateways
+    beam.ts               terminal look angles, the sample session, beam steering
     content.ts            editorial copy and chapter metadata
     router.tsx            tiny hash router
     worldPath.ts          Natural Earth land outlines for the 2D map
@@ -88,6 +101,9 @@ public/textures/          Earth day / night / cloud maps (served locally)
 ## Credits
 
 - Earth textures from the [three.js](https://threejs.org) examples (MIT).
+- The beam lab follows the explanation in Branch Education's
+  [How does Starlink satellite internet work?](https://www.youtube.com/watch?v=qs2QcycggWU)
+  (phased arrays, beamforming, beam steering, 64QAM).
 - Land outlines derived from [Natural Earth](https://www.naturalearthdata.com)
   via the `world-atlas` dataset.
 - Typography: Space Grotesk and JetBrains Mono (Google Fonts).
