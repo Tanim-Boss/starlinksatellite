@@ -20,8 +20,9 @@ const _UP = new THREE.Vector3(0, 1, 0);
  * A sample of coverage footprints across all shells. Additive blending makes
  * overlaps visibly brighter — the point of the "coverage overlap" scenario.
  */
-export function CoverageCaps() {
-  const visible = useApp((s) => s.toggles.caps);
+export function CoverageCaps({ force = false, opacity = 0.13 }: { force?: boolean; opacity?: number }) {
+  const toggle = useApp((s) => s.toggles.caps);
+  const visible = force || toggle;
   const groupRef = useRef<THREE.Group>(null);
 
   const sample = useMemo(() => {
@@ -41,7 +42,7 @@ export function CoverageCaps() {
           new THREE.MeshBasicMaterial({
             color: new THREE.Color(sh.color),
             transparent: true,
-            opacity: 0.13,
+            opacity,
             side: THREE.FrontSide,
             blending: THREE.AdditiveBlending,
             depthWrite: false,

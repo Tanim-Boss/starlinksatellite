@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { SATS, SHELLS, type Sat } from "@/lib/astro";
 import { useApp } from "@/store";
@@ -35,10 +35,16 @@ function makeRing(sat: Sat): RingDef {
   return { geometry, material };
 }
 
-export function OrbitRings() {
-  const visible = useApp((s) => s.toggles.rings);
+export function OrbitRings({ force = false, opacity = 0.3 }: { force?: boolean; opacity?: number }) {
+  const toggle = useApp((s) => s.toggles.rings);
+  const visible = force || toggle;
   // One ring per plane: every satellite with slot 0 starts a plane.
   const rings = useMemo(() => SATS.filter((s) => s.slot === 0).map(makeRing), []);
+  useEffect(() => {
+    rings.forEach((r) => {
+      r.material.opacity = opacity;
+    });
+  }, [rings, opacity]);
 
   if (!visible) return null;
   return (

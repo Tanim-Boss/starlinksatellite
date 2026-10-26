@@ -185,12 +185,18 @@ export function SelectedViz() {
       {labelsOn && (
         <group ref={labelGroupRef}>
           <Html center zIndexRange={[40, 0]} wrapperClass="pointer-events-none" style={{ pointerEvents: "none" }}>
-            <div className="flex flex-col items-center gap-0.5 rounded-lg border border-cyan-400/40 bg-slate-950/85 px-2.5 py-1.5 text-center shadow-lg shadow-cyan-500/10 backdrop-blur-sm">
-              <span className="text-[11px] font-bold text-white">{sat.name}</span>
-              <span className="text-[9px] text-cyan-300">
-                {shell.short} · {shell.altitudeKm} km · {speed.toFixed(2)} km/s
+            <div
+              className="flex -translate-y-6 items-center gap-1.5 whitespace-nowrap rounded-full border border-yellow-300/50 bg-[#060b16]/90 px-2.5 py-1 shadow-lg shadow-black/40 backdrop-blur-sm"
+              style={{ fontSize: 10 }}
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-yellow-300" />
+              <span className="font-mono text-[10px] font-semibold tracking-wide text-white">
+                {sat.name}
               </span>
-              <span className="text-[9px] text-slate-400">footprint ≈{formatInt(cov.capDiameterKm)} km across</span>
+              <span className="font-mono text-[9px] text-cyan-300">{speed.toFixed(2)} km/s</span>
+              <span className="hidden font-mono text-[9px] text-slate-400 sm:inline">
+                ⌀{formatInt(cov.capDiameterKm)} km
+              </span>
             </div>
           </Html>
         </group>

@@ -22,7 +22,7 @@ export function Scene() {
       <color attach="background" args={["#010409"]} />
       <ambientLight intensity={0.08} />
       {/* "Sun" light — matches the sun glow sprite direction in Environment */}
-      <directionalLight position={[14, 7, 10]} intensity={2.8} />
+      <directionalLight position={[14, 7, 10]} intensity={2.1} />
 
       <SimulationDriver />
       <Environment />

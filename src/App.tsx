@@ -1,38 +1,93 @@
-import { Suspense } from "react";
-import { Canvas } from "@react-three/fiber";
-import { useApp } from "@/store";
-import { Scene } from "@/components/Scene";
-import { Header } from "@/components/ui/Header";
-import { ControlPanel } from "@/components/ui/ControlPanel";
-import { InfoPanel } from "@/components/ui/InfoPanel";
-import { BottomBar } from "@/components/ui/BottomBar";
+import { useEffect } from "react";
+import { SiteHeader } from "@/components/site/SiteHeader";
+import { SiteFooter } from "@/components/site/SiteFooter";
+import { Home } from "@/pages/Home";
+import { HowItWorks } from "@/pages/HowItWorks";
+import { Explorer } from "@/pages/Explorer";
+import { Numbers } from "@/pages/Numbers";
+import { Faq } from "@/pages/Faq";
+import { LINK } from "@/lib/links";
+import { scrollToSection, useRoute } from "@/lib/router";
+
+function NotFound() {
+  return (
+    <section className="page-shell flex min-h-[70vh] flex-col items-start justify-center pt-28">
+      <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-signal">404 · lost in orbit</p>
+      <h1 className="mt-4 text-4xl font-semibold tracking-tight text-white md:text-5xl">
+        This page isn&apos;t in the constellation.
+      </h1>
+      <p className="mt-4 max-w-md text-sm leading-relaxed text-muted">
+        The link you followed doesn&apos;t exist. Head back to the overview, or start with how the
+        system works.
+      </p>
+      <div className="mt-7 flex gap-3">
+        <a
+          href={LINK.home}
+          className="rounded-full bg-signal px-5 py-2.5 text-[13px] font-semibold text-[#04121a] hover:bg-white"
+        >
+          Back to the start
+        </a>
+        <a
+          href={LINK.howItWorks}
+          className="rounded-full border border-white/15 px-5 py-2.5 text-[13px] text-ink hover:border-signal/50 hover:text-signal"
+        >
+          How it works
+        </a>
+      </div>
+    </section>
+  );
+}
 
 export default function App() {
+  const route = useRoute();
+
+  // Scroll to top on page change, or to the requested section after render.
+  useEffect(() => {
+    if (route.section) {
+      const t = window.setTimeout(() => scrollToSection(route.section as string), 40);
+      return () => window.clearTimeout(t);
+    }
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [route.path, route.section]);
+
+  let page;
+  switch (route.path) {
+    case "/":
+      page = <Home />;
+      break;
+    case "/how-it-works":
+      page = <HowItWorks />;
+      break;
+    case "/explorer":
+      page = <Explorer />;
+      break;
+    case "/numbers":
+      page = <Numbers />;
+      break;
+    case "/faq":
+      page = <Faq />;
+      break;
+    default:
+      page = <NotFound />;
+  }
+
   return (
-    <div className="relative h-screen w-screen overflow-hidden bg-black text-slate-100">
-      <Canvas
-        camera={{ position: [3.2, 1.7, 4.0], fov: 42, near: 0.01, far: 400 }}
-        dpr={[1, 2]}
-        gl={{ antialias: true, powerPreference: "high-performance" }}
-        onPointerMissed={() => {
-          const st = useApp.getState();
-          if (st.selectedId !== null) st.selectSat(null);
-        }}
+    <div className="relative min-h-screen bg-void text-ink">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:rounded-full focus:bg-signal focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-[#04121a]"
       >
-        <Suspense fallback={null}>
-          <Scene />
-        </Suspense>
-      </Canvas>
+        Skip to content
+      </a>
 
-      <Header />
-      <ControlPanel />
-      <InfoPanel />
-      <BottomBar />
+      <SiteHeader />
 
-      {/* Small-screen notice */}
-      <div className="absolute bottom-28 left-1/2 z-10 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-xl border border-slate-700/60 bg-slate-950/80 p-3 text-center text-xs text-slate-300 backdrop-blur-md lg:hidden">
-        This 3D experience works best on a larger screen. Rotate your device to landscape.
-      </div>
+      <main id="main" key={route.path} className="page-enter">
+        {page}
+      </main>
+
+      <SiteFooter />
+      <div className="noise-overlay" aria-hidden />
     </div>
   );
 }

@@ -80,7 +80,7 @@ const ATMOSPHERE_MATERIAL = new THREE.ShaderMaterial({
     void main() {
       float rim = pow(1.0 - abs(dot(vNormal, vView)), 2.5);
       vec3 col = vec3(0.35, 0.65, 1.0);
-      gl_FragColor = vec4(col * rim * 1.5, rim);
+      gl_FragColor = vec4(col * rim * 1.05, rim * 0.85);
     }
   `,
 });
@@ -140,27 +140,28 @@ export function EarthAssembly({ children }: { children?: ReactNode }) {
           <mesh onClick={handleClick}>
             <sphereGeometry args={[1, 128, 128]} />
             <meshStandardMaterial
+              key={`earth-mat-${map ? 1 : 0}-${night ? 1 : 0}`}
               map={map ?? undefined}
               color={map ? 0xffffff : 0x1d4e79}
               roughness={0.72}
               metalness={0.08}
-              emissive={0xffffff}
+              emissive={night ? 0xffffff : 0x000000}
               emissiveMap={night ?? undefined}
-              emissiveIntensity={night ? 1.35 : 0}
+              emissiveIntensity={night ? 0.42 : 0}
             />
           </mesh>
 
           <lineSegments geometry={graticule} raycast={() => null}>
-            <lineBasicMaterial color="#60a5fa" transparent opacity={0.16} />
+            <lineBasicMaterial color="#7dd3fc" transparent opacity={0.075} />
           </lineSegments>
 
           {clouds && (
-            <mesh ref={cloudsRef}>
+            <mesh key="clouds" ref={cloudsRef}>
               <sphereGeometry args={[1.006, 96, 96]} />
               <meshStandardMaterial
                 map={clouds}
                 transparent
-                opacity={0.6}
+                opacity={0.42}
                 depthWrite={false}
                 roughness={1}
               />
@@ -180,7 +181,7 @@ export function EarthAssembly({ children }: { children?: ReactNode }) {
               transparent
               depthWrite={false}
               blending={THREE.AdditiveBlending}
-              opacity={0.5}
+              opacity={0.26}
             />
           </sprite>
         </group>

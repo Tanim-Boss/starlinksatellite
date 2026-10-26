@@ -38,7 +38,7 @@ const _vel = new THREE.Vector3();
 const _target = new THREE.Vector3();
 const _dummy = new THREE.Object3D();
 
-export function Satellites() {
+export function Satellites({ interactive = true }: { interactive?: boolean }) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
 
   useFrame(() => {
@@ -76,13 +76,21 @@ export function Satellites() {
       ref={meshRef}
       args={[SAT_GEOMETRY, SAT_MATERIAL, SATS.length]}
       frustumCulled={false}
-      onClick={handleClick}
-      onPointerOver={() => {
-        document.body.style.cursor = "pointer";
-      }}
-      onPointerOut={() => {
-        document.body.style.cursor = "auto";
-      }}
+      onClick={interactive ? handleClick : undefined}
+      onPointerOver={
+        interactive
+          ? () => {
+              document.body.style.cursor = "pointer";
+            }
+          : undefined
+      }
+      onPointerOut={
+        interactive
+          ? () => {
+              document.body.style.cursor = "auto";
+            }
+          : undefined
+      }
     />
   );
 }
