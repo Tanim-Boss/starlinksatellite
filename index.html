@@ -21,16 +21,161 @@
       content="From the phased array on your roof to the laser mesh in orbit: how a low-Earth-orbit broadband constellation actually works, with an interactive 3D model."
     />
     <meta name="twitter:card" content="summary_large_image" />
+
+    <!--
+      Fonts load off the critical path. A stylesheet in <head> blocks every
+      paint until it arrives, so on a slow network (or a network where Google
+      Fonts is slow or blocked) the whole page used to sit on a black screen.
+      Now the theme fonts simply swap in when they get here, and the system
+      stack carries the page until then.
+    -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      media="print"
+      onload="this.media='all'"
     />
-    <link rel="preload" as="image" href="/textures/earth-day.jpg" />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      />
+    </noscript>
+
+    <link rel="preload" as="image" href="/textures/earth-day.jpg" fetchpriority="low" />
+
+    <!--
+      Boot screen. Inline on purpose: it has to paint before the CSS bundle and
+      before React, so the tab never shows a blank page while the 3D bundle
+      (~1.6 MB) downloads. React replaces it on first render.
+    -->
+    <style>
+      #boot {
+        position: fixed;
+        inset: 0;
+        z-index: 90;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        padding: 24px;
+        background: #04060d;
+        color: #e9effc;
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        text-align: center;
+        -webkit-font-smoothing: antialiased;
+      }
+      #boot svg {
+        width: 62px;
+        height: 62px;
+        overflow: visible;
+      }
+      #boot .boot-ring {
+        transform-origin: 31px 31px;
+        animation: boot-spin 7s linear infinite;
+      }
+      #boot-title {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      #boot-hint {
+        margin: 0;
+        max-width: 22rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 10px;
+        line-height: 1.7;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #8b9bb9;
+      }
+      #boot-bar {
+        width: 132px;
+        height: 2px;
+        overflow: hidden;
+        border-radius: 2px;
+        background: rgba(255, 255, 255, 0.08);
+      }
+      #boot-bar i {
+        display: block;
+        width: 45%;
+        height: 100%;
+        background: linear-gradient(90deg, rgba(61, 219, 217, 0), #3ddbd9, rgba(61, 219, 217, 0));
+        animation: boot-sweep 1.3s ease-in-out infinite;
+      }
+      @keyframes boot-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes boot-sweep {
+        from {
+          transform: translateX(-110%);
+        }
+        to {
+          transform: translateX(330%);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #boot .boot-ring,
+        #boot-bar i {
+          animation: none;
+        }
+      }
+      noscript .boot-noscript {
+        display: block;
+        margin-top: 10px;
+        font-size: 11.5px;
+        line-height: 1.6;
+        letter-spacing: 0;
+        text-transform: none;
+        color: #fbbf24;
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="boot" role="status" aria-live="polite">
+        <svg viewBox="0 0 62 62" fill="none" aria-hidden="true">
+          <circle cx="31" cy="31" r="13" stroke="#3ddbd9" stroke-opacity="0.75" stroke-width="1.4" />
+          <g class="boot-ring">
+            <ellipse
+              cx="31"
+              cy="31"
+              rx="26"
+              ry="10"
+              stroke="#9fe8ff"
+              stroke-opacity="0.45"
+              stroke-width="1.1"
+              transform="rotate(-24 31 31)"
+            />
+            <circle cx="54" cy="20" r="3.4" fill="#fbbf24" />
+          </g>
+        </svg>
+        <p id="boot-title">How Starlink Works</p>
+        <div id="boot-bar"><i></i></div>
+        <p id="boot-hint">Loading the interactive field guide…</p>
+        <noscript>
+          <span class="boot-noscript">
+            This guide is interactive and needs JavaScript. The 3D model also needs WebGL.
+          </span>
+        </noscript>
+      </div>
+    </div>
+
+    <script>
+      // If the bundle is still not up after a while, say so instead of leaving
+      // a spinner running forever with no explanation.
+      window.setTimeout(function () {
+        var hint = document.getElementById("boot-hint");
+        if (!hint) return;
+        hint.textContent = "Still loading — the 3D engine is about 1.6 MB. A slow connection can take a minute.";
+      }, 12000);
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

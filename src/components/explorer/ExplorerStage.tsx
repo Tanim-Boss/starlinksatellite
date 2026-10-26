@@ -2,6 +2,7 @@ import { Suspense, useEffect, useState } from "react";
 import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { Scene } from "@/components/Scene";
+import { SceneGate } from "@/components/site/SceneGate";
 import { useApp, type ScenarioId } from "@/store";
 import {
   GATEWAY_MIN_ELEVATION_DEG,
@@ -335,20 +336,26 @@ export function ExplorerStage() {
       {/* Canvas */}
       <div className="relative">
         <div className="relative h-[58vh] min-h-[380px] w-full md:h-[64vh] md:min-h-[520px]">
-          <Canvas
-            camera={{ position: [3.35, 1.6, 4.1], fov: 42, near: 0.01, far: 400 }}
-            dpr={[1, 2]}
-            gl={{ antialias: true, powerPreference: "high-performance" }}
-            style={{ touchAction: "pan-y" }}
-            onPointerMissed={() => {
-              const st = useApp.getState();
-              if (st.selectedId !== null) st.selectSat(null);
-            }}
+          <SceneGate
+            caption="Spinning up the constellation…"
+            unavailableTitle="The 3D explorer needs WebGL."
+            unavailableBody="This browser cannot create a 3D context, so the model cannot render. The shell table, coverage numbers and the rest of the guide still work."
           >
-            <Suspense fallback={null}>
-              <Scene />
-            </Suspense>
-          </Canvas>
+            <Canvas
+              camera={{ position: [3.35, 1.6, 4.1], fov: 42, near: 0.01, far: 400 }}
+              dpr={[1, 1.75]}
+              gl={{ antialias: true, powerPreference: "high-performance" }}
+              style={{ touchAction: "pan-y" }}
+              onPointerMissed={() => {
+                const st = useApp.getState();
+                if (st.selectedId !== null) st.selectSat(null);
+              }}
+            >
+              <Suspense fallback={null}>
+                <Scene />
+              </Suspense>
+            </Canvas>
+          </SceneGate>
 
           {/* top gradient for legibility */}
           <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/60 to-transparent" />
