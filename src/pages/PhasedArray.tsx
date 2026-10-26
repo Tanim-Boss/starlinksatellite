@@ -120,14 +120,13 @@ export function PhasedArray() {
           <Reveal>
             <NextPageCTA
               eyebrow="Next"
-              title="Watch the whole constellation make the same choice."
-              body="The handover lab connects this fixed-panel beam steering to satellites crossing the sky, and the 3D explorer zooms out to the full shell: thousands of satellites, gateways and laser links."
+              title="See where the beam lands in the constellation."
+              body="The 3D explorer zooms out from this one panel to the full shell: thousands of satellites on real shell parameters, the ground stations they talk to, and the laser links between them."
               to="/explorer"
               cta="Open the 3D explorer"
             />
           </Reveal>
           <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2">
-            <LinkArrow href="#/beam">Open the handover lab</LinkArrow>
             <LinkArrow href="#/how-it-works@terminal">Read about the terminal</LinkArrow>
             <LinkArrow href="#/antenna@assumptions">Assumptions &amp; limits</LinkArrow>
           </div>

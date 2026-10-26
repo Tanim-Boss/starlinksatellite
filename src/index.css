@@ -196,18 +196,6 @@ body {
   }
 }
 
-@keyframes pulse-soft {
-  0%,
-  100% {
-    opacity: 0.35;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.9;
-    transform: scale(1.06);
-  }
-}
-
 @keyframes blink {
   0%,
   100% {
@@ -275,9 +263,6 @@ body {
 .animate-blink {
   animation: blink 1.8s ease-in-out infinite;
 }
-.animate-pulse-soft {
-  animation: pulse-soft 3.2s ease-in-out infinite;
-}
 .animate-spin-slow {
   animation: spin-slow 46s linear infinite;
   transform-origin: center;
@@ -295,7 +280,6 @@ body {
   .animate-dash,
   .animate-dash-slow,
   .animate-blink,
-  .animate-pulse-soft,
   .animate-spin-slow {
     animation: none;
   }
@@ -314,42 +298,6 @@ body {
 }
 
 /* Page transition */
-/* Beam lab: the pulse at a satellite handover, and packets flowing up the beam. */
-@keyframes beam-ping {
-  0% {
-    transform: scale(0.45);
-    opacity: 0.95;
-  }
-  70% {
-    transform: scale(2.5);
-    opacity: 0;
-  }
-  100% {
-    transform: scale(2.5);
-    opacity: 0;
-  }
-}
-
-.beam-ping {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: beam-ping 1.5s cubic-bezier(0, 0, 0.2, 1) forwards;
-}
-
-.beam-flow {
-  animation: dash-flow 1.4s linear infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .beam-ping {
-    animation: none;
-    opacity: 0.35;
-  }
-  .beam-flow {
-    animation: none;
-  }
-}
-
 @keyframes page-enter {
   from {
     opacity: 0;
