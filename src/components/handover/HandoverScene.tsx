@@ -11,15 +11,22 @@ import {
   makeSatelliteGeometry,
 } from "./handoverFrame";
 import { PhasedArrayFace } from "./PhasedArrayFace";
-import { handoverClock, useHandoverUI, type CameraMode } from "./handoverStore";
+import { SkyLayer } from "./SkyLayer";
+import {
+  durationFor,
+  handoverClock,
+  useHandoverUI,
+  type CameraMode,
+  type HandoverMode,
+} from "./handoverStore";
 import {
   ELEVATION_MASK_DEG,
   OBSERVER,
   PASSES,
-  SCENARIO_DURATION_SEC,
   SIM_RATE_AT_1X,
   satelliteSnapshot,
 } from "@/lib/handover";
+import { skyEvents } from "@/lib/constellation";
 import { EARTH_URLS, loadTexture, makeFallbackEarth, makeGlowTexture } from "@/lib/textures";
 import { cn } from "@/utils/cn";
 
@@ -37,13 +44,24 @@ interface CameraPreset {
   fov: number;
 }
 
-const CAMERA_PRESETS: Record<CameraMode, CameraPreset> = {
-  // Beside the roof: dish low in frame, the eastern sky and both pass arcs above.
-  ground: { position: [-0.15, 0.04, 0.065], target: [0.04, 0.115, -0.018], fov: 72 },
-  // Pulled back past the limb: the whole pass, the planet's curve, the same dish.
-  space: { position: [0.29, 0.19, 0.35], target: [0, 0.035, 0], fov: 50 },
-  // Right on top of the panel: the element lattice and the phase pattern.
-  dish: { position: [0.068, 0.055, 0.076], target: [0, 0.021, 0.002], fov: 42 },
+const CAMERA_PRESETS: Record<HandoverMode, Record<CameraMode, CameraPreset>> = {
+  lesson: {
+    // Beside the roof: dish low in frame, the eastern sky and both pass arcs above.
+    ground: { position: [-0.15, 0.04, 0.065], target: [0.04, 0.115, -0.018], fov: 72 },
+    // Pulled back past the limb: the whole pass, the planet's curve, the same dish.
+    space: { position: [0.29, 0.19, 0.35], target: [0, 0.035, 0], fov: 50 },
+    // Right on top of the panel: the element lattice and the phase pattern.
+    dish: { position: [0.068, 0.055, 0.076], target: [0, 0.021, 0.002], fov: 42 },
+  },
+  sky: {
+    // Wide-angle look up from beside the dish: most of the visible sky, all at
+    // once, with the fixed panel in the lower corner.
+    ground: { position: [0.006, 0.034, 0.085], target: [0, 0.085, -0.045], fov: 96 },
+    // The same geometry seen from just above the limb: the shell as a shell.
+    space: { position: [0.44, 0.3, 0.52], target: [0, 0.02, 0], fov: 52 },
+    // Right on top of the panel: the element lattice and the phase pattern.
+    dish: { position: [0.068, 0.055, 0.076], target: [0, 0.021, 0.002], fov: 42 },
+  },
 };
 
 /* -------------------------------------------------------------------------- */
@@ -113,13 +131,21 @@ function SimulationDriver() {
   useFrame((_, delta) => {
     const ui = useHandoverUI.getState();
     if (!ui.playing) return;
-    const step = Math.min(delta, 0.1) * SIM_RATE_AT_1X * ui.speed;
+    const duration = durationFor(ui.mode);
+    // In the full-sky lab, ease into slow motion around each handover so the
+    // cross-fade is actually visible, then speed back up.
+    let scale = 1;
+    if (ui.mode === "sky" && ui.autoSlow) {
+      const near = skyEvents().some((e) => Math.abs(handoverClock.time - e.tSec) <= 6);
+      scale = near ? 0.08 : 1;
+    }
+    const step = Math.min(delta, 0.1) * SIM_RATE_AT_1X * ui.speed * scale;
     let next = handoverClock.time + step;
-    if (next >= SCENARIO_DURATION_SEC) {
+    if (next >= duration) {
       if (ui.loop) {
-        next %= SCENARIO_DURATION_SEC;
+        next %= duration;
       } else {
-        next = SCENARIO_DURATION_SEC - 0.01;
+        next = duration - 0.01;
         useHandoverUI.setState({ playing: false });
       }
     }
@@ -624,7 +650,7 @@ function LinkBeams() {
 /* Coverage / footprints                                                      */
 /* -------------------------------------------------------------------------- */
 
-function CoverageVolume() {
+function CoverageVolume({ footprints = true }: { footprints?: boolean }) {
   const showCoverage = useHandoverUI((s) => s.showCoverage);
   const coneHeight = 0.062;
   const coneRadius = coneHeight * Math.tan(THREE.MathUtils.degToRad(90 - ELEVATION_MASK_DEG));
@@ -718,7 +744,7 @@ function CoverageVolume() {
         </Html>
       )}
 
-      {SAT_KEYS_3D.map((key, i) => (
+      {footprints && SAT_KEYS_3D.map((key, i) => (
         <mesh
           key={key}
           ref={(el) => {
@@ -750,22 +776,23 @@ function CameraRig() {
     | { target: THREE.Vector3; update: () => void }
     | null;
   const mode = useHandoverUI((s) => s.camera);
+  const lab = useHandoverUI((s) => s.mode);
   const anim = useRef<{ active: boolean; position: THREE.Vector3; target: THREE.Vector3; fov: number }>({
     active: false,
     position: new THREE.Vector3(),
     target: new THREE.Vector3(),
-    fov: CAMERA_PRESETS.ground.fov,
+    fov: CAMERA_PRESETS.lesson.ground.fov,
   });
 
   useEffect(() => {
-    const preset = CAMERA_PRESETS[mode];
+    const preset = CAMERA_PRESETS[lab][mode];
     anim.current = {
       active: true,
       position: new THREE.Vector3(...preset.position),
       target: new THREE.Vector3(...preset.target),
       fov: preset.fov,
     };
-  }, [mode]);
+  }, [mode, lab]);
 
   useFrame((_, delta) => {
     const a = anim.current;
@@ -802,13 +829,15 @@ function CameraRig() {
  * three.js tree; everything animated inside reads the shared clock instead.
  */
 export const HandoverScene = memo(function HandoverScene({ className }: { className?: string }) {
+  const lab = useHandoverUI((s) => s.mode);
+  const preset = CAMERA_PRESETS[lab].ground;
   return (
     <div className={cn("relative h-full w-full", className)}>
       <Canvas
         dpr={[1, 1.8]}
         camera={{
-          position: CAMERA_PRESETS.ground.position,
-          fov: CAMERA_PRESETS.ground.fov,
+          position: preset.position,
+          fov: preset.fov,
           near: 0.004,
           far: 40,
         }}
@@ -825,10 +854,16 @@ export const HandoverScene = memo(function HandoverScene({ className }: { classN
         <EarthGlobe />
         <DishPad />
         <DishAssembly />
-        <CoverageVolume />
-        <SkyPaths />
-        <LinkBeams />
-        <SatelliteNodes />
+        <CoverageVolume footprints={lab === "lesson"} />
+        {lab === "sky" ? (
+          <SkyLayer />
+        ) : (
+          <>
+            <SkyPaths />
+            <LinkBeams />
+            <SatelliteNodes />
+          </>
+        )}
 
         <OrbitControls
           makeDefault

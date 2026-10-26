@@ -1,6 +1,7 @@
 import * as THREE from "three";
-import { handoverClock } from "./handoverStore";
+import { handoverClock, useHandoverUI } from "./handoverStore";
 import { sampleScenario, type SatKey, type ScenarioState } from "@/lib/handover";
+import { sampleSky, type SkyState } from "@/lib/constellation";
 
 /**
  * One scenario sample per animation frame, shared by every scene element.
@@ -17,6 +18,19 @@ export function frameState(): ScenarioState {
     cachedTime = t;
   }
   return cachedState;
+}
+
+let skyCachedTime = Number.NaN;
+let skyCachedState: SkyState | null = null;
+
+/** The same idea for the full-shell lab (sampled once per frame). */
+export function skyFrameState(): SkyState {
+  const t = handoverClock.time;
+  if (!skyCachedState || skyCachedTime !== t) {
+    skyCachedState = sampleSky(t);
+    skyCachedTime = t;
+  }
+  return skyCachedState;
 }
 
 const _a = new THREE.Vector3();
@@ -44,6 +58,11 @@ export function smoothstep(x: number) {
  * old and new satellite while a handover transfer is in progress.
  */
 export function beamTarget(out = new THREE.Vector3()): THREE.Vector3 | null {
+  if (useHandoverUI.getState().mode === "sky") {
+    const st = skyFrameState();
+    if (!st.beamTargetPosition) return null;
+    return out.set(...st.beamTargetPosition);
+  }
   const st = frameState();
   const e = st.currentEvent;
   if (st.phase === "transfer" && e) {

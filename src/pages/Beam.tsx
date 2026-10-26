@@ -7,8 +7,9 @@ import { ELEVATION_MASK_DEG, OBSERVER, SCENARIO } from "@/lib/handover";
 import { Link } from "@/lib/router";
 
 const BADGES = [
-  "3 satellites · A / B / C",
-  "550 km shell",
+  "1,584-satellite shell",
+  "72 orbital planes",
+  "550 km · 53°",
   `${ELEVATION_MASK_DEG}° elevation mask`,
   "make-before-break",
   "phased-array steering",
@@ -47,14 +48,15 @@ export function Beam() {
               lang="bn"
               className="bangla mt-4 max-w-2xl text-[15px] leading-[1.9] text-signal/90 md:text-[16px]"
             >
-              একটা interactive handover simulation — দেখুন কীভাবে dish এক satellite থেকে পরের
-              satellite-এ connection transfer করে, অথচ পুরো dish ঘোরে না।
+              আকাশে ১,৫৮৪টি স্যাটেলাইট চলছে — বাস্তবে যেভাবে চলে। সেখান থেকে ডিশের beam কীভাবে
+              এক স্যাটেলাইট ছেড়ে আরেকটিতে যায় (handover), সেটাই এখানে ধরে ধরে দেখা যায়।
             </p>
             <p className="mt-4 max-w-2xl text-[13.5px] leading-relaxed text-muted md:text-[15px]">
-              Three satellites cross the same patch of sky at {OBSERVER.name}. One fixed dish, one
-              electronically steered beam, two handovers — A → B, then B → C. Run it, step through it,
-              or scrub the timeline. The orbit geometry is real; the handover policy is a teaching
-              simplification.
+              {OBSERVER.name}: one fixed dish, a whole LEO shell overhead. All 1,584 satellites of a
+              Starlink-class shell are propagated from real orbital geometry, dozens are above the
+              horizon at any moment, and the terminal hands the beam from one to the next roughly
+              every minute. Switch to <span className="text-ink">Lesson</span> for the slower
+              three-satellite A → B → C walkthrough of the same manoeuvre.
             </p>
             <div className="mt-5 flex flex-wrap items-center gap-2">
               {BADGES.map((b) => (
@@ -83,9 +85,9 @@ export function Beam() {
         <div className="mt-10 md:mt-12">
           <Reveal>
             <SectionHeading
-              eyebrow="The loop, in one line"
-              title="A → B → C, and back to A."
-              lede="Every switch repeats the same five moves: acquire, track, prepare, transfer, release. The second handover is not special — it is the same machinery running again."
+              eyebrow="One handover, five moves"
+              title="Acquire → track → prepare → transfer → release."
+              lede="The lesson room walks the loop with three named satellites (A → B → C). The full-sky room runs exactly the same moves, but against 1,584 candidates and a new one every minute."
             />
           </Reveal>
           <Reveal delay={60}>
@@ -109,9 +111,10 @@ export function Beam() {
           </Reveal>
           <Reveal delay={90}>
             <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.12em] text-faint">
-              In this model the switches land at {Math.round(first?.tSec ?? 0)} s and{" "}
-              {Math.round(second?.tSec ?? 0)} s of a {SCENARIO.durationSec} s loop · real handovers
-              happen roughly every 2–4 minutes
+              Lesson model: switches land at {Math.round(first?.tSec ?? 0)} s and{" "}
+              {Math.round(second?.tSec ?? 0)} s of a {SCENARIO.durationSec} s loop. In the full-sky
+              model the dish changes satellite roughly once a minute, and never below the{" "}
+              {ELEVATION_MASK_DEG}° mask.
             </p>
           </Reveal>
         </div>
