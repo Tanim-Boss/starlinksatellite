@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 /**
  * Tiny hash router. Routes look like `#/how-it-works` and optional in-page
@@ -45,21 +45,6 @@ export function scrollToSection(section: string) {
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   el.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
   return true;
-}
-
-/** Navigate to a route, optionally scrolling to an element id inside it. */
-export function navigate(path: string, section?: string) {
-  const next = href(path, section);
-  if (window.location.hash === next) {
-    if (section) scrollToSection(section);
-    else window.scrollTo({ top: 0, behavior: "smooth" });
-    return;
-  }
-  window.location.hash = next;
-}
-
-export function useNavigate() {
-  return useCallback((path: string, section?: string) => navigate(path, section), []);
 }
 
 interface LinkProps {

@@ -418,3 +418,32 @@ body {
   line-height: 1.5;
   letter-spacing: 0;
 }
+
+/* ------------------------------------------------------------------ */
+/* Full-view simulation stages                                        */
+/* ------------------------------------------------------------------ */
+
+/* Native fullscreen: the stage element becomes the whole screen; stretch
+   the scene container (any child with .fs-fill) to fill it. */
+.fs-stage:fullscreen {
+  height: 100%;
+  background: #02050c;
+}
+.fs-stage:fullscreen .fs-fill {
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+/* Fallback (no Fullscreen API, e.g. iOS Safari): a fixed overlay. */
+.fs-stage.is-fs {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  height: 100dvh;
+  background: #02050c;
+  border-radius: 0 !important;
+}
+.fs-stage.is-fs .fs-fill {
+  height: 100% !important;
+  min-height: 0 !important;
+}

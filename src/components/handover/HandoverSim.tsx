@@ -19,6 +19,7 @@ import {
 import { STEP_COPY } from "@/lib/handoverContent";
 import { useReducedMotion } from "@/lib/useMediaQuery";
 import { cn } from "@/utils/cn";
+import { FullscreenButton, fsStageClass, useFullscreen } from "@/components/site/FullscreenStage";
 import { HandoverScene } from "./HandoverScene";
 import { SkyHandoverSim } from "./SkyHandoverSim";
 import { QualityBar, StatusRow, Toggle, controlBase } from "./ui";
@@ -640,6 +641,7 @@ function LessonSim() {
   const setCamera = useHandoverUI((s) => s.setCamera);
   const [time, setTime] = useState(0);
   const timeRef = useRef(0);
+  const fs = useFullscreen<HTMLDivElement>();
 
   // Pause when the visitor prefers reduced motion, once.
   useEffect(() => {
@@ -730,10 +732,10 @@ function LessonSim() {
 
         {/* Stage + status */}
         <div className="grid gap-px bg-white/[0.07] lg:grid-cols-[minmax(0,1fr)_338px]">
-          <div className="relative min-w-0 bg-[#03070f]">
-            <HandoverScene className="h-[360px] sm:h-[430px] lg:h-[510px]" />
+          <div ref={fs.ref} className={fsStageClass(fs.isFullscreen, fs.hasNative, "relative min-w-0 bg-[#03070f]")}>
+            <HandoverScene className="fs-fill h-[360px] sm:h-[430px] lg:h-[510px]" />
 
-            {/* Camera switcher */}
+            {/* Camera switcher + full view */}
             <div className="absolute left-3 top-3 flex flex-wrap gap-1">
               {(
                 [
@@ -757,6 +759,7 @@ function LessonSim() {
                   {c.label}
                 </button>
               ))}
+              <FullscreenButton onClick={fs.toggle} active={fs.isFullscreen} />
             </div>
 
             {/* Live chip */}

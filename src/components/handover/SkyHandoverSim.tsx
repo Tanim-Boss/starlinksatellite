@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { HandoverScene } from "./HandoverScene";
 import { SkyRadar } from "./SkyRadar";
+import { FullscreenButton, fsStageClass, useFullscreen } from "@/components/site/FullscreenStage";
 import { StatusRow, QualityBar, Toggle, controlBase } from "./ui";
 import {
   SPEEDS,
@@ -59,14 +60,20 @@ function shortName(id: number) {
   return satName(id).replace("STARLINK-", "S-");
 }
 
-/** Camera chips floating over the 3D stage. */
+/** Camera chips floating over the 3D stage, plus the full-view toggle. */
 const STAGE_CAMERAS: { id: CameraMode; label: string }[] = [
   { id: "ground", label: "Sky" },
   { id: "space", label: "Space" },
   { id: "dish", label: "Dish" },
 ];
 
-function StageCameraSwitch() {
+function StageCameraSwitch({
+  isFullscreen,
+  onToggleFullscreen,
+}: {
+  isFullscreen: boolean;
+  onToggleFullscreen: () => void;
+}) {
   const camera = useHandoverUI((s) => s.camera);
   const setCamera = useHandoverUI((s) => s.setCamera);
   return (
@@ -87,6 +94,39 @@ function StageCameraSwitch() {
           {c.label}
         </button>
       ))}
+      <FullscreenButton onClick={onToggleFullscreen} active={isFullscreen} />
+    </div>
+  );
+}
+
+/** Big in-scene banner for the handover moment itself. */
+function HandoverBanner({ state }: { state: SkyState }) {
+  if (state.phase === "tracking") return null;
+  const tone =
+    state.phase === "transfer"
+      ? "border-white/25 bg-white/[0.07] text-white"
+      : state.phase === "preparing"
+        ? "border-warn/40 bg-warn/[0.08] text-warn"
+        : "border-signal/40 bg-signal/[0.08] text-signal";
+  const text =
+    state.phase === "transfer" && state.currentEvent
+      ? `Handover in progress · ${shortName(state.currentEvent.from)} → ${shortName(state.currentEvent.to)}`
+      : state.phase === "preparing" && state.nextEvent
+        ? `Preparing handover → ${shortName(state.nextEvent.to)} · make-before-break`
+        : state.serving
+          ? `Handover complete · connected ${shortName(state.serving.id)}`
+          : "";
+  if (!text) return null;
+  return (
+    <div
+      className={cn(
+        "pointer-events-none absolute left-1/2 top-14 z-10 max-w-[72%] -translate-x-1/2 truncate rounded-full border px-3 py-1 font-mono text-[9.5px] uppercase tracking-[0.12em] backdrop-blur sm:top-3",
+        tone,
+      )}
+      role="status"
+    >
+      <span className={cn("mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-current", state.phase === "transfer" && "animate-blink")} />
+      {text}
     </div>
   );
 }
@@ -730,6 +770,7 @@ export function SkyHandoverSim() {
   const playing = useHandoverUI((s) => s.playing);
   const [time, setTime] = useState(handoverClock.time);
   const timeRef = useRef(handoverClock.time);
+  const fs = useFullscreen<HTMLDivElement>();
 
   useEffect(() => {
     if (reduced) useHandoverUI.setState({ playing: false });
@@ -795,10 +836,10 @@ export function SkyHandoverSim() {
 
         {/* Stage + status */}
         <div className="grid gap-px bg-white/[0.07] lg:grid-cols-[minmax(0,1fr)_338px]">
-          <div className="relative min-w-0 bg-[#03070f]">
-            <HandoverScene className="h-[380px] sm:h-[440px] lg:h-[520px]" />
+          <div ref={fs.ref} className={fsStageClass(fs.isFullscreen, fs.hasNative, "relative min-w-0 bg-[#03070f]")}>
+            <HandoverScene className="fs-fill h-[380px] sm:h-[440px] lg:h-[520px]" />
 
-            <StageCameraSwitch />
+            <StageCameraSwitch isFullscreen={fs.isFullscreen} onToggleFullscreen={fs.toggle} />
 
             {/* Live chip */}
             <div className="absolute right-3 top-3 hidden items-center gap-2 rounded-full border border-white/10 bg-[#040a14]/70 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.1em] text-faint backdrop-blur sm:flex">
@@ -812,6 +853,9 @@ export function SkyHandoverSim() {
                     : "No link"}
             </div>
 
+            {/* Handover moment banner */}
+            <HandoverBanner state={state} />
+
             {/* Legend */}
             <div className="pointer-events-none absolute inset-x-3 bottom-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-white/[0.07] bg-[#040a14]/70 px-2.5 py-1.5 font-mono text-[8.5px] uppercase tracking-[0.06em] text-faint backdrop-blur">
               <span className="flex items-center gap-1.5">
@@ -824,7 +868,16 @@ export function SkyHandoverSim() {
                 <span className="h-1.5 w-1.5 rounded-full bg-beam" /> released
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="h-1 w-1 rounded-full bg-[#5b6b85]" /> below {ELEVATION_MASK_DEG}° mask
+                <span className="text-[9px] text-[#7df3e8]">▲</span> uplink packets
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="text-[9px] text-[#f6ba68]">▼</span> downlink packets
+              </span>
+              <span className="hidden items-center gap-1.5 md:flex">
+                <span className="h-1.5 w-1.5 rotate-45 bg-laser" /> laser mesh
+              </span>
+              <span className="hidden items-center gap-1.5 md:flex">
+                <span className="h-1.5 w-1.5 rounded-full bg-warn/80" /> gateway feed
               </span>
               <span className="ml-auto hidden text-signal/80 sm:inline">
                 {SKY_TOTAL.toLocaleString()} satellites · drag to orbit

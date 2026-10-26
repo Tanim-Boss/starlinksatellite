@@ -52,14 +52,6 @@ export const SKY_TOTAL = SKY_PLANES * SKY_PER_PLANE;
 const DEG = Math.PI / 180;
 const A_KM = EARTH_RADIUS_KM + SKY_ALTITUDE_KM;
 const MEAN_MOTION = Math.sqrt(MU_KM3_S2 / A_KM ** 3);
-const PERIOD_SEC = (2 * Math.PI) / MEAN_MOTION;
-
-/** Orbits completed per day at this altitude (≈ 15.1). */
-export const SKY_ORBITS_PER_DAY = 86400 / PERIOD_SEC;
-/** Orbit period of the modelled shell, seconds. */
-export const SKY_PERIOD_SEC = PERIOD_SEC;
-/** Ground-track speed of the shell, km/s (display only). */
-export const SKY_GROUND_SPEED_KM_S = EARTH_RADIUS_KM * MEAN_MOTION;
 
 /** The dish will not hold a link below this elevation. */
 export const SKY_SWITCH_FLOOR_DEG = 40;
@@ -137,6 +129,10 @@ export function satSlot(id: number) {
 const px = new Float32Array(SKY_TOTAL);
 const py = new Float32Array(SKY_TOTAL);
 const pz = new Float32Array(SKY_TOTAL);
+/** Unit velocity direction in the same local frame (x east, y up, z south). */
+const vx = new Float32Array(SKY_TOTAL);
+const vy = new Float32Array(SKY_TOTAL);
+const vz = new Float32Array(SKY_TOTAL);
 const elArr = new Float32Array(SKY_TOTAL);
 const azArr = new Float32Array(SKY_TOTAL);
 const rangeArr = new Float32Array(SKY_TOTAL);
@@ -201,10 +197,21 @@ function computeGeometry(tSec: number) {
     const y = A_KM * (sO * cu + cO * su * cosInc);
     const z = A_KM * (su * sinInc);
 
+    // ECI velocity (d/dt of the above; du/dt = MEAN_MOTION). Used to point each
+    // modelled satellite along its track, the way a real spacecraft flies.
+    const ivx = -A_KM * MEAN_MOTION * (cO * su + sO * cu * cosInc);
+    const ivy = -A_KM * MEAN_MOTION * (sO * su - cO * cu * cosInc);
+    const ivz = A_KM * MEAN_MOTION * (cu * sinInc);
+
     // Rotate the earth under the orbit: ECI -> earth-fixed, then to the dish.
     const dx = x * ct + y * st - ecefX;
     const dy = -x * st + y * ct - ecefY;
     const dz = z - ecefZ;
+
+    // Same rotation for the velocity direction (observer offset is constant).
+    const dvx = ivx * ct + ivy * st;
+    const dvy = -ivx * st + ivy * ct;
+    const dvz = ivz;
 
     const e = dx * ex + dy * ey; // dz * ez, and ez is 0
     const n = dx * nx + dy * ny + dz * nz;
@@ -216,6 +223,15 @@ function computeGeometry(tSec: number) {
     pz[i] = -n / EARTH_RADIUS_KM;
     rangeArr[i] = range;
     sinElArr[i] = u / range;
+
+    // Velocity in the local scene frame (x east, y up, z south), normalized.
+    const ve = dvx * ex + dvy * ey;
+    const vn = dvx * nx + dvy * ny + dvz * nz;
+    const vu = dvx * ux + dvy * uy + dvz * uz;
+    const vscale = 1 / (Math.hypot(ve, vn, vu) || 1);
+    vx[i] = ve * vscale;
+    vy[i] = vu * vscale;
+    vz[i] = -vn * vscale;
 
     if (u > 0) {
       aboveHorizon.push(i);
@@ -430,10 +446,6 @@ function getSchedule(): Schedule {
 /** The handover timeline of the replay window. */
 export function skyEvents(): SkyEvent[] {
   return getSchedule().events;
-}
-
-export function skyInitialSat(): number {
-  return getSchedule().initial;
 }
 
 /** Event index whose switch is the most recent at t (or -1). */
@@ -705,12 +717,13 @@ export function sampleSky(tSecRaw: number): SkyState {
 }
 
 /**
- * Scene positions of every satellite, as flat buffers (Earth radii, x = east,
- * y = up, z = south). Valid until the next sample — the renderer reads these
- * immediately after sampling, so nothing is copied.
+ * Scene positions and unit velocity directions of every satellite, as flat
+ * buffers (Earth radii; x = east, y = up, z = south). Valid until the next
+ * sample — the renderer reads these immediately after sampling, so nothing is
+ * copied.
  */
 export function allPositions() {
-  return { px, py, pz };
+  return { px, py, pz, vx, vy, vz };
 }
 
 /** Position of one satellite at t, in scene units (used for drawn trails). */
@@ -751,14 +764,6 @@ export function satLookAngles(id: number, tSec: number) {
 export function secondsUntilDropout(id: number, tSec: number, capSec = 240): number | null {
   for (let dt = 5; dt <= capSec; dt += 5) {
     if (elevationOf(id, tSec + dt) < ELEVATION_MASK_DEG) return dt;
-  }
-  return null;
-}
-
-/** Predicted seconds until the satellite climbs past the mask (capped). */
-export function secondsUntilRise(id: number, tSec: number, capSec = 240): number | null {
-  for (let dt = 5; dt <= capSec; dt += 5) {
-    if (elevationOf(id, tSec + dt) >= ELEVATION_MASK_DEG) return dt;
   }
   return null;
 }

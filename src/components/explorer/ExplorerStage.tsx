@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { Scene } from "@/components/Scene";
 import { SceneGate } from "@/components/site/SceneGate";
+import { FullscreenButton, fsStageClass, useFullscreen } from "@/components/site/FullscreenStage";
 import { useApp, type ScenarioId } from "@/store";
 import {
   GATEWAY_MIN_ELEVATION_DEG,
@@ -268,6 +269,7 @@ export function ExplorerStage() {
   const probe = useApp((s) => s.probe);
   const [showSettings, setShowSettings] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const fs = useFullscreen<HTMLDivElement>();
 
   // On small screens the readout lives below the canvas; open it as soon as
   // the user selects a satellite or drops a probe.
@@ -335,7 +337,11 @@ export function ExplorerStage() {
 
       {/* Canvas */}
       <div className="relative">
-        <div className="relative h-[58vh] min-h-[380px] w-full md:h-[64vh] md:min-h-[520px]">
+        <div
+          ref={fs.ref}
+          className={fsStageClass(fs.isFullscreen, fs.hasNative, "relative")}
+        >
+          <div className="fs-fill relative h-[58vh] min-h-[380px] w-full md:h-[64vh] md:min-h-[520px]">
           <SceneGate
             caption="Spinning up the constellation…"
             unavailableTitle="The 3D explorer needs WebGL."
@@ -423,6 +429,14 @@ export function ExplorerStage() {
             >
               {showInfo ? "hide info" : "info"}
             </button>
+          </div>
+
+          {/* Full-view toggle floats above the legend, clear of the readouts. */}
+          <FullscreenButton
+            onClick={fs.toggle}
+            active={fs.isFullscreen}
+            className="absolute bottom-14 right-3 z-20 shadow-lg shadow-black/40"
+          />
           </div>
         </div>
 
