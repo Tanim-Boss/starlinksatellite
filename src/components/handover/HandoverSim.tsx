@@ -20,6 +20,8 @@ import { STEP_COPY } from "@/lib/handoverContent";
 import { useReducedMotion } from "@/lib/useMediaQuery";
 import { cn } from "@/utils/cn";
 import { HandoverScene } from "./HandoverScene";
+import { SkyHandoverSim } from "./SkyHandoverSim";
+import { QualityBar, StatusRow, Toggle, controlBase } from "./ui";
 import {
   SPEEDS,
   handoverClock,
@@ -29,6 +31,7 @@ import {
   type CameraMode,
   type Speed,
 } from "./handoverStore";
+import { SKY_TOTAL } from "@/lib/constellation";
 
 /* -------------------------------------------------------------------------- */
 /* Small UI pieces                                                            */
@@ -49,42 +52,6 @@ const ROLE_DOT: Record<SatRole, string> = {
   out: "bg-[#f87171]/60",
   visible: "bg-muted/60",
 };
-
-const controlBase =
-  "inline-flex items-center justify-center gap-1.5 rounded-full border border-white/12 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.08em] text-muted transition-colors hover:border-signal/50 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal disabled:cursor-not-allowed disabled:opacity-35";
-
-function StatusRow({
-  label,
-  value,
-  tone,
-  sub,
-}: {
-  label: string;
-  value: React.ReactNode;
-  tone?: string;
-  sub?: string;
-}) {
-  return (
-    <div className="flex items-start justify-between gap-3 border-b border-white/[0.06] py-2 last:border-0">
-      <span className="pt-0.5 text-[10.5px] leading-tight text-faint">{label}</span>
-      <span className={cn("text-right font-mono text-[11px] leading-tight", tone ?? "text-ink")}>
-        {value}
-        {sub && <span className="mt-0.5 block text-[9px] text-faint">{sub}</span>}
-      </span>
-    </div>
-  );
-}
-
-function QualityBar({ value, tone }: { value: number; tone: string }) {
-  return (
-    <span className="block h-1 w-full overflow-hidden rounded-full bg-white/10">
-      <span
-        className={cn("block h-full rounded-full transition-[width] duration-200", tone)}
-        style={{ width: `${Math.round(value * 100)}%` }}
-      />
-    </span>
-  );
-}
 
 /* -------------------------------------------------------------------------- */
 /* Status panel                                                               */
@@ -299,32 +266,6 @@ function StatusPanel({ state }: { state: ScenarioState }) {
 /* -------------------------------------------------------------------------- */
 /* Controls                                                                   */
 /* -------------------------------------------------------------------------- */
-
-function Toggle({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={cn(
-        "rounded-full border px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.08em] transition-colors",
-        active
-          ? "border-signal/40 bg-signal/10 text-signal"
-          : "border-white/10 text-faint hover:border-white/25 hover:text-white",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
 
 function Controls({
   time,
@@ -692,7 +633,7 @@ function countCompleted(state: ScenarioState) {
   return SCENARIO.events.filter((e) => e.tSec <= state.timeSec + 0.001).length;
 }
 
-export function HandoverSim() {
+function LessonSim() {
   const reduced = useReducedMotion();
   const playing = useHandoverUI((s) => s.playing);
   const camera = useHandoverUI((s) => s.camera);
@@ -869,4 +810,57 @@ function SCENARIO_SAT_LABEL(state: ScenarioState) {
     return `Prep ${state.nextEvent.from} → ${state.nextEvent.to}`;
   if (state.serving) return `Serving ${state.serving} · ${state.sats[state.serving].elDeg.toFixed(0)}°`;
   return "No link";
+}
+
+/* -------------------------------------------------------------------------- */
+/* Mode shell                                                                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The handover lab has two rooms. The full-sky room is the default: a whole
+ * 1,584-satellite shell drifting overhead, handing the dish from one spacecraft
+ * to the next. The lesson room keeps the scripted A → B → C walkthrough that
+ * explains the six moves of a single handover.
+ */
+export function HandoverSim() {
+  const mode = useHandoverUI((s) => s.mode);
+  const setMode = useHandoverUI((s) => s.setMode);
+
+  const tabs = [
+    { id: "sky" as const, label: "Full sky", sub: `${SKY_TOTAL.toLocaleString()} satellites` },
+    { id: "lesson" as const, label: "Lesson", sub: "3 satellites · A → B → C" },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap gap-1 rounded-full border border-white/10 bg-white/[0.02] p-1">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setMode(t.id)}
+              aria-pressed={mode === t.id}
+              className={cn(
+                "rounded-full px-3 py-1.5 text-left font-mono text-[10px] uppercase tracking-[0.08em] transition-colors",
+                mode === t.id
+                  ? "bg-signal/15 text-signal"
+                  : "text-faint hover:text-white",
+              )}
+            >
+              {t.label}
+              <span className="ml-2 text-[8px] tracking-[0.06em] opacity-70">{t.sub}</span>
+            </button>
+          ))}
+        </div>
+        <p lang="bn" className="bangla text-[11.5px] leading-[1.8] text-faint">
+          {mode === "sky"
+            ? "আকাশে ১,৫৮৪টি স্যাটেলাইট — দেখুন ডিশ কখন, কীভাবে beam এক স্যাটেলাইট থেকে আরেকটিতে বদলায়।"
+            : "তিনটি স্যাটেলাইট, ছয়টি ধাপ — একটা handover-এর প্রতিটি মুহূর্ত ধরে ধরে দেখুন।"}
+        </p>
+      </div>
+
+      {mode === "sky" ? <SkyHandoverSim /> : <LessonSim />}
+    </div>
+  );
 }
