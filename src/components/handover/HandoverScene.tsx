@@ -12,6 +12,7 @@ import {
 } from "./handoverFrame";
 import { PhasedArrayFace } from "./PhasedArrayFace";
 import { SkyLayer } from "./SkyLayer";
+import { SceneGate } from "@/components/site/SceneGate";
 import {
   durationFor,
   handoverClock,
@@ -833,49 +834,55 @@ export const HandoverScene = memo(function HandoverScene({ className }: { classN
   const preset = CAMERA_PRESETS[lab].ground;
   return (
     <div className={cn("relative h-full w-full", className)}>
-      <Canvas
-        dpr={[1, 1.8]}
-        camera={{
-          position: preset.position,
-          fov: preset.fov,
-          near: 0.004,
-          far: 40,
-        }}
-        gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
+      <SceneGate
+        caption="Building the sky…"
+        unavailableTitle="The handover simulation needs WebGL."
+        unavailableBody="This browser cannot create a 3D context, so the live scene is off. The written walkthrough, the figures and the explanation below still work."
       >
-        <color attach="background" args={["#02050c"]} />
-        <ambientLight intensity={0.5} />
-        <directionalLight position={[3, 4, 3]} intensity={2.1} color="#dce9ff" />
-        <directionalLight position={[-4, -1, -3]} intensity={0.35} color="#2f7fa8" />
+        <Canvas
+          dpr={[1, 1.6]}
+          camera={{
+            position: preset.position,
+            fov: preset.fov,
+            near: 0.004,
+            far: 40,
+          }}
+          gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
+        >
+          <color attach="background" args={["#02050c"]} />
+          <ambientLight intensity={0.5} />
+          <directionalLight position={[3, 4, 3]} intensity={2.1} color="#dce9ff" />
+          <directionalLight position={[-4, -1, -3]} intensity={0.35} color="#2f7fa8" />
 
-        <SimulationDriver />
-        <CameraRig />
-        <Starfield />
-        <EarthGlobe />
-        <DishPad />
-        <DishAssembly />
-        <CoverageVolume footprints={lab === "lesson"} />
-        {lab === "sky" ? (
-          <SkyLayer />
-        ) : (
-          <>
-            <SkyPaths />
-            <LinkBeams />
-            <SatelliteNodes />
-          </>
-        )}
+          <SimulationDriver />
+          <CameraRig />
+          <Starfield />
+          <EarthGlobe />
+          <DishPad />
+          <DishAssembly />
+          <CoverageVolume footprints={lab === "lesson"} />
+          {lab === "sky" ? (
+            <SkyLayer />
+          ) : (
+            <>
+              <SkyPaths />
+              <LinkBeams />
+              <SatelliteNodes />
+            </>
+          )}
 
-        <OrbitControls
-          makeDefault
-          enablePan={false}
-          minDistance={0.05}
-          maxDistance={3.4}
-          enableDamping
-          dampingFactor={0.08}
-          rotateSpeed={0.6}
-          zoomSpeed={0.7}
-        />
-      </Canvas>
+          <OrbitControls
+            makeDefault
+            enablePan={false}
+            minDistance={0.05}
+            maxDistance={3.4}
+            enableDamping
+            dampingFactor={0.08}
+            rotateSpeed={0.6}
+            zoomSpeed={0.7}
+          />
+        </Canvas>
+      </SceneGate>
     </div>
   );
 });

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
+import { ErrorBoundary } from "@/components/site/ErrorBoundary";
 import { Home } from "@/pages/Home";
 import { HowItWorks } from "@/pages/HowItWorks";
 import { Beam } from "@/pages/Beam";
@@ -33,6 +34,44 @@ function NotFound() {
           className="rounded-full border border-white/15 px-5 py-2.5 text-[13px] text-ink hover:border-signal/50 hover:text-signal"
         >
           How it works
+        </a>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Last-resort screen for a page that throws while rendering. Without it React
+ * unmounts the whole app and the reader gets a blank tab; with it they keep the
+ * header, the footer and a way out.
+ */
+function PageFallback({ path }: { path: string }) {
+  return (
+    <section className="page-shell flex min-h-[70vh] flex-col items-start justify-center pt-28">
+      <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-warn">
+        signal lost · {path}
+      </p>
+      <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white md:text-4xl">
+        This view failed to render.
+      </h1>
+      <p className="mt-4 max-w-md text-sm leading-relaxed text-muted">
+        Something in this page broke on the way in. Reloading usually clears it; if it keeps
+        happening, your browser may be blocking the 3D engine — the rest of the guide still works
+        without it.
+      </p>
+      <div className="mt-7 flex gap-3">
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="rounded-full bg-signal px-5 py-2.5 text-[13px] font-semibold text-[#04121a] hover:bg-white"
+        >
+          Reload the page
+        </button>
+        <a
+          href={LINK.home}
+          className="rounded-full border border-white/15 px-5 py-2.5 text-[13px] text-ink hover:border-signal/50 hover:text-signal"
+        >
+          Back to the start
         </a>
       </div>
     </section>
@@ -87,7 +126,13 @@ export default function App() {
       <SiteHeader />
 
       <main id="main" key={route.path} className="page-enter">
-        {page}
+        <ErrorBoundary
+          key={`boundary-${route.path}`}
+          label={`page ${route.path}`}
+          fallback={<PageFallback path={route.path} />}
+        >
+          {page}
+        </ErrorBoundary>
       </main>
 
       <SiteFooter />

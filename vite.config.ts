@@ -17,6 +17,19 @@ export default defineConfig({
     strictPort: true,
     // The preview is served from a proxied sandbox host, so accept any host.
     allowedHosts: true,
+    // Transform the entry graph while the server boots instead of during the
+    // first navigation, so opening the preview is not a waterfall of
+    // on-demand compiles.
+    warmup: {
+      clientFiles: [
+        "./src/main.tsx",
+        "./src/App.tsx",
+        "./src/pages/*.tsx",
+        "./src/components/site/*.tsx",
+        "./src/components/home/*.tsx",
+        "./src/components/three/*.tsx",
+      ],
+    },
   },
   preview: {
     host: "0.0.0.0",

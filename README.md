@@ -105,8 +105,35 @@ This project is not affiliated with SpaceX.
 npm install
 npm run dev      # http://localhost:3000
 npm run build    # single-file build in dist/
-npm run preview
+npm run preview  # serves dist/ on http://localhost:3000
 ```
+
+`npm run dev` serves every module separately (~11 MB of JavaScript on a first
+load, because three.js and drei are not bundled); that is fast to edit but slow
+over a network. To look at what a visitor actually downloads, use
+`npm run build && npm run preview` — one gzipped HTML file, about 470 kB.
+
+## Loading
+
+The page is deliberately built to show words before it shows WebGL:
+
+- **A boot screen in `index.html`.** Inline HTML and CSS, painted before React
+  (or the 1.6 MB engine) exists, then replaced by the app on first render. It
+  also reports itself if the bundle is still loading after 12 seconds.
+- **Fonts are not render-blocking.** Google Fonts is requested with
+  `media="print"` and swapped in on load, with the system stack as the fallback,
+  so a slow or blocked font host cannot leave the tab blank.
+- **The 3D scenes mount late and politely.** `SceneGate` waits until the canvas
+  is near the viewport and the browser is idle, so text, figures and navigation
+  paint first. It also probes for WebGL once, shows a labelled placeholder while
+  the engine arrives, and swaps in an explanation instead of a blank box when
+  the device cannot do 3D at all.
+- **Errors are contained.** Every canvas sits behind an `ErrorBoundary`, and so
+  does each page: a shader that will not compile, a lost context or a driver
+  reset costs the model, not the article.
+- **Textures are compressed.** The Earth day and night maps are re-encoded for
+  the size they are drawn at (940 kB → 274 kB) and the day map is preloaded at
+  low priority.
 
 ## Structure
 
