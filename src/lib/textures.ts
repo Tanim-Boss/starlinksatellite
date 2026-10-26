@@ -1,19 +1,18 @@
 import * as THREE from "three";
 
+/** Local copies ship with the site; the CDNs are fallbacks only. */
 export const EARTH_URLS = [
-  "https://unpkg.com/three-globe@2/example/img/earth-blue-marble.jpg",
+  "/textures/earth-day.jpg",
   "https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg",
-  "https://raw.githubusercontent.com/mrdoob/three.js/r128/examples/textures/planets/earth_atmos_2048.jpg",
 ];
 
 export const NIGHT_URLS = [
-  "https://unpkg.com/three-globe@2/example/img/earth-night.jpg",
-  "https://raw.githubusercontent.com/mrdoob/three.js/r128/examples/textures/planets/earth_lights_2048.png",
+  "/textures/earth-night.jpg",
+  "https://threejs.org/examples/textures/planets/earth_lights_2048.png",
 ];
 
-export const CLOUDS_URLS = [
-  "https://raw.githubusercontent.com/mrdoob/three.js/r128/examples/textures/planets/earth_clouds_1024.png",
-];
+/** No cloud layer ships with the site — clouds hide the land under them. */
+export const CLOUDS_URLS: string[] = [];
 
 /** Loads the first URL that works; calls onFail() if none do. */
 export function loadTexture(

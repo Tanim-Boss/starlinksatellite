@@ -12,22 +12,23 @@ let uiAcc = 0;
  * a low-frequency `uiTick` so data readouts re-render ~5x/second instead of
  * every frame.
  */
-export function SimulationDriver() {
+export function SimulationDriver({ speedOverride }: { speedOverride?: number }) {
   const gl = useThree((s) => s.gl);
 
   useEffect(() => {
     gl.toneMapping = THREE.ACESFilmicToneMapping;
-    gl.toneMappingExposure = 1.12;
+    gl.toneMappingExposure = 0.92;
     gl.outputColorSpace = THREE.SRGBColorSpace;
   }, [gl]);
 
   useFrame((_, dt) => {
     const st = useApp.getState();
     const step = Math.min(dt, 0.1); // clamp huge deltas (tab switches)
+    const speed = speedOverride ?? st.speed;
     if (st.playing) {
-      simClock.time += step * st.speed;
+      simClock.time += step * speed;
       if (st.toggles.earthSpin) {
-        earthState.angle = (earthState.angle + step * st.speed * OMEGA_EARTH) % (Math.PI * 2);
+        earthState.angle = (earthState.angle + step * speed * OMEGA_EARTH) % (Math.PI * 2);
       }
     }
     uiAcc += dt;

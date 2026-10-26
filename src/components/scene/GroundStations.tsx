@@ -12,6 +12,9 @@ const _UP = new THREE.Vector3(0, 1, 0);
  * Gateway antennas on Earth's surface (earth-fixed frame, so they rotate
  * with the planet). Renders inside the Earth assembly's inner group.
  */
+/** Only a handful of gateway labels — 13 of them turn the globe into soup. */
+const LABELLED = new Set([9, 1, 10, 12, 11, 13]);
+
 export function GroundStations() {
   const visible = useApp((s) => s.toggles.stations);
   const labelsVisible = useApp((s) => s.toggles.labels);
@@ -57,15 +60,15 @@ export function GroundStations() {
               <ringGeometry args={[0.008, 0.013, 24]} />
               <meshBasicMaterial color="#a3e635" transparent opacity={0.6} side={THREE.DoubleSide} />
             </mesh>
-            {labelsVisible && (
+            {labelsVisible && LABELLED.has(i) && (
               <Html
-                position={[0, 0.035, 0]}
+                position={[0, 0.032, 0]}
                 center
                 zIndexRange={[40, 0]}
                 wrapperClass="pointer-events-none"
                 style={{ pointerEvents: "none" }}
               >
-                <div className="whitespace-nowrap rounded border border-lime-500/30 bg-slate-900/80 px-1.5 py-0.5 text-[10px] font-medium text-lime-300">
+                <div className="whitespace-nowrap rounded border border-lime-400/25 bg-[#060b16]/80 px-1.5 py-0.5 font-mono text-[8.5px] uppercase tracking-[0.08em] text-lime-300/90">
                   {gw.name}
                 </div>
               </Html>
