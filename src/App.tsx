@@ -5,6 +5,7 @@ import { ErrorBoundary } from "@/components/site/ErrorBoundary";
 import { Home } from "@/pages/Home";
 import { HowItWorks } from "@/pages/HowItWorks";
 import { Beam } from "@/pages/Beam";
+import { PhasedArray } from "@/pages/PhasedArray";
 import { Explorer } from "@/pages/Explorer";
 import { Numbers } from "@/pages/Numbers";
 import { Faq } from "@/pages/Faq";
@@ -100,6 +101,9 @@ export default function App() {
       break;
     case "/beam":
       page = <Beam />;
+      break;
+    case "/antenna":
+      page = <PhasedArray />;
       break;
     case "/explorer":
       page = <Explorer />;

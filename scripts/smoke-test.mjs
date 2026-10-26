@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
 
-const ROUTES = ["/", "/how-it-works", "/beam", "/explorer", "/numbers", "/faq"];
+const ROUTES = ["/", "/how-it-works", "/beam", "/antenna", "/explorer", "/numbers", "/faq"];
 
 const errors = [];
 const virtualConsole = new VirtualConsole();

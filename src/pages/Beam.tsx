@@ -71,6 +71,7 @@ export function Beam() {
             <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2">
               <LinkArrow href="#handover-sim">Jump to the simulation</LinkArrow>
               <LinkArrow href="#dish">How the dish steers without moving</LinkArrow>
+              <LinkArrow href="#/antenna">Steer the array yourself</LinkArrow>
             </div>
           </Reveal>
         </div>
@@ -265,6 +266,9 @@ export function Beam() {
                 </Link>
                 <Link to="/numbers" className="block text-[12px] text-muted hover:text-signal">
                   Numbers — the altitude / latency trade-off
+                </Link>
+                <Link to="/antenna" className="block text-[12px] text-muted hover:text-signal">
+                  Array lab — steer the beam yourself
                 </Link>
               </div>
             </div>

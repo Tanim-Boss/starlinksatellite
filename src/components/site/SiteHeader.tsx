@@ -76,7 +76,7 @@ export function SiteHeader() {
             <Wordmark />
           </Link>
 
-          <nav className="hidden items-center gap-1 md:flex">
+          <nav className="hidden items-center gap-1 lg:flex">
             {NAV.map((item) => {
               const active = path === item.path;
               return (
@@ -102,7 +102,7 @@ export function SiteHeader() {
           <div className="flex items-center gap-2">
             <Link
               to="/explorer"
-              className="hidden items-center gap-2 rounded-full border border-signal/40 bg-signal/10 px-4 py-2 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-signal transition-all hover:border-signal hover:bg-signal/20 hover:text-white lg:inline-flex"
+              className="hidden items-center gap-2 rounded-full border border-signal/40 bg-signal/10 px-4 py-2 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-signal transition-all hover:border-signal hover:bg-signal/20 hover:text-white xl:inline-flex"
             >
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full rounded-full bg-signal opacity-70 animate-blink" />
@@ -116,7 +116,7 @@ export function SiteHeader() {
               aria-label={open ? "Close menu" : "Open menu"}
               aria-expanded={open}
               onClick={() => setOpen((v) => !v)}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 text-ink transition-colors hover:border-white/35 md:hidden"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 text-ink transition-colors hover:border-white/35 lg:hidden"
             >
               <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden>
                 {open ? (
@@ -149,7 +149,7 @@ export function SiteHeader() {
       {/* Mobile sheet */}
       <div
         className={cn(
-          "overflow-hidden border-b border-white/10 bg-[#04060d]/97 backdrop-blur-xl transition-all duration-300 md:hidden",
+          "overflow-hidden border-b border-white/10 bg-[#04060d]/97 backdrop-blur-xl transition-all duration-300 lg:hidden",
           open ? "max-h-96" : "max-h-0 border-transparent",
         )}
       >
