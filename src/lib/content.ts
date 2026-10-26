@@ -6,6 +6,7 @@
 export const NAV = [
   { label: "Overview", path: "/" },
   { label: "How it works", path: "/how-it-works" },
+  { label: "Beam lab", path: "/beam" },
   { label: "3D explorer", path: "/explorer" },
   { label: "Numbers", path: "/numbers" },
   { label: "FAQ", path: "/faq" },
@@ -199,6 +200,11 @@ export const SOURCES = [
     label: "FCC filings & authorisations",
     href: "https://www.fcc.gov/space/starlink",
     note: "Orbital shell parameters, frequencies and licensing.",
+  },
+  {
+    label: "Branch Education — How does Starlink work?",
+    href: "https://www.youtube.com/watch?v=qs2QcycggWU",
+    note: "3D explainer of Dishy's phased array and beam steering.",
   },
   {
     label: "Wikipedia — Starlink",

@@ -416,6 +416,9 @@ export function HowItWorks() {
                       about finding a clear cone of sky.
                     </p>
                   </Prose>
+                  <div className="mt-5">
+                    <LinkArrow href="#/beam">Open the beam lab — watch a real handover</LinkArrow>
+                  </div>
                 </Reveal>
               </Chapter>
 
@@ -604,6 +607,9 @@ export function HowItWorks() {
                       spacecraft: the handover has nowhere good to go.
                     </p>
                   </Prose>
+                  <div className="mt-5">
+                    <LinkArrow href="#/beam">Watch the beam change satellites</LinkArrow>
+                  </div>
                 </Reveal>
               </Chapter>
 

@@ -3,6 +3,7 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Home } from "@/pages/Home";
 import { HowItWorks } from "@/pages/HowItWorks";
+import { Beam } from "@/pages/Beam";
 import { Explorer } from "@/pages/Explorer";
 import { Numbers } from "@/pages/Numbers";
 import { Faq } from "@/pages/Faq";
@@ -57,6 +58,9 @@ export default function App() {
       break;
     case "/how-it-works":
       page = <HowItWorks />;
+      break;
+    case "/beam":
+      page = <Beam />;
       break;
     case "/explorer":
       page = <Explorer />;

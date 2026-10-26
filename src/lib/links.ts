@@ -4,6 +4,7 @@ import { href } from "./router";
 export const LINK = {
   home: href("/"),
   howItWorks: href("/how-it-works"),
+  beam: href("/beam"),
   explorer: href("/explorer"),
   numbers: href("/numbers"),
   faq: href("/faq"),
