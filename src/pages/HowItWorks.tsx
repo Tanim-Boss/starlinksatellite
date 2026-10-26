@@ -85,7 +85,9 @@ function useActiveChapter(ids: string[]) {
     const els = ids
       .map((id) => document.getElementById(id))
       .filter((el): el is HTMLElement => Boolean(el));
-    if (!els.length) return;
+    // Chapter navigation remains usable without scroll-spy support; the first
+    // chapter simply stays highlighted instead of failing the whole page.
+    if (!els.length || typeof IntersectionObserver === "undefined") return;
     const io = new IntersectionObserver(
       (entries) => {
         const visible = entries

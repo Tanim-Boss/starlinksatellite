@@ -55,9 +55,9 @@ function PageFallback({ path }: { path: string }) {
         This view failed to render.
       </h1>
       <p className="mt-4 max-w-md text-sm leading-relaxed text-muted">
-        Something in this page broke on the way in. Reloading usually clears it; if it keeps
-        happening, your browser may be blocking the 3D engine — the rest of the guide still works
-        without it.
+        An interactive feature failed while this page was starting. Reloading may clear it. The 3D
+        model is optional, so this does not necessarily mean WebGL is blocked; use the navigation
+        above to continue if the problem persists.
       </p>
       <div className="mt-7 flex gap-3">
         <button
