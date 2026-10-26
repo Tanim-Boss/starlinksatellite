@@ -154,8 +154,6 @@ export function buildSatellites(): Sat[] {
 
 /** The representative subset rendered in the scene. */
 export const SATS: Sat[] = buildSatellites();
-export const DISPLAYED_COUNT = SATS.length;
-export const TOTAL_REAL = SHELLS.reduce((acc, s) => acc + s.totalSats, 0);
 
 /**
  * ECI position (z = north pole) of a satellite on a circular orbit,

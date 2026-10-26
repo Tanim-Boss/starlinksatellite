@@ -3,13 +3,14 @@ import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Html, Line, OrbitControls } from "@react-three/drei";
 import {
-  BEAM_ORIGIN,
+  EARTH_CENTER,
   ROLE_COLOR,
   SAT_KEYS_3D,
-  UP,
+  buildStarlinkModel,
   frameState,
-  makeSatelliteGeometry,
+  orientSatelliteQuaternion,
 } from "./handoverFrame";
+import { DataLink } from "./DataLink";
 import { PhasedArrayFace } from "./PhasedArrayFace";
 import { SkyLayer } from "./SkyLayer";
 import { SceneGate } from "@/components/site/SceneGate";
@@ -31,9 +32,13 @@ import { skyEvents } from "@/lib/constellation";
 import { EARTH_URLS, loadTexture, makeFallbackEarth, makeGlowTexture } from "@/lib/textures";
 import { cn } from "@/utils/cn";
 
-const GLOW_TEXTURE = makeGlowTexture();
-const EARTH_CENTER = new THREE.Vector3(0, -1, 0);
-const PANEL_TILT = 0.22;
+/** Panel tilt: at 47.6° N the dish faces the southern sky. */
+const PANEL_TILT = 0.838; // 48° from horizontal, face toward south (+z)
+/** Panel plate dimensions, scene units (exaggerated like everything local). */
+const PANEL_W = 0.062;
+const PANEL_H = 0.041;
+const PANEL_D = 0.0045;
+const PIVOT_Y = 0.011;
 
 /* -------------------------------------------------------------------------- */
 /* Camera presets                                                             */
@@ -45,23 +50,28 @@ interface CameraPreset {
   fov: number;
 }
 
+const DISH_CLOSEUP: CameraPreset = {
+  // Off the panel's facing direction: the array lattice and the phase pattern.
+  position: [0.031, 0.058, 0.047],
+  target: [0, 0.028, -0.009],
+  fov: 40,
+};
+
 const CAMERA_PRESETS: Record<HandoverMode, Record<CameraMode, CameraPreset>> = {
   lesson: {
     // Beside the roof: dish low in frame, the eastern sky and both pass arcs above.
-    ground: { position: [-0.15, 0.04, 0.065], target: [0.04, 0.115, -0.018], fov: 72 },
+    ground: { position: [-0.15, 0.045, 0.078], target: [0.035, 0.115, -0.02], fov: 72 },
     // Pulled back past the limb: the whole pass, the planet's curve, the same dish.
     space: { position: [0.29, 0.19, 0.35], target: [0, 0.035, 0], fov: 50 },
-    // Right on top of the panel: the element lattice and the phase pattern.
-    dish: { position: [0.068, 0.055, 0.076], target: [0, 0.021, 0.002], fov: 42 },
+    dish: DISH_CLOSEUP,
   },
   sky: {
-    // Wide-angle look up from beside the dish: most of the visible sky, all at
-    // once, with the fixed panel in the lower corner.
-    ground: { position: [0.006, 0.034, 0.085], target: [0, 0.085, -0.045], fov: 96 },
+    // Wide-angle look up from beside the dish: most of the visible sky at once,
+    // with the fixed panel in the lower corner.
+    ground: { position: [0.009, 0.040, 0.100], target: [0, 0.092, -0.048], fov: 96 },
     // The same geometry seen from just above the limb: the shell as a shell.
     space: { position: [0.44, 0.3, 0.52], target: [0, 0.02, 0], fov: 52 },
-    // Right on top of the panel: the element lattice and the phase pattern.
-    dish: { position: [0.068, 0.055, 0.076], target: [0, 0.021, 0.002], fov: 42 },
+    dish: DISH_CLOSEUP,
   },
 };
 
@@ -122,6 +132,32 @@ function makeGraticuleGeometry(radius = 1.002) {
   const g = new THREE.BufferGeometry();
   g.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
   return g;
+}
+
+/** Rounded-rectangle outline, the shape of the real terminal's face. */
+function roundedPanelGeometry(w: number, h: number, r: number, depth: number) {
+  const s = new THREE.Shape();
+  const x = -w / 2;
+  s.moveTo(x + r, 0);
+  s.lineTo(x + w - r, 0);
+  s.quadraticCurveTo(x + w, 0, x + w, r);
+  s.lineTo(x + w, h - r);
+  s.quadraticCurveTo(x + w, h, x + w - r, h);
+  s.lineTo(x + r, h);
+  s.quadraticCurveTo(x, h, x, h - r);
+  s.lineTo(x, r);
+  s.quadraticCurveTo(x, 0, x + r, 0);
+  const geo = new THREE.ExtrudeGeometry(s, {
+    depth,
+    bevelEnabled: true,
+    bevelThickness: 0.0004,
+    bevelSize: 0.0004,
+    bevelSegments: 2,
+    curveSegments: 10,
+  });
+  // Stand the plate up: extrusion (thickness) along +Y, height toward north.
+  geo.rotateX(-Math.PI / 2);
+  return geo;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -269,11 +305,11 @@ function DishPad() {
   return (
     <group position={[0, 0.0004, 0]} raycast={() => null}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
-        <ringGeometry args={[0.0125, 0.0135, 64]} />
+        <ringGeometry args={[0.0195, 0.021, 64]} />
         <meshBasicMaterial color="#3ddbd9" transparent opacity={0.45} side={THREE.DoubleSide} depthWrite={false} />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} raycast={() => null}>
-        <circleGeometry args={[0.0125, 48]} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
+        <circleGeometry args={[0.0195, 48]} />
         <meshBasicMaterial color="#0b1c2a" transparent opacity={0.55} depthWrite={false} />
       </mesh>
     </group>
@@ -281,43 +317,72 @@ function DishPad() {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Dish                                                                       */
+/* The dish — modelled on the real Starlink terminal                          */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * A Starlink "Dishy": a flat, rounded-corner panel — no parabolic reflector,
+ * no moving parts — tilted once toward the equator on a fixed mount, with its
+ * cable run to the building. The face carries the phased-array lattice
+ * (PhasedArrayFace) whose elements steer the beam electronically.
+ */
 function DishAssembly() {
   const camera = useHandoverUI((s) => s.camera);
 
+  const panelGeo = useMemo(() => roundedPanelGeometry(PANEL_W, PANEL_H, 0.0105, PANEL_D), []);
+  const faceGeo = useMemo(() => roundedPanelGeometry(PANEL_W - 0.007, PANEL_H - 0.007, 0.008, 0.0004), []);
+  const cableGeo = useMemo(() => {
+    const curve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0, PIVOT_Y - 0.0015, -0.0035),
+      new THREE.Vector3(0.005, PIVOT_Y * 0.55, -0.0075),
+      new THREE.Vector3(0.011, 0.0012, -0.0065),
+      new THREE.Vector3(0.0155, 0.0006, -0.001),
+    ]);
+    return new THREE.TubeGeometry(curve, 28, 0.0005, 6);
+  }, []);
+
   return (
     <group>
-      {/* Mast + fixed bracket. Nothing here rotates during the simulation. */}
-      <mesh position={[0, 0.0062, 0]} castShadow={false}>
-        <cylinderGeometry args={[0.0032, 0.0055, 0.0124, 14]} />
-        <meshStandardMaterial color="#2a3a50" metalness={0.75} roughness={0.32} />
+      {/* Fixed mount: flange, mast and hinge. Nothing rotates during the sim. */}
+      <mesh position={[0, 0.0006, 0]} raycast={() => null}>
+        <cylinderGeometry args={[0.0042, 0.005, 0.0012, 20]} />
+        <meshStandardMaterial color="#232c38" metalness={0.7} roughness={0.4} />
       </mesh>
-      <mesh position={[0, 0.0138, 0]} rotation={[PANEL_TILT, 0, -0.25]}>
-        <boxGeometry args={[0.012, 0.0016, 0.006]} />
-        <meshStandardMaterial color="#22303f" metalness={0.6} roughness={0.4} />
+      <mesh position={[0, PIVOT_Y / 2, 0]} raycast={() => null}>
+        <cylinderGeometry args={[0.0017, 0.0023, PIVOT_Y, 14]} />
+        <meshStandardMaterial color="#2c3846" metalness={0.78} roughness={0.3} />
+      </mesh>
+      <mesh position={[0, PIVOT_Y, -0.0016]} rotation={[0, 0, Math.PI / 2]} raycast={() => null}>
+        <cylinderGeometry args={[0.0009, 0.0009, 0.012, 10]} />
+        <meshStandardMaterial color="#45525f" metalness={0.85} roughness={0.25} />
       </mesh>
 
-      <group position={[0, 0.0158, 0]} rotation={[PANEL_TILT, 0, -0.25]}>
-        {/* Panel body */}
-        <mesh position={[0, 0.0024, 0]}>
-          <boxGeometry args={[0.05, 0.0034, 0.036]} />
-          <meshStandardMaterial color="#0d1f2b" metalness={0.45} roughness={0.5} />
+      {/* Power cable down to the building side of the pad. */}
+      <mesh geometry={cableGeo} raycast={() => null}>
+        <meshStandardMaterial color="#0a0d12" roughness={0.85} metalness={0.1} />
+      </mesh>
+
+      {/* The tilted panel. */}
+      <group position={[0, PIVOT_Y, 0]} rotation={[PANEL_TILT, 0, 0]}>
+        <mesh geometry={panelGeo} castShadow={false}>
+          <meshStandardMaterial color="#171b21" metalness={0.3} roughness={0.58} />
         </mesh>
-        {/* Panel outline: keeps the fixed hardware readable from the ground view,
-            where the array face is pointed away from the camera. */}
-        <mesh position={[0, 0.0024, 0]} raycast={() => null}>
-          <boxGeometry args={[0.0506, 0.0036, 0.0366]} />
-          <meshBasicMaterial color="#3ddbd9" wireframe transparent opacity={0.28} />
+        {/* Dark radome face inset, where the array lives. */}
+        <mesh geometry={faceGeo} position={[0, PANEL_D + 0.0005, -0.0035]} raycast={() => null}>
+          <meshStandardMaterial color="#0b0e13" metalness={0.18} roughness={0.72} />
+        </mesh>
+        {/* Rear housing + kickstand foot behind the hinge. */}
+        <mesh position={[0, -0.0018, -0.0045]} raycast={() => null}>
+          <boxGeometry args={[0.014, 0.0034, 0.008]} />
+          <meshStandardMaterial color="#1d242d" metalness={0.4} roughness={0.55} />
         </mesh>
         <PhasedArrayFace />
       </group>
 
       {camera === "dish" && (
-        <Html position={[0, 0.046, 0]} center style={{ pointerEvents: "none" }} zIndexRange={[8, 0]}>
+        <Html position={[0, 0.048, -0.014]} center style={{ pointerEvents: "none" }} zIndexRange={[8, 0]}>
           <div className="whitespace-nowrap rounded-full border border-signal/30 bg-[#04121a]/85 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-signal">
-            fixed panel · electronic steering
+            fixed panel · electronic steering · no motors
           </div>
         </Html>
       )}
@@ -326,50 +391,58 @@ function DishAssembly() {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Satellites                                                                 */
+/* Satellites (lesson mode)                                                   */
 /* -------------------------------------------------------------------------- */
 
 function SatelliteNodes() {
   const groupRefs = useRef<Array<THREE.Group | null>>([]);
   const glowRefs = useRef<Array<THREE.Sprite | null>>([]);
   const labelRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const geometry = useMemo(makeSatelliteGeometry, []);
-  const materials = useMemo(
-    () =>
-      SAT_KEYS_3D.map(
-        () =>
-          new THREE.MeshStandardMaterial({
-            color: "#ffffff",
-            metalness: 0.45,
-            roughness: 0.4,
-            emissive: new THREE.Color("#1b4a57"),
-            emissiveIntensity: 0.8,
-          }),
-      ),
+  const glow = useMemo(() => makeGlowTexture(), []);
+  const models = useMemo(
+    () => SAT_KEYS_3D.map(() => buildStarlinkModel(0.0022)),
     [],
   );
-  const scratch = useMemo(() => new THREE.Color(), []);
+  const quat = useMemo(() => new THREE.Quaternion(), []);
+  const ahead = useMemo(() => new THREE.Vector3(), []);
+  const behind = useMemo(() => new THREE.Vector3(), []);
+  const vel = useMemo(() => new THREE.Vector3(), []);
 
   useFrame(() => {
     const st = frameState();
     const showLabels = useHandoverUI.getState().showLabels;
+    const t = handoverClock.time;
     SAT_KEYS_3D.forEach((key, i) => {
       const sat = st.sats[key];
       const group = groupRefs.current[i];
-      const glow = glowRefs.current[i];
+      const glowSprite = glowRefs.current[i];
       if (!group) return;
       group.position.set(sat.position[0], sat.position[1], sat.position[2]);
       group.visible = sat.elDeg > -1;
 
-      scratch.set(ROLE_COLOR[sat.role]);
-      const mat = materials[i];
-      mat.color.copy(scratch);
-      mat.emissive.copy(scratch).multiplyScalar(0.45);
-      mat.emissiveIntensity = sat.beamOpacity > 0.4 ? 1.1 : 0.55;
+      // Fly belly-down along the pass, like the real fleet.
+      const a = satelliteSnapshot(key, t + 0.6);
+      const b = satelliteSnapshot(key, t - 0.6);
+      ahead.set(...a.position);
+      behind.set(...b.position);
+      vel.copy(ahead).sub(behind);
+      if (vel.lengthSq() < 1e-14) vel.set(0, 0, 1);
+      orientSatelliteQuaternion(
+        quat,
+        sat.position[0],
+        sat.position[1],
+        sat.position[2],
+        vel.x,
+        vel.y,
+        vel.z,
+      );
+      models[i].group.quaternion.copy(quat);
 
-      if (glow) {
-        const gm = glow.material as THREE.SpriteMaterial;
-        gm.color.copy(scratch);
+      models[i].tint(ROLE_COLOR[sat.role], sat.beamOpacity > 0.4 ? 1.3 : 0.7);
+
+      if (glowSprite) {
+        const gm = glowSprite.material as THREE.SpriteMaterial;
+        gm.color.set(ROLE_COLOR[sat.role]);
         gm.opacity = sat.role === "out" ? 0.16 : sat.beamOpacity > 0.4 ? 0.75 : 0.4;
       }
 
@@ -398,16 +471,16 @@ function SatelliteNodes() {
             groupRefs.current[i] = el;
           }}
         >
-          <mesh geometry={geometry} material={materials[i]} raycast={() => null} />
+          <primitive object={models[i].group} />
           <sprite
-            scale={[0.017, 0.017, 1]}
+            scale={[0.02, 0.02, 1]}
             raycast={() => null}
             ref={(el) => {
               glowRefs.current[i] = el;
             }}
           >
             <spriteMaterial
-              map={GLOW_TEXTURE}
+              map={glow}
               transparent
               depthWrite={false}
               blending={THREE.AdditiveBlending}
@@ -415,7 +488,7 @@ function SatelliteNodes() {
             />
           </sprite>
           <Html
-            position={[0, 0.011, 0]}
+            position={[0, 0.013, 0]}
             center
             style={{ pointerEvents: "none" }}
             zIndexRange={[7, 0]}
@@ -437,7 +510,7 @@ function SatelliteNodes() {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Orbital sky paths                                                          */
+/* Orbital sky paths (lesson mode)                                            */
 /* -------------------------------------------------------------------------- */
 
 function SkyPaths() {
@@ -493,155 +566,35 @@ function SkyPaths() {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Beams                                                                      */
+/* Beams (lesson mode)                                                        */
 /* -------------------------------------------------------------------------- */
 
-interface BeamMaterials {
-  core: THREE.MeshBasicMaterial;
-  halo: THREE.MeshBasicMaterial;
-}
+const _target = new THREE.Vector3();
 
+/**
+ * One beam per lesson satellite, drawn as a widening Ku-band cone with the
+ * data moving along it: cyan packets up (your traffic), amber packets down
+ * (the reply). Opacities come from the scenario, so the handover cross-fades.
+ */
 function LinkBeams() {
-  const groupRefs = useRef<Array<THREE.Group | null>>([]);
-  const coreRefs = useRef<Array<THREE.Mesh | null>>([]);
-  const haloRefs = useRef<Array<THREE.Mesh | null>>([]);
-  const packetRefs = useRef<Array<Array<THREE.Sprite | null>>>([]);
-  const beamGeometry = useMemo(() => new THREE.CylinderGeometry(1, 1, 1, 14, 1, true), []);
-
-  const materials = useMemo<BeamMaterials[]>(
-    () =>
-      SAT_KEYS_3D.map(() => ({
-        core: new THREE.MeshBasicMaterial({
-          color: "#3ddbd9",
-          transparent: true,
-          opacity: 0.9,
-          blending: THREE.AdditiveBlending,
-          depthWrite: false,
-          side: THREE.DoubleSide,
-          toneMapped: false,
-        }),
-        halo: new THREE.MeshBasicMaterial({
-          color: "#3ddbd9",
-          transparent: true,
-          opacity: 0.14,
-          blending: THREE.AdditiveBlending,
-          depthWrite: false,
-          side: THREE.DoubleSide,
-          toneMapped: false,
-        }),
-      })),
-    [],
-  );
-
-  const tmpDir = useMemo(() => new THREE.Vector3(), []);
-  const tmpMid = useMemo(() => new THREE.Vector3(), []);
-  const tmpTarget = useMemo(() => new THREE.Vector3(), []);
-
-  useFrame(() => {
-    const st = frameState();
-    const show = useHandoverUI.getState().showBeams;
-    SAT_KEYS_3D.forEach((key, i) => {
-      const sat = st.sats[key];
-      const group = groupRefs.current[i];
-      const core = coreRefs.current[i];
-      const halo = haloRefs.current[i];
-      if (!group || !core || !halo) return;
-
-      const opacity = sat.beamOpacity;
-      const showBeam = show && opacity > 0.015 && sat.elDeg > -1;
-      group.visible = showBeam;
-      if (!showBeam) {
-        packetRefs.current[i]?.forEach((p) => {
-          if (p) p.visible = false;
-        });
-        return;
-      }
-
-      tmpTarget.set(sat.position[0], sat.position[1], sat.position[2]);
-      tmpDir.copy(tmpTarget).sub(BEAM_ORIGIN);
-      const length = tmpDir.length();
-      tmpDir.normalize();
-      tmpMid.copy(BEAM_ORIGIN).addScaledVector(tmpDir, length / 2);
-
-      const coreMesh = core;
-      coreMesh.position.copy(tmpMid);
-      coreMesh.quaternion.setFromUnitVectors(UP, tmpDir);
-      coreMesh.scale.set(0.0009, length, 0.0009);
-
-      const haloMesh = halo;
-      haloMesh.position.copy(tmpMid);
-      haloMesh.quaternion.copy(coreMesh.quaternion);
-      haloMesh.scale.set(0.0038, length, 0.0038);
-
-      const mat = materials[i];
-      const color = ROLE_COLOR[sat.role];
-      mat.core.color.set(color);
-      mat.halo.color.set(color);
-      mat.core.opacity = 0.85 * opacity;
-      mat.halo.opacity = 0.16 * opacity;
-
-      // Data packets running up the link, so the beam reads as "carrying traffic".
-      const packets = packetRefs.current[i];
-      if (packets) {
-        const speed = 0.55;
-        packets.forEach((packet, pi) => {
-          if (!packet) return;
-          packet.visible = opacity > 0.5;
-          const phase = ((handoverClock.time * speed + pi * 0.5 + i * 0.17) % 1 + 1) % 1;
-          packet.position.copy(BEAM_ORIGIN).addScaledVector(tmpDir, length * phase);
-          const pm = packet.material as THREE.SpriteMaterial;
-          pm.color.set(color);
-          pm.opacity = opacity * (0.35 + 0.65 * Math.sin(Math.PI * phase));
-        });
-      }
-    });
-  });
-
   return (
     <>
-      {SAT_KEYS_3D.map((key, i) => (
-        <group
+      {SAT_KEYS_3D.map((key) => (
+        <DataLink
           key={key}
-          ref={(el) => {
-            groupRefs.current[i] = el;
+          getLink={() => {
+            const st = frameState();
+            const sat = st.sats[key];
+            if (sat.elDeg <= -1 || sat.beamOpacity < 0.02) return null;
+            _target.set(sat.position[0], sat.position[1], sat.position[2]);
+            return {
+              target: _target,
+              color: ROLE_COLOR[sat.role],
+              opacity: sat.beamOpacity,
+              packets: sat.beamOpacity > 0.5,
+            };
           }}
-        >
-          <mesh
-            ref={(el) => {
-              haloRefs.current[i] = el;
-            }}
-            geometry={beamGeometry}
-            material={materials[i].halo}
-            raycast={() => null}
-          />
-          <mesh
-            ref={(el) => {
-              coreRefs.current[i] = el;
-            }}
-            geometry={beamGeometry}
-            material={materials[i].core}
-            raycast={() => null}
-          />
-          {[0, 1].map((pi) => (
-            <sprite
-              key={pi}
-              scale={[0.0055, 0.0055, 1]}
-              raycast={() => null}
-              ref={(el) => {
-                if (!packetRefs.current[i]) packetRefs.current[i] = [null, null];
-                packetRefs.current[i][pi] = el;
-              }}
-            >
-              <spriteMaterial
-                map={GLOW_TEXTURE}
-                transparent
-                depthWrite={false}
-                blending={THREE.AdditiveBlending}
-                opacity={0.8}
-              />
-            </sprite>
-          ))}
-        </group>
+        />
       ))}
     </>
   );
@@ -675,7 +628,7 @@ function CoverageVolume({ footprints = true }: { footprints?: boolean }) {
       point.set(sat.position[0], sat.position[1], sat.position[2]);
       normal.copy(point).sub(center).normalize();
       ring.position.copy(center).addScaledVector(normal, 1.0008);
-      ring.quaternion.setFromUnitVectors(UP, normal);
+      ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal);
       const mat = ring.material as THREE.MeshBasicMaterial;
       mat.color.set(ROLE_COLOR[sat.role]);
       mat.opacity = sat.role === "out" ? 0.12 : 0.4;
@@ -686,7 +639,7 @@ function CoverageVolume({ footprints = true }: { footprints?: boolean }) {
     <>
       <group ref={meshRef}>
         {/* The cone of sky above the terminal's 25° elevation mask. */}
-        <group position={[0, 0.021, 0]} raycast={() => null}>
+        <group position={[0, 0.012, 0]} raycast={() => null}>
           <mesh
             position={[0, coneHeight / 2, 0]}
             rotation={[Math.PI, 0, 0]}
@@ -731,7 +684,7 @@ function CoverageVolume({ footprints = true }: { footprints?: boolean }) {
 
       {showCoverage && (
         <Html
-          position={[0, coneHeight * 1.06, -coneRadius * 0.98]}
+          position={[0, 0.012 + coneHeight * 1.06, -coneRadius * 0.98]}
           center
           style={{ pointerEvents: "none" }}
           zIndexRange={[5, 0]}
@@ -753,7 +706,7 @@ function CoverageVolume({ footprints = true }: { footprints?: boolean }) {
           }}
           raycast={() => null}
         >
-          <ringGeometry args={[0.0055, 0.0062, 48]} />
+          <ringGeometry args={[0.0062, 0.007, 48]} />
           <meshBasicMaterial
             color="#3ddbd9"
             transparent

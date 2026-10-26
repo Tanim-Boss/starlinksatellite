@@ -14,9 +14,12 @@ import { beamTarget } from "./handoverFrame";
  */
 
 const COLS = 16;
-const ROWS = 12;
-const PITCH_X = 0.0029;
-const PITCH_Z = 0.0026;
+const ROWS = 10;
+const PITCH_X = 0.00333;
+const PITCH_Z = 0.00333;
+/** Centre of the inset face plate on the tilted panel (local frame). */
+const FACE_Y = 0.0056;
+const FACE_Z = -0.0205;
 const COUNT = COLS * ROWS;
 
 interface Element {
@@ -46,7 +49,7 @@ export function PhasedArrayFace() {
           ix: ix - (COLS - 1) / 2,
           iz: iz - (ROWS - 1) / 2,
           x: (ix - (COLS - 1) / 2) * PITCH_X,
-          z: (iz - (ROWS - 1) / 2) * PITCH_Z,
+          z: FACE_Z + (iz - (ROWS - 1) / 2) * PITCH_Z,
         });
       }
     }
@@ -58,7 +61,7 @@ export function PhasedArrayFace() {
     const mesh = meshRef.current;
     if (!mesh) return;
     for (let i = 0; i < elements.length; i++) {
-      dummy.position.set(elements[i].x, 0.0042, elements[i].z);
+      dummy.position.set(elements[i].x, FACE_Y, elements[i].z);
       dummy.rotation.set(0, 0, 0);
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);
@@ -105,7 +108,7 @@ export function PhasedArrayFace() {
       frustumCulled={false}
       raycast={() => null}
     >
-      <boxGeometry args={[0.0019, 0.0007, 0.0016]} />
+      <boxGeometry args={[0.0022, 0.0008, 0.0024]} />
       <meshBasicMaterial toneMapped={false} />
     </instancedMesh>
   );

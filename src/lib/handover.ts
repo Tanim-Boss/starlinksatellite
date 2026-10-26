@@ -505,12 +505,6 @@ export function sampleScenario(tSec: number): ScenarioState {
   };
 }
 
-/** Convenience: the sign of the elevation trend as a word. */
-export function elevationTrend(sat: SatView) {
-  if (!sat.visible) return "below mask";
-  return sat.rising ? "rising" : "falling";
-}
-
 /** Short label for the satellite's state, used in the HUD. */
 export function roleLabel(role: SatRole) {
   switch (role) {
