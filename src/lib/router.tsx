@@ -42,7 +42,18 @@ export function href(path: string, section?: string): string {
 export function scrollToSection(section: string) {
   const el = document.getElementById(section);
   if (!el) return false;
-  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // Some embedded browsers do not implement matchMedia. Prefer an immediate
+  // scroll when motion preference cannot be queried rather than throwing from
+  // a route effect or link click.
+  let reduced = true;
+  try {
+    reduced =
+      typeof window.matchMedia !== "function" ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch {
+    reduced = true;
+  }
   el.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
   return true;
 }

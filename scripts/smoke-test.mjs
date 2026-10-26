@@ -99,9 +99,35 @@ for (const route of ROUTES) {
     console.log(`FAIL ${route}`);
     if (crashed) console.log(`  -> error-boundary fallback rendered`);
     if (empty) console.log(`  -> main content is empty (${text.length} chars)`);
-    for (const err of errors.slice(0, 5)) console.log(`  -> ${err.split("\n")[0]}`);
+    for (const err of errors.slice(0, 5)) console.log(`  -> ${err.split(/\r?\n/)[0]}`);
   } else {
     console.log(`ok   ${route} (${text.length} chars of content)`);
+  }
+}
+
+// 4. Verify the two guide pages still render in restricted webviews. These
+// browsers do not provide matchMedia or IntersectionObserver; both are optional
+// enhancements and must not take down the page.
+window.matchMedia = undefined;
+window.IntersectionObserver = undefined;
+for (const route of ["/", "/how-it-works@constellation"]) {
+  errors.length = 0;
+  window.location.hash = `#${route}`;
+  await wait(700);
+
+  const main = window.document.getElementById("main");
+  const text = (main?.textContent ?? "").trim();
+  const crashed = text.includes("This view failed to render");
+  const empty = text.length < 40;
+
+  if (crashed || empty || errors.length) {
+    failures++;
+    console.log(`FAIL ${route} (limited browser APIs)`);
+    if (crashed) console.log(`  -> error-boundary fallback rendered`);
+    if (empty) console.log(`  -> main content is empty (${text.length} chars)`);
+    for (const err of errors.slice(0, 5)) console.log(`  -> ${err.split(/\r?\n/)[0]}`);
+  } else {
+    console.log(`ok   ${route} (limited browser APIs, ${text.length} chars of content)`);
   }
 }
 
