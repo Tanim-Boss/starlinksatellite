@@ -15,6 +15,7 @@ Three Fiber.
 | --- | --- |
 | `#/` | Overview — the four-step signal path, why low orbit wins, laser mesh, handovers, key numbers |
 | `#/how-it-works` | Nine-chapter explainer with interactive figures and a scroll-spy chapter rail |
+| `#/antenna` | Phased-array beam lab — a physics-based 3D simulator: 256 fixed elements, live interference, a model-derived steerable beam, three satellites, a radiation-pattern view, a guided experiment and a live explanation panel |
 | `#/explorer` | 3D constellation explorer: five views, speed control, layers, satellite inspector, coverage probe |
 | `#/numbers` | Orbit sandbox, latency budget and the fibre-vs-space crossover chart |
 | `#/faq` | Short answers to the common questions, plus sources |
@@ -29,6 +30,15 @@ any static host — including a single file.
 - **Phased array** — drag the beam angle; watch the phase step and timing change.
 - **Phased-array figure** — pick a target elevation and watch the element phase
   offsets change while the panel itself stays perfectly still.
+- **Phased-array beam lab** (`#/antenna`) — a full 3D teaching simulation of a
+  16 × 16 terminal array. Steer azimuth and elevation, sweep automatically, or
+  track one of three moving satellites while the panel stays bolted down. Three
+  linked views (animated wavefronts/interference, the main lobe, and the 3D
+  radiation pattern) are all computed from the same separable array factor. A
+  clickable close-up shows each element's phase, delay and its neighbours, with
+  a phase-colour legend and keyboard navigation. A seven-step guided experiment
+  and live readouts connect the maths to the scene: phase step, timing, nulls,
+  side lobes, beamwidth and target error. Not telemetry or proprietary firmware.
 - **Spot beams** — hover the cells to see how frequency bands are reused.
 - **Satellite anatomy** — hover the numbered callouts to inspect the hardware.
 - **Coverage map** — click anywhere to count covering satellites in the model.
@@ -50,6 +60,21 @@ altitude-o-meter compresses the distance to geostationary orbit, and the orbit
 sandbox draws altitude 6× exaggerated while computing the footprint from the
 true radius and altitude.
 
+The **phased-array beam lab** models a uniform 16 × 16 rectangular lattice of
+ideal isotropic radiators with half-wavelength spacing at 12 GHz (λ ≈ 25 mm,
+d ≈ 12.5 mm, aperture ≈ 0.20 m). Element phases come from
+φ(i,j) = −2π(d/λ)(i·u_x + j·u_z); the far field is the separable Dirichlet array
+factor, and the beam, wave sheet, radiation envelope and readouts all use it.
+Elevation is measured from the horizon, so the scan angle from the panel normal
+is θ = 90° − elevation. Mutual coupling, amplitude taper, element patterns,
+ground reflections, polarisation and atmospheric loss are omitted, and the
+3D envelope/wavefront scale is exaggerated. The three satellites follow
+simplified closed apparent tracks, not Keplerian ephemerides, and their motion is
+time-compressed; orbital motion never depends on the beam. Beamwidth, nulls and
+side lobes are measured from the same sampled cut that the chart draws. This is
+**not** a live Starlink control system, not telemetry, and not a reproduction of
+any product's firmware or hardware; real terminals differ by generation.
+
 The 3D model is **not live telemetry**: satellites are propagated with a simple
 circular two-body model from published shell parameters. Distances are to scale
 (1 scene unit = one Earth radius); spacecraft are drawn much larger than reality
@@ -64,12 +89,14 @@ npm install
 npm run dev      # http://localhost:3000
 npm run build    # single-file build in dist/
 npm run preview  # serves dist/ on http://localhost:3000
+npm run test:smoke    # every route mounts in jsdom, including no-WebGL fallbacks
+npm run test:antenna  # drives the beam lab controls end-to-end in jsdom
 ```
 
 `npm run dev` serves every module separately (~11 MB of JavaScript on a first
 load, because three.js and drei are not bundled); that is fast to edit but slow
 over a network. To look at what a visitor actually downloads, use
-`npm run build && npm run preview` — one gzipped HTML file, about 470 kB.
+`npm run build && npm run preview` — one gzipped HTML file, about 500 kB.
 
 ## Loading
 
@@ -98,20 +125,24 @@ The page is deliberately built to show words before it shows WebGL:
 ```
 src/
   App.tsx                 route switch + page frame
-  pages/                  Home, HowItWorks, Explorer, Numbers, Faq
+  pages/                  Home, HowItWorks, Beam, PhasedArray, Explorer, Numbers, Faq
   components/
     site/                 header, footer, primitives, FAQ accordion
     home/                 home-page sections
     diagrams/             the interactive SVG figures
+    antenna/              phased-array beam lab (scene, panel lattice, beam/wave/pattern layers, sky, controls, close-up, guide)
     explorer/             UI around the 3D scene
     three/                cinematic hero globe
     scene/                reusable three.js layers (Earth, satellites, links…)
   lib/
     astro.ts              orbital mechanics, shells, coverage, gateways
     content.ts            editorial copy and chapter metadata
+    phasedArray.ts        phased-array model: phases, array factor, cut metrics, satellites
+    antennaContent.ts     beam-lab lesson copy, guided steps, assumptions
     router.tsx            tiny hash router
     worldPath.ts          Natural Earth land outlines for the 2D map
 public/textures/          Earth day / night / cloud maps (served locally)
+scripts/                  smoke test + jsdom interaction test for the beam lab
 ```
 
 ## Credits

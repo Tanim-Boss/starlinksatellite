@@ -4,6 +4,7 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { ErrorBoundary } from "@/components/site/ErrorBoundary";
 import { Home } from "@/pages/Home";
 import { HowItWorks } from "@/pages/HowItWorks";
+import { PhasedArray } from "@/pages/PhasedArray";
 import { Explorer } from "@/pages/Explorer";
 import { Numbers } from "@/pages/Numbers";
 import { Faq } from "@/pages/Faq";
@@ -96,6 +97,9 @@ export default function App() {
       break;
     case "/how-it-works":
       page = <HowItWorks />;
+      break;
+    case "/antenna":
+      page = <PhasedArray />;
       break;
     case "/explorer":
       page = <Explorer />;
