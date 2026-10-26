@@ -20,7 +20,7 @@ export function frameState(): ScenarioState {
 }
 
 const _a = new THREE.Vector3();
-const _b = new THREE.Vector3();
+const _tmp = new THREE.Vector3();
 const _up = new THREE.Vector3(0, 1, 0);
 
 export const SAT_KEYS_3D: SatKey[] = ["A", "B", "C"];
@@ -48,18 +48,11 @@ export function beamTarget(out = new THREE.Vector3()): THREE.Vector3 | null {
   const e = st.currentEvent;
   if (st.phase === "transfer" && e) {
     _a.set(...st.sats[e.from].position);
-    _b.set(...st.sats[e.to].position);
-    return out.copy(_a).lerp(_b, smoothstep(st.progress));
+    const to = _tmp.set(...st.sats[e.to].position);
+    return out.copy(_a).lerp(to, smoothstep(st.progress));
   }
   if (!st.serving) return null;
   return out.set(...st.sats[st.serving].position);
-}
-
-/** Unit vector of the beam, from the dish origin towards the sky target. */
-export function beamDirection(out = new THREE.Vector3()) {
-  const t = beamTarget(_b);
-  if (!t) return null;
-  return out.copy(t).normalize();
 }
 
 export const UP = _up.clone();
