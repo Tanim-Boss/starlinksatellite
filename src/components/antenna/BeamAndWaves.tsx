@@ -22,7 +22,9 @@ const BEAM_ORIGIN_Y = 0.3;
 /* Main beam                                                                  */
 /* -------------------------------------------------------------------------- */
 
-const WAVE_RING_COUNT = 5;
+// More closely spaced wavefronts make propagation legible at a glance, as in the
+// reference animation, while remaining a schematic rather than wavelength-scale model.
+const WAVE_RING_COUNT = 12;
 
 /**
  * The main lobe. Its direction is computed from the steering angles on every
@@ -63,6 +65,12 @@ export function MainBeam({ view }: { view: BeamView }) {
   const glow = useMemo(() => makeGlowTexture(), []);
 
   const isBeam = view === "beam";
+  const isWave = view === "wave";
+  // Amber wavefronts echo the reference animation; beam and pattern modes retain
+  // the lab's cyan analytical palette.
+  const beamColor = isWave ? "#ff7a3d" : "#3ddbd9";
+  const wavefrontColor = isWave ? "#ff8a4a" : "#7ee7e2";
+  const coreColor = isWave ? "#ffc08a" : "#9ff7f2";
   // From the panel camera the cone is seen end-on and would cover the lattice,
   // so it is drawn faintly there; the close-up is about the elements.
   const dim = camera === "panel" ? 0.4 : 1;
@@ -84,7 +92,7 @@ export function MainBeam({ view }: { view: BeamView }) {
       mesh.position.y = y;
       const s = 0.16 + progress * 0.52;
       mesh.scale.set(s, 1, s);
-      mat.opacity = (1 - progress) * (isBeam ? 0.34 : 0.08) * dim;
+      mat.opacity = (1 - progress) * (isBeam ? 0.34 : isWave ? 0.42 : 0.08) * dim;
     }
 
   });
@@ -94,7 +102,7 @@ export function MainBeam({ view }: { view: BeamView }) {
       <group ref={group}>
         <mesh geometry={wideCone} renderOrder={2} raycast={() => null}>
           <meshBasicMaterial
-            color="#2b9fae"
+            color={isWave ? "#8c321e" : "#2b9fae"}
             transparent
             opacity={opacity * 0.45}
             side={THREE.DoubleSide}
@@ -105,7 +113,7 @@ export function MainBeam({ view }: { view: BeamView }) {
         </mesh>
         <mesh geometry={cone} renderOrder={3} raycast={() => null}>
           <meshBasicMaterial
-            color="#3ddbd9"
+            color={beamColor}
             transparent
             opacity={opacity}
             side={THREE.DoubleSide}
@@ -116,7 +124,7 @@ export function MainBeam({ view }: { view: BeamView }) {
         </mesh>
         <mesh geometry={coreCone} renderOrder={4} raycast={() => null}>
           <meshBasicMaterial
-            color="#9ff7f2"
+            color={coreColor}
             transparent
             opacity={opacity * 1.35}
             side={THREE.DoubleSide}
@@ -130,9 +138,9 @@ export function MainBeam({ view }: { view: BeamView }) {
         <mesh position={[0, BEAM_LEN / 2, 0]} raycast={() => null}>
           <cylinderGeometry args={[0.009, 0.009, BEAM_LEN, 6]} />
           <meshBasicMaterial
-            color="#c9fffb"
+            color={coreColor}
             transparent
-            opacity={(isBeam ? 0.65 : 0.22) * dim}
+            opacity={(isBeam ? 0.65 : isWave ? 0.34 : 0.22) * dim}
             blending={THREE.AdditiveBlending}
             depthWrite={false}
             toneMapped={false}
@@ -154,7 +162,7 @@ export function MainBeam({ view }: { view: BeamView }) {
               ref={(el) => {
                 ringMaterials.current[n] = el;
               }}
-              color="#7ee7e2"
+              color={wavefrontColor}
               transparent
               opacity={0}
               side={THREE.DoubleSide}
@@ -169,9 +177,9 @@ export function MainBeam({ view }: { view: BeamView }) {
         <sprite position={[0, BEAM_LEN - 0.2, 0]} scale={[1.9, 1.9, 1]} raycast={() => null}>
           <spriteMaterial
             map={glow}
-            color="#7ee7e2"
+            color={wavefrontColor}
             transparent
-            opacity={(isBeam ? 0.65 : 0.25) * dim}
+            opacity={(isBeam ? 0.65 : isWave ? 0.58 : 0.25) * dim}
             depthWrite={false}
             blending={THREE.AdditiveBlending}
             toneMapped={false}
@@ -184,9 +192,9 @@ export function MainBeam({ view }: { view: BeamView }) {
         >
           <ringGeometry args={[0.42, 0.48, 56]} />
           <meshBasicMaterial
-            color="#c9fffb"
+            color={coreColor}
             transparent
-            opacity={(isBeam ? 0.6 : 0.2) * dim}
+            opacity={(isBeam ? 0.6 : isWave ? 0.45 : 0.2) * dim}
             side={THREE.DoubleSide}
             depthWrite={false}
             toneMapped={false}
