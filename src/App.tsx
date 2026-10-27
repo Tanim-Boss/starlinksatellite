@@ -18,7 +18,7 @@ import { scrollToSectionWhenReady, scrollToTop, useRoute } from "@/lib/router";
  */
 const Home = lazy(() => import("@/pages/Home").then((m) => ({ default: m.Home })));
 const HowItWorks = lazy(() => import("@/pages/HowItWorks").then((m) => ({ default: m.HowItWorks })));
-const PhasedArray = lazy(() => import("@/pages/PhasedArray").then((m) => ({ default: m.PhasedArray })));
+const DishLab = lazy(() => import("@/pages/DishLab").then((m) => ({ default: m.DishLab })));
 const Explorer = lazy(() => import("@/pages/Explorer").then((m) => ({ default: m.Explorer })));
 const Numbers = lazy(() => import("@/pages/Numbers").then((m) => ({ default: m.Numbers })));
 const Faq = lazy(() => import("@/pages/Faq").then((m) => ({ default: m.Faq })));
@@ -116,7 +116,7 @@ function renderRoute(path: string) {
     case "/how-it-works":
       return <HowItWorks />;
     case "/antenna":
-      return <PhasedArray />;
+      return <DishLab />;
     case "/explorer":
       return <Explorer />;
     case "/numbers":

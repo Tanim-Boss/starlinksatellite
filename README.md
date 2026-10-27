@@ -15,7 +15,7 @@ Three Fiber.
 | --- | --- |
 | `#/` | Overview — the four-step signal path, why low orbit wins, laser mesh, handovers, key numbers |
 | `#/how-it-works` | Nine-chapter explainer with interactive figures and a scroll-spy chapter rail |
-| `#/antenna` | Phased-array beam lab — a physics-based 3D simulator: 256 fixed elements, live interference, a model-derived steerable beam, three satellites, a radiation-pattern view, a guided experiment and a live explanation panel |
+| `#/antenna` | Dish beam lab — a cinematic 3D simulation of a Starlink-style terminal: a fixed dish, a column of orange wavefronts, four-bit phase words, three satellites and a working sky plot |
 | `#/explorer` | 3D constellation explorer: five views, speed control, layers, satellite inspector, coverage probe |
 | `#/numbers` | Orbit sandbox, latency budget and the fibre-vs-space crossover chart |
 | `#/faq` | Short answers to the common questions, plus sources |
@@ -27,18 +27,17 @@ any static host, including a sub-folder and a single file.
 
 - **Signal path** — click through uplink → relay → gateway → return, or switch to
   the laser route.
-- **Phased array** — drag the beam angle; watch the phase step and timing change.
 - **Phased-array figure** — pick a target elevation and watch the element phase
   offsets change while the panel itself stays perfectly still.
-- **Phased-array beam lab** (`#/antenna`) — a full 3D teaching simulation of a
-  16 × 16 terminal array. Steer azimuth and elevation, sweep automatically, or
-  track one of three moving satellites while the panel stays bolted down. Three
-  linked views (animated wavefronts/interference, the main lobe, and the 3D
-  radiation pattern) are all computed from the same separable array factor. A
-  clickable close-up shows each element's phase, delay and its neighbours, with
-  a phase-colour legend and keyboard navigation. A seven-step guided experiment
-  and live readouts connect the maths to the scene: phase step, timing, nulls,
-  side lobes, beamwidth and target error. Not telemetry or proprietary firmware.
+- **Dish beam lab** (`#/antenna`) — the whole terminal on a tripod at night,
+  radiating a column of orange wavefronts toward a satellite. The dish never
+  moves; the beam is steered by the timing of the array. Three cameras
+  (Dish / Sky / Orbit), three moving satellites, live wavefronts with four-bit
+  phase words riding them, a draggable polar sky plot, a phase-word strip for
+  all 16 array rows, and readouts for scan angle, phase step, row delay and
+  beamwidth. Track mode follows a satellite and slews the column when you pick
+  another; manual mode lets you aim anywhere. Not telemetry or proprietary
+  firmware.
 - **Spot beams** — hover the cells to see how frequency bands are reused.
 - **Satellite anatomy** — hover the numbered callouts to inspect the hardware.
 - **Coverage map** — click anywhere to count covering satellites in the model.
@@ -60,18 +59,19 @@ altitude-o-meter compresses the distance to geostationary orbit, and the orbit
 sandbox draws altitude 6× exaggerated while computing the footprint from the
 true radius and altitude.
 
-The **phased-array beam lab** models a uniform 16 × 16 rectangular lattice of
-ideal isotropic radiators with half-wavelength spacing at 12 GHz (λ ≈ 25 mm,
-d ≈ 12.5 mm, aperture ≈ 0.20 m). Element phases come from
-φ(i,j) = −2π(d/λ)(i·u_x + j·u_z); the far field is the separable Dirichlet array
-factor, and the beam, wave sheet, radiation envelope and readouts all use it.
-Elevation is measured from the horizon, so the scan angle from the panel normal
-is θ = 90° − elevation. Mutual coupling, amplitude taper, element patterns,
-ground reflections, polarisation and atmospheric loss are omitted, and the
-3D envelope/wavefront scale is exaggerated. The three satellites follow
-simplified closed apparent tracks, not Keplerian ephemerides, and their motion is
-time-compressed; orbital motion never depends on the beam. Beamwidth, nulls and
-side lobes are measured from the same sampled cut that the chart draws. This is
+The **dish beam lab** models a uniform 16 × 16 lattice of ideal isotropic
+radiators with half-wavelength spacing at 12 GHz (λ ≈ 25 mm, d ≈ 12.5 mm,
+aperture ≈ 0.20 m). The row phase slope comes from φ = −2π(d/λ)·sin θ, with
+four-bit (22.5°) quantisation for the words shown on the wavefronts; the
+beamwidth is 0.886 λ/D widened by 1/cos θ, and the scan angle is measured from
+the panel normal, θ = 90° − elevation. Mutual coupling, amplitude taper, element
+patterns, ground reflections, polarisation, rain fade and the whole link budget
+are omitted. The wavefront spacing, the ring radii and the distance to the
+satellites are exaggerated and labelled in the UI; the real wavefronts are
+25 mm apart. The three satellites follow closed apparent tracks, not Keplerian
+ephemerides, and their motion is time-compressed; their positions never depend
+on the beam. The binary labels are a visual device — one array row per ring —
+but the words themselves are computed from the current scan angle. This is
 **not** a live Starlink control system, not telemetry, and not a reproduction of
 any product's firmware or hardware; real terminals differ by generation.
 
@@ -93,7 +93,7 @@ npm run build:single  # portable one-file build in dist-single/
 npm run preview       # serves dist/ on http://localhost:3000
 npm run test          # typecheck + both jsdom suites
 npm run test:smoke    # every route mounts in jsdom, including no-WebGL fallbacks
-npm run test:antenna  # drives the beam lab controls end-to-end in jsdom
+npm run test:dish     # drives the dish lab controls end-to-end in jsdom
 ```
 
 `npm run build` emits a normal Vite build: the shell and the current page are
@@ -159,26 +159,25 @@ The page is deliberately built to show words before it shows WebGL:
 ```
 src/
   App.tsx                 route switch + page frame
-  pages/                  Home, HowItWorks, PhasedArray, Explorer, Numbers, Faq
+  pages/                  Home, HowItWorks, DishLab, Explorer, Numbers, Faq
   components/
     site/                 header, footer, primitives, FAQ accordion, scene gate/posters
     home/                 home-page sections
     diagrams/             the interactive SVG figures
-    antenna/              phased-array beam lab (scene, panel lattice, beam/wave/pattern layers, sky, controls, close-up, guide)
+    beam/                 dish beam lab (scene, dish, wavefront column, satellites, sky plot, phase strip, controls)
     explorer/             UI around the 3D scene
     three/                cinematic hero globe
     scene/                reusable three.js layers (Earth, satellites, links…)
   lib/
     astro.ts              orbital mechanics, shells, coverage, gateways
     content.ts            editorial copy and chapter metadata
-    phasedArray.ts        phased-array model: phases, array factor, cut metrics, satellites
-    antennaContent.ts     beam-lab lesson copy, guided steps, assumptions
+    dishBeam.ts           beam model: scan angle, phase words, beamwidth, satellite tracks
     router.tsx            tiny hash router + retrying section scroll
     preload.ts            route-chunk prefetching (idle + hover)
     useViewportActivity.ts pauses animations that nobody can see
     worldPath.ts          Natural Earth land outlines for the 2D map
 public/textures/          Earth day / night / cloud maps (served locally)
-scripts/                  smoke test + jsdom interaction test for the beam lab
+scripts/                  smoke test + jsdom interaction test for the dish lab
 vite.config.ts            dev server + code-split build
 vite.config.singlefile.ts one-file build used by `npm run build:single`
 ```
@@ -191,9 +190,11 @@ a deep link and a real nav click fail to swap pages.
 ## Credits
 
 - Earth textures from the [three.js](https://threejs.org) examples (MIT).
-- The phased-array explanation follows Branch Education's
+- The phased-array explanation, and the look of the dish beam lab, follow
+  Branch Education's
   [How does Starlink satellite internet work?](https://www.youtube.com/watch?v=qs2QcycggWU)
-  (phased arrays, beamforming, beam steering, 64QAM).
+  (phased arrays, beamforming, beam steering, 64QAM). The reference animation
+  in `Video Project 2.mp4` was the visual brief for the simulation.
 - Land outlines derived from [Natural Earth](https://www.naturalearthdata.com)
   via the `world-atlas` dataset.
 - Typography: Space Grotesk and JetBrains Mono (Google Fonts).

@@ -35,7 +35,7 @@ export default defineConfig({
         "./src/components/three/*.tsx",
         "./src/components/scene/*.tsx",
         "./src/components/explorer/*.tsx",
-        "./src/components/antenna/*.tsx",
+        "./src/components/beam/*.tsx",
         "./src/lib/*.ts",
       ],
     },
