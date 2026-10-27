@@ -21,7 +21,7 @@ const ROUTES = ["/", "/how-it-works", "/antenna", "/explorer", "/numbers", "/faq
 const ROUTE_HEADINGS = {
   "/": "How Starlink",
   "/how-it-works": "The whole system",
-  "/antenna": "Steering a radio beam",
+  "/antenna": "dish that",
   "/explorer": "Fly the constellation",
   "/numbers": "Distance is destiny",
   "/faq": "Questions, answered",

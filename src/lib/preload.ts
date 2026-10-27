@@ -15,7 +15,7 @@ type Preloadable = () => Promise<unknown>;
 const loaders: Record<string, Preloadable> = {
   "/": () => import("@/pages/Home"),
   "/how-it-works": () => import("@/pages/HowItWorks"),
-  "/antenna": () => import("@/pages/PhasedArray"),
+  "/antenna": () => import("@/pages/DishLab"),
   "/explorer": () => import("@/pages/Explorer"),
   "/numbers": () => import("@/pages/Numbers"),
   "/faq": () => import("@/pages/Faq"),
@@ -37,7 +37,7 @@ type IdleWindow = Window & {
 
 /**
  * Warms the three text-heavy pages once the current page has settled.
- * Explorer and the beam lab are excluded on purpose: they carry three.js and
+ * Explorer and the dish lab are excluded on purpose: they carry three.js and
  * should not be downloaded for visitors who never open them.
  */
 export function preloadLightRoutes(): () => void {
