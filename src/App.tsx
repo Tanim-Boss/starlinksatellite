@@ -10,15 +10,18 @@ import { scrollToSectionWhenReady, scrollToTop, useRoute } from "@/lib/router";
 /*
  * Pages are split into their own chunks. The entry bundle now contains the
  * shell (header, footer, router, copy) and the current route only; the 3D
- * scenes behind /explorer and /antenna, and the diagrams on the overview and
- * the explainer, arrive after the first paint instead of blocking it. Before
- * this, every visitor downloaded all six pages and three.js before the tab
- * showed anything, which is why the two long pages felt like they needed
- * reloading on a slow connection.
+ * scenes behind /explorer, /antenna and /steering, and the diagrams on the
+ * overview and the explainer, arrive after the first paint instead of
+ * blocking it. Before this, every visitor downloaded every page and three.js
+ * before the tab showed anything, which is why the long pages felt like they
+ * needed reloading on a slow connection.
  */
 const Home = lazy(() => import("@/pages/Home").then((m) => ({ default: m.Home })));
 const HowItWorks = lazy(() => import("@/pages/HowItWorks").then((m) => ({ default: m.HowItWorks })));
 const DishLab = lazy(() => import("@/pages/DishLab").then((m) => ({ default: m.DishLab })));
+const BeamSteering = lazy(() =>
+  import("@/pages/BeamSteering").then((m) => ({ default: m.BeamSteering })),
+);
 const Explorer = lazy(() => import("@/pages/Explorer").then((m) => ({ default: m.Explorer })));
 const Numbers = lazy(() => import("@/pages/Numbers").then((m) => ({ default: m.Numbers })));
 const Faq = lazy(() => import("@/pages/Faq").then((m) => ({ default: m.Faq })));
@@ -117,6 +120,8 @@ function renderRoute(path: string) {
       return <HowItWorks />;
     case "/antenna":
       return <DishLab />;
+    case "/steering":
+      return <BeamSteering />;
     case "/explorer":
       return <Explorer />;
     case "/numbers":

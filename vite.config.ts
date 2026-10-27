@@ -36,6 +36,7 @@ export default defineConfig({
         "./src/components/scene/*.tsx",
         "./src/components/explorer/*.tsx",
         "./src/components/beam/*.tsx",
+        "./src/components/steer/*.tsx",
         "./src/lib/*.ts",
       ],
     },

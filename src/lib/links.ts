@@ -5,6 +5,7 @@ export const LINK = {
   home: href("/"),
   howItWorks: href("/how-it-works"),
   antenna: href("/antenna"),
+  steering: href("/steering"),
   explorer: href("/explorer"),
   numbers: href("/numbers"),
   faq: href("/faq"),
