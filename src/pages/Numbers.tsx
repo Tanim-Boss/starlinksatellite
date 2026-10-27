@@ -62,6 +62,9 @@ export function Numbers() {
       </section>
 
       <div className="page-shell py-12 md:py-16">
+        {/* The figure titles below are h3s inside their own widgets; this
+            keeps the document outline intact for screen readers. */}
+        <h2 className="sr-only">Interactive figures</h2>
         <Reveal>
           <AltitudeLab />
         </Reveal>

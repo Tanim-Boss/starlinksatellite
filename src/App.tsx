@@ -1,15 +1,28 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef } from "react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { ErrorBoundary } from "@/components/site/ErrorBoundary";
-import { Home } from "@/pages/Home";
-import { HowItWorks } from "@/pages/HowItWorks";
-import { PhasedArray } from "@/pages/PhasedArray";
-import { Explorer } from "@/pages/Explorer";
-import { Numbers } from "@/pages/Numbers";
-import { Faq } from "@/pages/Faq";
+import { PAGE_META } from "@/lib/content";
 import { LINK } from "@/lib/links";
-import { scrollToSection, useRoute } from "@/lib/router";
+import { preloadLightRoutes } from "@/lib/preload";
+import { scrollToSectionWhenReady, scrollToTop, useRoute } from "@/lib/router";
+
+/*
+ * Pages are split into their own chunks. The entry bundle now contains the
+ * shell (header, footer, router, copy) and the current route only; the 3D
+ * scenes behind /explorer and /antenna, and the diagrams on the overview and
+ * the explainer, arrive after the first paint instead of blocking it. Before
+ * this, every visitor downloaded all six pages and three.js before the tab
+ * showed anything, which is why the two long pages felt like they needed
+ * reloading on a slow connection.
+ */
+const Home = lazy(() => import("@/pages/Home").then((m) => ({ default: m.Home })));
+const HowItWorks = lazy(() => import("@/pages/HowItWorks").then((m) => ({ default: m.HowItWorks })));
+const PhasedArray = lazy(() => import("@/pages/PhasedArray").then((m) => ({ default: m.PhasedArray })));
+const Explorer = lazy(() => import("@/pages/Explorer").then((m) => ({ default: m.Explorer })));
+const Numbers = lazy(() => import("@/pages/Numbers").then((m) => ({ default: m.Numbers })));
+const Faq = lazy(() => import("@/pages/Faq").then((m) => ({ default: m.Faq })));
+
 
 function NotFound() {
   return (
@@ -37,6 +50,24 @@ function NotFound() {
         </a>
       </div>
     </section>
+  );
+}
+
+/** Skeleton for a route chunk that is still on its way. Never a blank screen. */
+function RouteLoading({ label }: { label?: string }) {
+  return (
+    <div className="page-shell flex min-h-[60vh] flex-col justify-center gap-4 pt-24" aria-busy>
+      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-signal/80">
+        {label ?? "Opening the guide"} <span className="animate-blink">·</span>
+      </p>
+      <div className="h-1 w-40 overflow-hidden rounded-full bg-white/10">
+        <div className="h-full w-1/2 animate-pulse rounded-full bg-signal/70" />
+      </div>
+      <p className="max-w-sm text-[12px] leading-relaxed text-faint">
+        Loading this page&apos;s figures. The text appears first; the 3D scenes wait until they are
+        needed.
+      </p>
+    </div>
   );
 }
 
@@ -78,41 +109,65 @@ function PageFallback({ path }: { path: string }) {
   );
 }
 
+function renderRoute(path: string) {
+  switch (path) {
+    case "/":
+      return <Home />;
+    case "/how-it-works":
+      return <HowItWorks />;
+    case "/antenna":
+      return <PhasedArray />;
+    case "/explorer":
+      return <Explorer />;
+    case "/numbers":
+      return <Numbers />;
+    case "/faq":
+      return <Faq />;
+    default:
+      return <NotFound />;
+  }
+}
+
 export default function App() {
   const route = useRoute();
 
-  // Scroll to top on page change, or to the requested section after render.
-  useEffect(() => {
-    if (route.section) {
-      const t = window.setTimeout(() => scrollToSection(route.section as string), 40);
-      return () => window.clearTimeout(t);
+  // Hash routing should always start at the top (or at the deep-linked
+  // chapter). Browsers otherwise restore the previous scroll position on
+  // reload, which lands visitors halfway down a page they have never seen.
+  useLayoutEffect(() => {
+    if (typeof history !== "undefined" && "scrollRestoration" in history) {
+      history.scrollRestoration = "manual";
     }
-    window.scrollTo({ top: 0, behavior: "auto" });
-  }, [route.path, route.section]);
+  }, []);
 
-  let page;
-  switch (route.path) {
-    case "/":
-      page = <Home />;
-      break;
-    case "/how-it-works":
-      page = <HowItWorks />;
-      break;
-    case "/antenna":
-      page = <PhasedArray />;
-      break;
-    case "/explorer":
-      page = <Explorer />;
-      break;
-    case "/numbers":
-      page = <Numbers />;
-      break;
-    case "/faq":
-      page = <Faq />;
-      break;
-    default:
-      page = <NotFound />;
-  }
+  // Keep the tab title and the meta description in step with the route.
+  useEffect(() => {
+    const meta = PAGE_META[route.path];
+    document.title = meta?.title ?? "Page not found — How Starlink Works";
+    const description = document.querySelector('meta[name="description"]');
+    if (meta && description) description.setAttribute("content", meta.description);
+  }, [route.path]);
+
+  // Warm the text-heavy pages once the first screen is idle. They are small;
+  // this is what makes the nav feel instant without delaying the first paint.
+  useEffect(() => preloadLightRoutes(), []);
+
+  // Scroll to the deep-linked section, or back to the top on a page change.
+  // The target is retried for a moment because the route (and its figures) may
+  // still be loading when the effect runs.
+  const lastPath = useRef(route.path);
+  useEffect(() => {
+    const pathChanged = lastPath.current !== route.path;
+    lastPath.current = route.path;
+
+    if (route.section) {
+      // A deep link into another page jumps; a chapter click on the page you
+      // are already reading scrolls smoothly.
+      return scrollToSectionWhenReady(route.section, pathChanged ? "instant" : undefined);
+    }
+    scrollToTop();
+    return;
+  }, [route.path, route.section]);
 
   return (
     <div className="relative min-h-screen bg-void text-ink">
@@ -131,7 +186,7 @@ export default function App() {
           label={`page ${route.path}`}
           fallback={<PageFallback path={route.path} />}
         >
-          {page}
+          <Suspense fallback={<RouteLoading />}>{renderRoute(route.path)}</Suspense>
         </ErrorBoundary>
       </main>
 

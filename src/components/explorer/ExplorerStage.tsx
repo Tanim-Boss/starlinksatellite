@@ -275,7 +275,18 @@ export function ExplorerStage() {
   // the user selects a satellite or drops a probe.
   useEffect(() => {
     if (selectedId === null && !probe) return;
-    if (window.matchMedia("(max-width: 1023px)").matches) setShowInfo(true);
+    // Some embedded browsers have no matchMedia at all; falling back to the
+    // viewport width keeps the panel opening instead of throwing here.
+    let narrow = false;
+    try {
+      narrow =
+        typeof window.matchMedia === "function"
+          ? window.matchMedia("(max-width: 1023px)").matches
+          : window.innerWidth < 1024;
+    } catch {
+      narrow = window.innerWidth < 1024;
+    }
+    if (narrow) setShowInfo(true);
   }, [selectedId, probe]);
 
   const meta = SCENARIOS.find((s) => s.id === scenario)!;
@@ -364,7 +375,7 @@ export function ExplorerStage() {
           </SceneGate>
 
           {/* top gradient for legibility */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/60 to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-linear-to-b from-black/60 to-transparent" />
 
           <div className="pointer-events-none absolute left-3 top-3 flex flex-col gap-2">
             <span className="rounded-full border border-white/15 bg-black/55 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-ink backdrop-blur-md">

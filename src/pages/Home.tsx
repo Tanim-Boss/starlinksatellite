@@ -1,4 +1,4 @@
-import { CinematicGlobe } from "@/components/three/CinematicGlobe";
+import { lazy, Suspense } from "react";
 import { SignalPath } from "@/components/diagrams/SignalPath";
 import { OrbitScale } from "@/components/diagrams/OrbitScale";
 import { LaserMesh } from "@/components/diagrams/LaserMesh";
@@ -21,6 +21,16 @@ import {
 } from "@/components/site/primitives";
 import { HERO_STATS } from "@/lib/content";
 import { Link } from "@/lib/router";
+import { GlobePoster } from "@/components/site/ScenePosters";
+
+/*
+ * The hero globe is the only thing on this page that needs three.js, so it is
+ * fetched only after the text, the figures and the navigation have painted.
+ * Everything visible above the fold is static SVG until then.
+ */
+const CinematicGlobe = lazy(() =>
+  import("@/components/three/CinematicGlobe").then((m) => ({ default: m.CinematicGlobe })),
+);
 
 export function Home() {
   return (
@@ -90,7 +100,9 @@ export function Home() {
 
             <div className="relative">
               <div className="relative mx-auto h-[46vh] min-h-[330px] w-full max-w-[640px] lg:h-[68vh] lg:max-w-none">
-                <CinematicGlobe className="h-full w-full" />
+                <Suspense fallback={<GlobePoster />}>
+                  <CinematicGlobe className="h-full w-full" />
+                </Suspense>
                 <div className="pointer-events-none absolute bottom-2 left-0 flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-1.5 backdrop-blur-md">
                   <span className="h-1.5 w-1.5 rounded-full bg-signal animate-blink" />
                   <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-muted">
@@ -116,7 +128,7 @@ export function Home() {
                 </div>
               </div>
             ))}
-            <div className="pointer-events-none absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-signal/30 to-transparent" />
+            <div className="pointer-events-none absolute inset-x-0 -bottom-px h-px bg-linear-to-r from-transparent via-signal/30 to-transparent" />
           </div>
         </div>
       </section>

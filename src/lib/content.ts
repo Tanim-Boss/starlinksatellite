@@ -212,3 +212,41 @@ export const SOURCES = [
     note: "Background, history and references.",
   },
 ];
+
+/**
+ * Per-route document metadata. The tab title tells you where you are and
+ * deep links keep a useful name when shared; it is restored on navigation
+ * instead of staying "How Starlink Works" on every page.
+ */
+export const PAGE_META: Record<string, { title: string; description: string }> = {
+  "/": {
+    title: "How Starlink Works — An Interactive Field Guide",
+    description:
+      "How does Starlink actually work? An interactive guide to the satellite constellation: low Earth orbit, phased-array terminals, spot beams, gateways, laser links and the physics of latency.",
+  },
+  "/how-it-works": {
+    title: "How Starlink Works — The Full Explainer",
+    description:
+      "Nine chapters through the whole Starlink chain: shells and orbital planes, the satellite, the terminal, radio cells, gateways, laser links, handovers and latency.",
+  },
+  "/antenna": {
+    title: "Phased-Array Beam Lab — How Starlink Works",
+    description:
+      "Steer a 16 × 16 phased-array beam with no moving parts: live wavefronts, interference, a radiation pattern and a guided experiment.",
+  },
+  "/explorer": {
+    title: "3D Constellation Explorer — How Starlink Works",
+    description:
+      "A real-time 3D model of the Starlink shells, orbital planes, coverage footprints, gateways and laser mesh, built from published parameters.",
+  },
+  "/numbers": {
+    title: "The Numbers — How Starlink Works",
+    description:
+      "Orbital speed, footprint size and latency from the same three variables. Move the altitude slider and watch coverage and light-time respond.",
+  },
+  "/faq": {
+    title: "FAQ — How Starlink Works",
+    description:
+      "Straight answers about Starlink: bandwidth, latency, weather, coverage, astronomy and what this site's 3D model does and does not simulate.",
+  },
+};

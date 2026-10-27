@@ -26,16 +26,16 @@
       Fonts load off the critical path. A stylesheet in <head> blocks every
       paint until it arrives, so on a slow network (or a network where Google
       Fonts is slow or blocked) the whole page used to sit on a black screen.
-      Now the theme fonts simply swap in when they get here, and the system
+      The preload is promoted to a stylesheet once it is downloaded; the system
       stack carries the page until then.
     -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      rel="stylesheet"
+      rel="preload"
+      as="style"
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
-      media="print"
-      onload="this.media='all'"
+      onload="this.onload=null;this.rel='stylesheet'"
     />
     <noscript>
       <link
@@ -44,12 +44,16 @@
       />
     </noscript>
 
-    <link rel="preload" as="image" href="/textures/earth-day.jpg" fetchpriority="low" />
+    <!--
+      The Earth day/night maps are deliberately NOT preloaded here. They are
+      only needed by the lazy 3D chunk, and preloading them competed with the
+      entry bundle on pages that never show a globe.
+    -->
 
     <!--
       Boot screen. Inline on purpose: it has to paint before the CSS bundle and
-      before React, so the tab never shows a blank page while the 3D bundle
-      (~1.6 MB) downloads. React replaces it on first render.
+      before React, so the tab never shows a blank page while the entry chunk
+      downloads. React replaces it on first render.
     -->
     <style>
       #boot {
@@ -99,6 +103,28 @@
         overflow: hidden;
         border-radius: 2px;
         background: rgba(255, 255, 255, 0.08);
+      }
+      #boot-error {
+        max-width: 28rem;
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.65;
+        color: #fbbf24;
+      }
+      #boot-retry {
+        display: none;
+        padding: 8px 16px;
+        border: 1px solid rgba(61, 219, 217, 0.45);
+        border-radius: 999px;
+        background: rgba(61, 219, 217, 0.12);
+        color: #7ee7e2;
+        font: inherit;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      #boot-retry:hover {
+        background: rgba(61, 219, 217, 0.22);
+        color: #fff;
       }
       #boot-bar i {
         display: block;
@@ -159,6 +185,8 @@
         <p id="boot-title">How Starlink Works</p>
         <div id="boot-bar"><i></i></div>
         <p id="boot-hint">Loading the interactive field guide…</p>
+        <p id="boot-error" hidden></p>
+        <button id="boot-retry" type="button">Reload the guide</button>
         <noscript>
           <span class="boot-noscript">
             This guide is interactive and needs JavaScript. The 3D model also needs WebGL.
@@ -168,13 +196,66 @@
     </div>
 
     <script>
-      // If the bundle is still not up after a while, say so instead of leaving
-      // a spinner running forever with no explanation.
-      window.setTimeout(function () {
+      /*
+        Boot watchdog. The app replaces this screen on its first commit; until
+        then, a visitor should never be left with an unexplained spinner. If
+        the bundle throws, fails to arrive, or the browser cannot start it, say
+        what happened and offer a single, explicit retry instead of leaving
+        people to reload blindly.
+      */
+      (function () {
         var hint = document.getElementById("boot-hint");
-        if (!hint) return;
-        hint.textContent = "Still loading — the 3D engine is about 1.6 MB. A slow connection can take a minute.";
-      }, 12000);
+        var error = document.getElementById("boot-error");
+        var retry = document.getElementById("boot-retry");
+
+        function booted() {
+          return !document.getElementById("boot");
+        }
+
+        function fail(message) {
+          if (booted()) return;
+          if (hint) hint.textContent = "The guide could not start.";
+          if (error) {
+            error.hidden = false;
+            error.textContent = message;
+          }
+          if (retry) retry.style.display = "inline-block";
+        }
+
+        if (retry) {
+          retry.addEventListener("click", function () {
+            window.location.reload();
+          });
+        }
+
+        // Runtime errors from the app's own scripts. Resource errors (a font or
+        // an image that 404s) must not fail the whole boot.
+        window.addEventListener("error", function (event) {
+          if (event && event.target && event.target !== window) return;
+          var detail = event && event.message ? event.message : "A script failed to load.";
+          fail(detail + " Reloading is usually enough; if it is not, the browser may be blocking scripts.");
+        });
+        window.addEventListener("unhandledrejection", function (event) {
+          var reason = event && event.reason;
+          var detail = reason && reason.message ? reason.message : String(reason || "Unknown error");
+          fail("A module failed to start: " + detail);
+        });
+
+        window.setTimeout(function () {
+          if (booted() || !hint) return;
+          if (retry && retry.style.display === "inline-block") return;
+          hint.textContent =
+            "Still loading — the page has to download its scripts. A slow or filtered connection can take a minute.";
+        }, 12000);
+
+        window.setTimeout(function () {
+          if (booted()) return;
+          fail(
+            "The app did not start. It may be a slow connection, a blocked script, or an old browser. " +
+              "The guide needs JavaScript and a browser from the last few years.",
+          );
+        }, 30000);
+      })();
     </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>

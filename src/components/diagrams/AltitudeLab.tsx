@@ -227,7 +227,7 @@ export function AltitudeLab() {
           </div>
 
           <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
-            <div className="h-full rounded-full bg-gradient-to-r from-signal/60 to-laser/70" style={{ width: `${pct}%` }} />
+            <div className="h-full rounded-full bg-linear-to-r from-signal/60 to-laser/70" style={{ width: `${pct}%` }} />
           </div>
           <p className="mt-2 text-[10px] leading-relaxed text-faint">
             Drag through the range: altitude is a trade. Lower is lower latency and easier disposal;

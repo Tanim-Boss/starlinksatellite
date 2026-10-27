@@ -162,7 +162,7 @@ export function ChapterGrid() {
             <ArrowIcon className="text-faint transition-all duration-300 group-hover:translate-x-1 group-hover:text-signal" />
           </div>
           {i === 0 && (
-            <span className="pointer-events-none absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-signal/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+            <span className="pointer-events-none absolute inset-x-0 -top-px h-px bg-linear-to-r from-transparent via-signal/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
           )}
         </Link>
       ))}
@@ -176,7 +176,7 @@ export function ChapterGrid() {
 
 export function ExplorerTeaser() {
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#08131f] via-[#060c16] to-[#080914]">
+    <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#08131f] via-[#060c16] to-[#080914]">
       <div className="grid-bg pointer-events-none absolute inset-0 opacity-40" aria-hidden />
       <div
         className="pointer-events-none absolute -right-20 -top-24 h-96 w-96 rounded-full bg-signal/[0.08] blur-3xl"

@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/utils/cn";
+import { useReducedMotion } from "@/lib/useMediaQuery";
+import { useViewportActive } from "@/lib/useViewportActivity";
 
 type Mode = "relay" | "laser";
 
@@ -39,18 +41,25 @@ export function SignalPath() {
   const [mode, setMode] = useState<Mode>("relay");
   const [step, setStep] = useState(0);
   const [paused, setPaused] = useState(false);
+  const reduced = useReducedMotion();
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const onScreen = useViewportActive(stageRef);
+
+  // Auto-advance only while the figure is on screen, and not at all when the
+  // visitor has asked for reduced motion: a moving highlight is decoration.
+  const auto = !paused && onScreen && !reduced;
 
   useEffect(() => {
-    if (paused) return;
+    if (!auto) return;
     const t = window.setInterval(() => setStep((s) => (s + 1) % STEPS.length), 5200);
     return () => window.clearInterval(t);
-  }, [paused]);
+  }, [auto]);
 
   const active = STEPS[step].key;
   const show = (key: string) => active === key;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#060b16]">
+    <div ref={stageRef} className="overflow-hidden rounded-2xl border border-white/10 bg-[#060b16]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.07] px-5 py-4">
         <div className="flex items-center gap-2.5">
           <span className="flex h-6 w-6 items-center justify-center rounded-md border border-signal/30 bg-signal/10 font-mono text-[10px] text-signal">
@@ -313,7 +322,7 @@ export function SignalPath() {
         </div>
 
         {/* live step caption */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 hidden bg-gradient-to-t from-[#060b16] via-[#060b16]/85 to-transparent px-5 pb-4 pt-10 sm:block">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 hidden bg-linear-to-t from-[#060b16] via-[#060b16]/85 to-transparent px-5 pb-4 pt-10 sm:block">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full border border-signal/30 bg-signal/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-signal">
               {STEPS[step].label}
