@@ -6,7 +6,7 @@
 export const NAV = [
   { label: "Overview", path: "/" },
   { label: "How it works", path: "/how-it-works" },
-  { label: "Beam lab", path: "/antenna" },
+  { label: "Satellite sim", path: "/simulation" },
   { label: "Beam steering", path: "/steering" },
   { label: "3D explorer", path: "/explorer" },
   { label: "Numbers", path: "/numbers" },
@@ -230,10 +230,10 @@ export const PAGE_META: Record<string, { title: string; description: string }> =
     description:
       "Nine chapters through the whole Starlink chain: shells and orbital planes, the satellite, the terminal, radio cells, gateways, laser links, handovers and latency.",
   },
-  "/antenna": {
-    title: "Dish Beam Lab — How Starlink Works",
+  "/simulation": {
+    title: "Satellite Internet Simulation — How Starlink Works",
     description:
-      "A Starlink-style dish steers without moving: follow the wavefronts, read the four-bit phase words, and aim at three satellites from a working sky plot.",
+      "A real-time 3D satellite-internet simulation: hundreds of satellites on physical orbits, a phased-array dish with live handoffs, a laser relay mesh with routing, and a cinematic story tour.",
   },
   "/steering": {
     title: "Satellite Beam Steering Lab — How Starlink Works",

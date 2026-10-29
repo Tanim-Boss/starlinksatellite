@@ -1,5 +1,5 @@
 import { TECH_SPECS, getTarget, targetAzElAt, type TechMode } from "@/lib/steering";
-import { controlBase } from "@/components/beam/beamUI";
+import { controlBase } from "./steerUI";
 import { cn } from "@/utils/cn";
 import { SPEEDS, steerClock, useSteerLab, type CameraView } from "./steerStore";
 
