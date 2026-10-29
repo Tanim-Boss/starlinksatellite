@@ -1,30 +1,26 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo } from "react";
 import * as THREE from "three";
-import { useFrame } from "@react-three/fiber";
-import { colors } from "../config";
-import { sitePositions } from "../hooks/useSimDriver";
+import { colors, stationSize } from "../config";
 import { useSimStore } from "../hooks/useSimStore";
 import { latLonToEarthFixed } from "../utils/orbit";
 import { makeGlowTexture } from "../utils/textures";
 
-const _a = new THREE.Vector3();
 const _upY = new THREE.Vector3(0, 1, 0);
 const _radial = new THREE.Vector3();
 
 /**
  * The gateway ground station (earth-fixed) and the "Internet" node floating
- * above it. The gateway antenna publishes its world anchor each frame; the
- * internet node is a glowing marker that terminates the relay route.
+ * above it. The shared driver calculates its world anchor from the same
+ * Earth rotation used by the scene. The internet node terminates the route.
  * Sizes are exaggerated for visibility.
  */
 export function GatewayStation() {
   const gateway = useSimStore((s) => s.gateway);
-  const groupRef = useRef<THREE.Group>(null);
   const glow = useMemo(() => makeGlowTexture(), []);
 
   const local = useMemo(() => {
     const v = new THREE.Vector3();
-    latLonToEarthFixed(gateway.lat, gateway.lon, 1.004, v);
+    latLonToEarthFixed(gateway.lat, gateway.lon, stationSize.baseRadius, v);
     return v;
   }, [gateway]);
 
@@ -39,17 +35,9 @@ export function GatewayStation() {
     };
   }, [glow]);
 
-  useFrame(() => {
-    if (groupRef.current) {
-      groupRef.current.getWorldPosition(_a);
-      _radial.copy(_a).normalize();
-      sitePositions.gatewayWorld.copy(_a);
-      sitePositions.gatewayAntenna.copy(_a).addScaledVector(_radial, 0.022);
-    }
-  });
 
   return (
-    <group ref={groupRef} position={[local.x, local.y, local.z]} quaternion={orientation}>
+    <group position={[local.x, local.y, local.z]} quaternion={orientation} scale={0.375}>
       {/* Ground station building */}
       <mesh position={[0, 0.006, 0]}>
         <boxGeometry args={[0.016, 0.012, 0.016]} />

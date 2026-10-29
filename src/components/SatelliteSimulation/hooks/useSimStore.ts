@@ -29,8 +29,10 @@ export const simState = {
   connectedElevation: 0,
   /** How many satellites are above the minimum elevation right now. */
   visibleCount: 0,
-  /** Simulated time of the last handoff, or -Infinity. */
+  /** Real performance-clock time of the last acquisition or handoff. */
   handoffAt: -Infinity,
+  /** Satellite that was replaced; null means this was an initial acquisition. */
+  handoffFrom: null as number | null,
   /** Sat id of the satellite being handed off to (label + old beam fade). */
   handoffSat: null as number | null,
   /** Fading beam target (previous satellite) and its remaining opacity. */
@@ -52,7 +54,7 @@ export const simState = {
   resetViewNonce: 0,
   /** Measured frame rate (Smoothed). */
   fps: 60,
-  /** Quality tier: 0 = full, 1 = reduced (fewer satellites, bloom off). */
+  /** Quality tier: 0 = full, 1 = reduced (fewer satellites). */
   qualityTier: 0,
 };
 
@@ -114,33 +116,40 @@ interface SimStore {
 }
 
 const initialToggles: SimToggles = {
-  orbits: false,
-  laserMesh: true,
+  orbits: true,
+  laserMesh: false,
   labels: true,
   dishBeam: true,
 };
 
 export const useSimStore = create<SimStore>((set) => ({
-  speed: 600,
+  speed: 60,
   setSpeed: (v) => set({ speed: v }),
   playing: true,
   togglePlay: () => set((s) => ({ playing: !s.playing })),
   setPlaying: (v) => set({ playing: v }),
   cameraMode: "orbit",
-  setCameraMode: (m) => set({ cameraMode: m }),
+  setCameraMode: (m) => {
+    simState.zoomTarget = null;
+    set({ cameraMode: m, storyActive: false, storyCaption: "" });
+  },
   viewNonce: 0,
   scrollMode: "zoom",
   setScrollMode: (m) => set({ scrollMode: m }),
   // Taking manual control of the camera ends the guided tour.
   zoomIn: () =>
     set((s) => {
-      const base = simState.zoomTarget ?? simState.cameraDistance;
+      const base = s.cameraMode === "orbit"
+        ? simState.zoomTarget ?? simState.cameraDistance
+        : cameraCfg.orbitDistance;
       simState.zoomTarget = clampZoom(base / cameraCfg.zoomStep);
       return takenControl(s);
     }),
   zoomOut: () =>
     set((s) => {
-      const base = simState.zoomTarget ?? simState.cameraDistance;
+      const base = s.cameraMode === "orbit"
+        ? simState.zoomTarget ?? simState.cameraDistance
+        : cameraCfg.orbitDistance;
       simState.zoomTarget = clampZoom(base * cameraCfg.zoomStep);
       return takenControl(s);
     }),
@@ -170,12 +179,20 @@ export const useSimStore = create<SimStore>((set) => ({
   storyActive: false,
   storyIndex: 0,
   storyCaption: "",
-  startStory: () =>
-    set({
+  startStory: () => {
+    simState.zoomTarget = null;
+    set((s) => ({
       storyActive: true,
       storyIndex: 0,
       storyCaption: storySegments[0].caption,
-    }),
+      cameraMode: storySegments[0].camera,
+      speed: storySegments[0].speed,
+      playing: true,
+      // The guided laser/route segments must be visible even though the
+      // uncluttered default orbit view starts with the mesh hidden.
+      toggles: { ...s.toggles, laserMesh: true },
+    }));
+  },
   stopStory: () => set({ storyActive: false, storyCaption: "" }),
 }));
 

@@ -19,7 +19,7 @@ const READ_KEYS = [
   {
     tag: "02",
     title: "The dish never moves",
-    body: "It is a flat phased array on a tripod. As the satellite it tracks nears the horizon, the link hands off to the next one rising — the new beam fades in before the old one fades out.",
+    body: "It is a flat phased array on a tripod. Choose Dish to see it on the ground: the orange beam changes direction as the link hands off from one satellite to another, while the antenna stays still.",
   },
   {
     tag: "03",
@@ -35,7 +35,7 @@ const ASSUMPTIONS = [
   },
   {
     title: "Make-before-break handoffs",
-    body: "When the connected satellite drops below the 25° minimum elevation, the link switches to the highest satellite in view. Real handovers take milliseconds and involve beamforming, not a visible fade — the fade is there so you can see the switch happen.",
+    body: "As the connected satellite approaches the 25° minimum elevation, the link can switch to a better satellite in view; below the cutoff it switches if another is available. The old beam fades for clarity — real handovers involve electronic beamforming, not a visible fade.",
   },
   {
     title: "Routing is shortest-hop, not operational",
@@ -76,8 +76,8 @@ export function SatelliteSim() {
               Hundreds of satellites on real orbits. A dish with no moving parts that tracks the
               sky and hands off seamlessly. A laser mesh that relays your traffic across oceans —
               down to a gateway and into the internet. Everything below is interactive: change the
-              time speed, move the dish, pick a gateway, fly the camera, or press Story Mode and
-              watch the whole chain play itself.
+              time speed, move the dish, pick a gateway, or choose Dish to watch the antenna
+              track satellites from the ground. Story Mode plays the whole chain for you.
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-2">
               {BADGES.map((badge) => (
@@ -123,7 +123,7 @@ export function SatelliteSim() {
                 480 satellites · 24 planes · 53° · 550 km · phased array · laser mesh · BFS routing
               </p>
               <p className="font-mono text-[8px] uppercase tracking-[0.1em] text-faint">
-                Drag to orbit · scroll or +/− to zoom · full view for fullscreen · click the globe to move the dish
+                Choose Orbit / Dish / Laser below the scene · click the globe to move the dish
               </p>
             </div>
           </div>

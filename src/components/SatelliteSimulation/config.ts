@@ -53,14 +53,15 @@ export interface TextureConfig {
   day: string;
   /** City lights used as the night-side emissive map. */
   night: string;
-  /** Optional cloud map; empty string falls back to a procedural layer. */
-  clouds: string;
 }
 
+// Vite's public assets must follow the deployment base (e.g. /project/),
+// rather than assuming that the guide is always hosted at the domain root.
+const assetBase = (typeof import.meta !== "undefined" && import.meta.env?.BASE_URL) || "/";
+
 export const textures: TextureConfig = {
-  day: "/textures/earth-day.jpg",
-  night: "/textures/earth-night.jpg",
-  clouds: "",
+  day: `${assetBase}textures/earth-day.jpg`,
+  night: `${assetBase}textures/earth-night.jpg`,
 };
 
 /* -------------------------------------------------------------------------- */
@@ -72,7 +73,7 @@ export const links = {
   minElevationDeg: 25,
   /** Maximum laser links per satellite (ahead/behind + one per neighbour plane). */
   maxLinksPerSat: 4,
-  /** Handoff margin: re-select when the current satellite drops this far below min elevation (deg). */
+  /** Start a handoff within this margin above the minimum when a better satellite is available (deg). */
   handoffMarginDeg: 3,
 };
 
@@ -85,10 +86,17 @@ export const colors = {
   sat: "#ffffff",
   /** Earth rim glow. */
   atmosphere: "#5fa8ff",
-  /** Dish field-of-view cone. */
-  fov: "#7fc7ff",
   /** Highlighted route. */
   route: "#5ef2ff",
+};
+
+/** Visual dimensions of the ground stations, in Earth-radius scene units.
+ * They remain deliberately enlarged, but their radio/elevation calculations
+ * use the actual surface rather than the top of the exaggerated models. */
+export const stationSize = {
+  baseRadius: 1.0005,
+  dishApertureHeight: 0.0065,
+  gatewayAntennaHeight: 0.006,
 };
 
 /* -------------------------------------------------------------------------- */
@@ -101,7 +109,7 @@ export type CameraMode = "orbit" | "dish" | "laser";
 
 export const camera = {
   /** Default orbit-view distance in scene units (1 unit = 6371 km). */
-  orbitDistance: 4.6,
+  orbitDistance: 3.5,
   /** Closest zoom: just above the 550 km shell (shell radius ≈ 1.086). */
   orbitMin: 1.35,
   /** Farthest zoom: the whole constellation shell fits comfortably. */
@@ -110,8 +118,10 @@ export const camera = {
   zoomStep: 1.4,
   /** Camera-mode transition duration (s). */
   transitionS: 1.5,
-  /** Dish-view standoff above the dish (scene units). */
-  dishOffset: 0.14,
+  /** Ground-view camera: behind the dish, a little above the surface. */
+  dishDistance: 0.075,
+  dishHeight: 0.011,
+  dishFov: 95,
   /** Laser-view standoff beside the satellite (scene units). */
   laserOffset: 0.16,
 };

@@ -1,11 +1,12 @@
 import { useEffect } from "react";
 import * as THREE from "three";
-import { constellation, links as linksCfg, storySegments } from "../config";
-import { OMEGA_EARTH, buildConstellation, satPosition, type SatSim } from "../utils/orbit";
+import { constellation, links as linksCfg, stationSize, storySegments, type City } from "../config";
+import { OMEGA_EARTH, buildConstellation, latLonToWorld, satPosition, type SatSim } from "../utils/orbit";
 import {
   buildLaserMesh,
   computeRoute,
   elevationDeg,
+  routeIsValid,
   type LaserLink,
   type RouteInfo,
 } from "../utils/links";
@@ -22,21 +23,29 @@ export const LASER_MESH: LaserLink[] = buildLaserMesh(
   constellation.satsPerPlane,
 );
 
-/**
- * World-space anchor points the scene components publish each frame and the
- * driver reads for link math. Written imperatively so the driver never needs
- * React state for positions.
- */
+/** World anchors shared by the physics, beams and camera. The surface
+ * points are used for elevation/routing; the raised anchors belong only to
+ * the deliberately enlarged visual models. */
 export const sitePositions = {
-  /** Dish aperture (phased-array face), world space. */
-  dishAperture: new THREE.Vector3(0, 1.04, 0),
-  /** Dish base on the ground, world space. */
-  dishWorld: new THREE.Vector3(0, 1.004, 0),
-  /** Gateway antenna feed, world space. */
-  gatewayAntenna: new THREE.Vector3(0, 1.04, 0),
-  /** Gateway base on the ground, world space. */
-  gatewayWorld: new THREE.Vector3(0, 1.004, 0),
+  dishGround: new THREE.Vector3(0, 1, 0),
+  dishWorld: new THREE.Vector3(0, stationSize.baseRadius, 0),
+  dishAperture: new THREE.Vector3(0, stationSize.baseRadius + stationSize.dishApertureHeight, 0),
+  gatewayGround: new THREE.Vector3(0, 1, 0),
+  gatewayWorld: new THREE.Vector3(0, stationSize.baseRadius, 0),
+  gatewayAntenna: new THREE.Vector3(0, stationSize.baseRadius + stationSize.gatewayAntennaHeight, 0),
 };
+
+/** Update all site anchors at the same simulation time as the satellites. */
+export function updateSitePositions(user: City, gateway: City, t: number): void {
+  latLonToWorld(user.lat, user.lon, 1, t, sitePositions.dishGround);
+  sitePositions.dishWorld.copy(sitePositions.dishGround).multiplyScalar(stationSize.baseRadius);
+  sitePositions.dishAperture.copy(sitePositions.dishGround)
+    .multiplyScalar(stationSize.baseRadius + stationSize.dishApertureHeight);
+  latLonToWorld(gateway.lat, gateway.lon, 1, t, sitePositions.gatewayGround);
+  sitePositions.gatewayWorld.copy(sitePositions.gatewayGround).multiplyScalar(stationSize.baseRadius);
+  sitePositions.gatewayAntenna.copy(sitePositions.gatewayGround)
+    .multiplyScalar(stationSize.baseRadius + stationSize.gatewayAntennaHeight);
+}
 
 /* -------------------------------------------------------------------------- */
 /* Reusable scratch objects (no per-frame allocations)                        */
@@ -64,7 +73,6 @@ export function SimDriver({ active }: { active: boolean }) {
     let last = 0;
     let routeAccum = 0;
     let uiAccum = 0;
-    let secondaryAccum = 0;
     let storyAccum = 0;
 
     const loop = (now: number) => {
@@ -85,16 +93,22 @@ export function SimDriver({ active }: { active: boolean }) {
       // paused: positions are static then, so the dish converges on its
       // satellite and the route forms without waiting for play.
       if (active) {
-        advanceLinks(dt);
+        updateSitePositions(state.user, state.gateway, simState.time);
+        const previousSat = simState.connectedSat;
+        advanceLinks();
 
         routeAccum += dt;
-        if (routeAccum >= 1.5) {
+        const invalidRoute = simState.route && !routeIsValid(
+          simState.route, SATS, sitePositions.dishGround, sitePositions.gatewayGround,
+          simState.connectedSat, simState.time, linksCfg.minElevationDeg,
+        );
+        if (routeAccum >= 1.5 || previousSat !== simState.connectedSat || invalidRoute) {
           routeAccum = 0;
           simState.route = computeRoute(
             SATS,
             LASER_MESH,
-            sitePositions.dishAperture,
-            sitePositions.gatewayAntenna,
+            sitePositions.dishGround,
+            sitePositions.gatewayGround,
             simState.connectedSat !== null ? SATS[simState.connectedSat] : null,
             simState.time,
             linksCfg.minElevationDeg,
@@ -103,14 +117,11 @@ export function SimDriver({ active }: { active: boolean }) {
       }
 
       // The old beam of a handoff fades out over 0.8 real seconds.
-      if (simState.secondarySat !== null) {
-        secondaryAccum += dt;
-        simState.secondaryAlpha = Math.max(0, 1 - secondaryAccum / 0.8);
-        if (simState.secondaryAlpha <= 0) simState.secondarySat = null;
-      }
+      advanceSecondaryFade(dt);
 
       // Story Mode advances on real seconds, independent of sim speed.
-      if (state.storyActive) {
+      if (!state.storyActive) storyAccum = 0;
+      if (state.storyActive && active) {
         storyAccum += dt;
         const seg = storySegments[state.storyIndex];
         if (seg && storyAccum >= seg.durationS) {
@@ -122,7 +133,7 @@ export function SimDriver({ active }: { active: boolean }) {
               storyIndex: 0,
               storyCaption: "",
               cameraMode: "orbit",
-              speed: 600,
+              speed: 60,
               playing: true,
             });
           } else {
@@ -150,12 +161,19 @@ export function SimDriver({ active }: { active: boolean }) {
   return null;
 }
 
+/** Fade each previous beam independently; a new handoff resets alpha to 1. */
+export function advanceSecondaryFade(dt: number): void {
+  if (simState.secondarySat === null) return;
+  simState.secondaryAlpha = Math.max(0, simState.secondaryAlpha - Math.max(0, dt) / 0.8);
+  if (simState.secondaryAlpha === 0) simState.secondarySat = null;
+}
+
 /**
  * Link maintenance: counts satellites above the dish's minimum elevation,
- * keeps the dish locked to the highest one, and performs a handoff when the
- * current satellite drops toward the horizon.
+ * acquires the highest one, and keeps it until a better handoff candidate
+ * appears as the current satellite approaches the minimum elevation.
  */
-function advanceLinks(dt: number): void {
+export function advanceLinks(): void {
   const t = simState.time;
   const minElev = linksCfg.minElevationDeg;
   const margin = linksCfg.handoffMarginDeg;
@@ -165,7 +183,7 @@ function advanceLinks(dt: number): void {
 
   for (const sat of SATS) {
     satPosition(sat, t, _pos);
-    const el = elevationDeg(sitePositions.dishAperture, _pos);
+    const el = elevationDeg(sitePositions.dishGround, _pos);
     if (el >= minElev) {
       visible++;
       if (el > bestEl) {
@@ -179,7 +197,7 @@ function advanceLinks(dt: number): void {
   const current = simState.connectedSat;
   if (current !== null) {
     satPosition(SATS[current], t, _prevPos);
-    simState.connectedElevation = elevationDeg(sitePositions.dishAperture, _prevPos);
+    simState.connectedElevation = elevationDeg(sitePositions.dishGround, _prevPos);
   }
 
   if (bestId >= 0) {
@@ -187,16 +205,22 @@ function advanceLinks(dt: number): void {
       // First acquisition.
       simState.connectedSat = bestId;
       simState.connectedElevation = bestEl;
+      simState.handoffFrom = null;
       simState.handoffSat = bestId;
       simState.handoffAt = performance.now();
     } else if (current === bestId) {
       simState.connectedElevation = bestEl;
-    } else if (simState.connectedElevation < minElev - margin) {
-      // Make-before-break: the new beam fades in while the old one fades out.
+    } else if (
+      simState.connectedElevation < minElev ||
+      (simState.connectedElevation <= minElev + margin && bestEl >= simState.connectedElevation + margin)
+    ) {
+      // Prefer a better satellite just before the old one sets. The previous
+      // beam fades out while the new beam is already established.
       simState.secondarySat = current;
       simState.secondaryAlpha = 1;
       simState.connectedSat = bestId;
       simState.connectedElevation = bestEl;
+      simState.handoffFrom = current;
       simState.handoffSat = bestId;
       simState.handoffAt = performance.now();
     }
@@ -207,7 +231,6 @@ function advanceLinks(dt: number): void {
     simState.connectedSat = null;
     simState.connectedElevation = 0;
   }
-  void dt;
 }
 
 export type { RouteInfo };

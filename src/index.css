@@ -411,18 +411,18 @@ body {
 @keyframes handoffFade {
   from {
     opacity: 0;
-    transform: translateX(-50%) translateY(-6px);
+    transform: translateY(-6px);
   }
   12% {
     opacity: 1;
-    transform: translateX(-50%) translateY(0);
+    transform: translateY(0);
   }
   80% {
     opacity: 1;
-    transform: translateX(-50%) translateY(0);
+    transform: translateY(0);
   }
   to {
     opacity: 0;
-    transform: translateX(-50%) translateY(0);
+    transform: translateY(0);
   }
 }

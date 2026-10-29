@@ -15,7 +15,7 @@ Three Fiber.
 | --- | --- |
 | `#/` | Overview — the four-step signal path, why low orbit wins, laser mesh, handovers, key numbers |
 | `#/how-it-works` | Nine-chapter explainer with interactive figures and a scroll-spy chapter rail |
-| `#/simulation` | Satellite internet simulation — 480 satellites on real orbits, a phased-array dish with live handoffs, a laser relay mesh with BFS routing, three cameras and a 60-second Story Mode tour |
+| `#/simulation` | Satellite internet simulation — 480 satellites on real orbits, a ground-level dish view with live handoffs, a laser relay mesh with BFS routing, three cameras and a 60-second Story Mode tour |
 | `#/steering` | Satellite beam-steering lab — a relay satellite in space slews a gimbaled RF dish or optical laser terminal from Satellite A to Satellite B, with a five-stage walkthrough, live azimuth/elevation/pointing-error telemetry and a mechanism close-up |
 | `#/explorer` | 3D constellation explorer: five views, speed control, layers, satellite inspector, coverage probe |
 | `#/numbers` | Orbit sandbox, latency budget and the fibre-vs-space crossover chart |
@@ -33,18 +33,18 @@ any static host, including a sub-folder and a single file.
 - **Satellite internet simulation** (`#/simulation`) — the whole chain in one
   scene: 480 satellites on physically based circular orbits (550 km, 53°,
   95-minute period, 24 evenly spaced planes), an InstancedMesh fleet whose
-  antennas track Earth, a flat phased-array dish on a tripod (no moving parts)
-  that locks onto the highest satellite above 25° elevation and performs
-  make-before-break handoffs as satellites set, an orange RF beam with
-  animated wavefront rings and streaming binary digits drawn by a custom
-  shader, a cyan laser mesh whose straight links are hidden when they would
-  pass through Earth, a BFS-routed relay path drawn thick and bright from the
-  dish to a selectable gateway and its Internet node, three camera modes
-  (Orbit / Dish / Laser) with 1.5 s eased transitions, click-on-globe
-  location selection, and a 60-second Story Mode tour with captions. Time
-  speed (1×–3000×), play/pause, display toggles, a live HUD (elevation,
-  hops, light-time latency) and an automatic quality fallback. Exaggerated
-  sizes, physical orbits — not live tracking.
+  antennas point toward Earth and panels align with their orbit; a flat,
+  stationary phased-array dish on a tripod links to a satellite above 25°
+  elevation and hands off as it sets. Choose **Dish** for a ground-level view
+  of the antenna, the tracked satellite and the orange radio beam; an amber
+  reticle and handoff label identify the current target. The Orbit view starts
+  at 60× with orbital rings on and the laser mesh off for clarity; both are
+  toggleable. The optional cyan laser mesh and highlighted BFS relay route use
+  only links that clear Earth and its atmosphere. Three camera modes
+  (Orbit / Dish / Laser), click-on-globe location selection, a 60-second Story
+  Mode, speed (1×–3000×), play/pause, a live HUD and an automatic quality
+  fallback round out the scene. Exaggerated sizes, physical orbits — not live
+  tracking.
 - **Satellite beam steering lab** (`#/steering`) — a source satellite holds a link with Satellite A, then hands its narrow beam to Satellite B while the bus stays attitude-fixed. The mast carries a two-axis gimbal: an azimuth stage and an elevation stage rotate an RF parabolic dish (orange constant-phase wavefronts) or an optical laser terminal (thin violet beam with PAT-style acquisition), and the wavefronts, laser and data packets are rebuilt every frame from the live pointing direction. Two target satellites, manual azimuth/elevation sliders, an auto-tracking switch, three cameras including a mechanism close-up, a five-stage narrative rail, and live telemetry (target, azimuth, elevation, pointing error, link status). All values are illustrative: the targets follow closed apparent tracks, and it is neither an orbital propagator nor an electromagnetic solver.
 - **Spot beams** — hover the cells to see how frequency bands are reused.
 - **Satellite anatomy** — hover the numbered callouts to inspect the hardware.
@@ -95,9 +95,10 @@ npm run typecheck     # tsc --noEmit (TypeScript 7)
 npm run build         # code-split build in dist/ (the default)
 npm run build:single  # portable one-file build in dist-single/
 npm run preview       # serves dist/ on http://localhost:3000
-npm run test          # typecheck + all jsdom suites
+npm run test          # typecheck + jsdom suites + orbital/ground-camera math
 npm run test:smoke    # every route mounts in jsdom, including no-WebGL fallbacks
 npm run test:sim      # drives the simulation controls end-to-end in jsdom
+npm run test:sim-math # checks orbits, camera framing, handoffs and relay geometry
 npm run test:steer    # drives the beam-steering lab controls end-to-end in jsdom
 ```
 
@@ -182,7 +183,7 @@ src/
     useViewportActivity.ts pauses animations that nobody can see
     worldPath.ts          Natural Earth land outlines for the 2D map
 public/textures/          Earth day / night maps (served locally)
-scripts/                  smoke test + jsdom interaction tests for the simulation and steering labs
+scripts/                  smoke, simulation math, and jsdom interaction tests
 vite.config.ts            dev server + code-split build
 vite.config.singlefile.ts one-file build used by `npm run build:single`
 ```
