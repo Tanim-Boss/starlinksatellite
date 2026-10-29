@@ -15,8 +15,8 @@ type Preloadable = () => Promise<unknown>;
 const loaders: Record<string, Preloadable> = {
   "/": () => import("@/pages/Home"),
   "/how-it-works": () => import("@/pages/HowItWorks"),
-  "/antenna": () => import("@/pages/DishLab"),
   "/steering": () => import("@/pages/BeamSteering"),
+  "/simulation": () => import("@/pages/SatelliteSim"),
   "/explorer": () => import("@/pages/Explorer"),
   "/numbers": () => import("@/pages/Numbers"),
   "/faq": () => import("@/pages/Faq"),

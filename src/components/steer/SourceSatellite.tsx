@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { Html } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { ANTENNA_Y, type TechMode } from "@/lib/steering";
-import { makeReticleTexture, makeSolarTexture } from "@/components/beam/beamTextures";
+import { makeReticleTexture, makeSolarTexture } from "./steerTextures";
 import { makeGlowTexture } from "@/lib/textures";
 import { steerClock, useSteerLab } from "./steerStore";
 

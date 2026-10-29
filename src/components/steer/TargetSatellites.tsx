@@ -8,7 +8,7 @@ import {
   targetPositionAt,
   type TargetDef,
 } from "@/lib/steering";
-import { makeReticleTexture, makeSolarTexture } from "@/components/beam/beamTextures";
+import { makeReticleTexture, makeSolarTexture } from "./steerTextures";
 import { makeGlowTexture } from "@/lib/textures";
 import { steerClock, useSteerLab } from "./steerStore";
 

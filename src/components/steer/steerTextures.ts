@@ -1,11 +1,11 @@
 import * as THREE from "three";
 
 /**
- * Small procedural textures for the dish lab.
+ * Small procedural textures for the beam-steering lab.
  *
- * All of them are generated once and cached: the binary labels are the only
- * ones created on demand (there are at most 16 distinct four-bit words), so
- * steering the beam never allocates a texture per frame.
+ * Generated once and cached, so steering the beam never allocates a texture
+ * per frame. They used to live in the retired dish beam lab's texture module;
+ * they moved here with their only remaining consumer.
  */
 
 function canvas(size: number): { c: HTMLCanvasElement; ctx: CanvasRenderingContext2D } | null {
@@ -22,52 +22,6 @@ function blankTexture(): THREE.Texture {
   const tex = new THREE.DataTexture(data, 1, 1, THREE.RGBAFormat);
   tex.needsUpdate = true;
   return tex;
-}
-
-/* -------------------------------------------------------------------------- */
-/* Contact shadow                                                             */
-/* -------------------------------------------------------------------------- */
-
-let shadowTexture: THREE.Texture | null = null;
-
-/** A soft, dark ellipse so the tripod sits on the ground instead of floating. */
-export function makeShadowTexture(): THREE.Texture {
-  if (shadowTexture) return shadowTexture;
-  const made = canvas(256);
-  if (!made) return (shadowTexture = blankTexture());
-  const { c, ctx } = made;
-  const g = ctx.createRadialGradient(128, 128, 6, 128, 128, 128);
-  g.addColorStop(0, "rgba(0,0,0,0.92)");
-  g.addColorStop(0.45, "rgba(0,0,0,0.55)");
-  g.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 256, 256);
-  shadowTexture = new THREE.CanvasTexture(c);
-  return shadowTexture;
-}
-
-/* -------------------------------------------------------------------------- */
-/* Ground sheen                                                               */
-/* -------------------------------------------------------------------------- */
-
-let sheenTexture: THREE.Texture | null = null;
-
-/** A faint pool of cold light where the terminal stands. */
-export function makeSheenTexture(): THREE.Texture {
-  if (sheenTexture) return sheenTexture;
-  const made = canvas(512);
-  if (!made) return (sheenTexture = blankTexture());
-  const { c, ctx } = made;
-  const g = ctx.createRadialGradient(256, 256, 10, 256, 256, 256);
-  g.addColorStop(0, "rgba(116,168,214,0.24)");
-  g.addColorStop(0.35, "rgba(76,120,168,0.10)");
-  g.addColorStop(0.7, "rgba(40,70,110,0.03)");
-  g.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 512, 512);
-  sheenTexture = new THREE.CanvasTexture(c);
-  sheenTexture.colorSpace = THREE.SRGBColorSpace;
-  return sheenTexture;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -159,44 +113,4 @@ export function makeReticleTexture(): THREE.Texture {
   reticleTexture = new THREE.CanvasTexture(c);
   reticleTexture.colorSpace = THREE.SRGBColorSpace;
   return reticleTexture;
-}
-
-/* -------------------------------------------------------------------------- */
-/* Binary phase words                                                         */
-/* -------------------------------------------------------------------------- */
-
-const codeTextures = new Map<string, THREE.Texture>();
-
-/**
- * One canvas per distinct four-bit word. The word is drawn in a warm amber so
- * it reads as part of the wavefront, not as UI pasted over the scene.
- */
-export function makeCodeTexture(code: string): THREE.Texture {
-  const cached = codeTextures.get(code);
-  if (cached) return cached;
-  if (typeof document === "undefined") return blankTexture();
-
-  const c = document.createElement("canvas");
-  c.width = 256;
-  c.height = 96;
-  const ctx = c.getContext("2d");
-  if (!ctx) return blankTexture();
-
-  ctx.clearRect(0, 0, 256, 96);
-  ctx.font = "600 58px 'JetBrains Mono', ui-monospace, monospace";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.shadowColor = "rgba(255,106,20,0.95)";
-  ctx.shadowBlur = 18;
-  ctx.fillStyle = "rgba(255,214,168,0.98)";
-  ctx.fillText(code, 128, 52);
-  // A second pass without the blur keeps the glyphs crisp under the glow.
-  ctx.shadowBlur = 0;
-  ctx.fillText(code, 128, 52);
-
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.minFilter = THREE.LinearFilter;
-  codeTextures.set(code, tex);
-  return tex;
 }

@@ -15,7 +15,7 @@ Three Fiber.
 | --- | --- |
 | `#/` | Overview — the four-step signal path, why low orbit wins, laser mesh, handovers, key numbers |
 | `#/how-it-works` | Nine-chapter explainer with interactive figures and a scroll-spy chapter rail |
-| `#/antenna` | Dish beam lab — a cinematic 3D simulation of a Starlink-style terminal: a fixed dish, a column of orange wavefronts, four-bit phase words, three satellites and a working sky plot |
+| `#/simulation` | Satellite internet simulation — 480 satellites on real orbits, a phased-array dish with live handoffs, a laser relay mesh with BFS routing, three cameras and a 60-second Story Mode tour |
 | `#/steering` | Satellite beam-steering lab — a relay satellite in space slews a gimbaled RF dish or optical laser terminal from Satellite A to Satellite B, with a five-stage walkthrough, live azimuth/elevation/pointing-error telemetry and a mechanism close-up |
 | `#/explorer` | 3D constellation explorer: five views, speed control, layers, satellite inspector, coverage probe |
 | `#/numbers` | Orbit sandbox, latency budget and the fibre-vs-space crossover chart |
@@ -30,15 +30,21 @@ any static host, including a sub-folder and a single file.
   the laser route.
 - **Phased-array figure** — pick a target elevation and watch the element phase
   offsets change while the panel itself stays perfectly still.
-- **Dish beam lab** (`#/antenna`) — the whole terminal on a tripod at night,
-  radiating a column of orange wavefronts toward a satellite. The dish never
-  moves; the beam is steered by the timing of the array. Three cameras
-  (Dish / Sky / Orbit), three moving satellites, live wavefronts with four-bit
-  phase words riding them, a draggable polar sky plot, a phase-word strip for
-  all 16 array rows, and readouts for scan angle, phase step, row delay and
-  beamwidth. Track mode follows a satellite and slews the column when you pick
-  another; manual mode lets you aim anywhere. Not telemetry or proprietary
-  firmware.
+- **Satellite internet simulation** (`#/simulation`) — the whole chain in one
+  scene: 480 satellites on physically based circular orbits (550 km, 53°,
+  95-minute period, 24 evenly spaced planes), an InstancedMesh fleet whose
+  antennas track Earth, a flat phased-array dish on a tripod (no moving parts)
+  that locks onto the highest satellite above 25° elevation and performs
+  make-before-break handoffs as satellites set, an orange RF beam with
+  animated wavefront rings and streaming binary digits drawn by a custom
+  shader, a cyan laser mesh whose straight links are hidden when they would
+  pass through Earth, a BFS-routed relay path drawn thick and bright from the
+  dish to a selectable gateway and its Internet node, three camera modes
+  (Orbit / Dish / Laser) with 1.5 s eased transitions, click-on-globe
+  location selection, and a 60-second Story Mode tour with captions. Time
+  speed (1×–3000×), play/pause, display toggles, a live HUD (elevation,
+  hops, light-time latency) and an automatic quality fallback. Exaggerated
+  sizes, physical orbits — not live tracking.
 - **Satellite beam steering lab** (`#/steering`) — a source satellite holds a link with Satellite A, then hands its narrow beam to Satellite B while the bus stays attitude-fixed. The mast carries a two-axis gimbal: an azimuth stage and an elevation stage rotate an RF parabolic dish (orange constant-phase wavefronts) or an optical laser terminal (thin violet beam with PAT-style acquisition), and the wavefronts, laser and data packets are rebuilt every frame from the live pointing direction. Two target satellites, manual azimuth/elevation sliders, an auto-tracking switch, three cameras including a mechanism close-up, a five-stage narrative rail, and live telemetry (target, azimuth, elevation, pointing error, link status). All values are illustrative: the targets follow closed apparent tracks, and it is neither an orbital propagator nor an electromagnetic solver.
 - **Spot beams** — hover the cells to see how frequency bands are reused.
 - **Satellite anatomy** — hover the numbered callouts to inspect the hardware.
@@ -61,21 +67,17 @@ altitude-o-meter compresses the distance to geostationary orbit, and the orbit
 sandbox draws altitude 6× exaggerated while computing the footprint from the
 true radius and altitude.
 
-The **dish beam lab** models a uniform 16 × 16 lattice of ideal isotropic
-radiators with half-wavelength spacing at 12 GHz (λ ≈ 25 mm, d ≈ 12.5 mm,
-aperture ≈ 0.20 m). The row phase slope comes from φ = −2π(d/λ)·sin θ, with
-four-bit (22.5°) quantisation for the words shown on the wavefronts; the
-beamwidth is 0.886 λ/D widened by 1/cos θ, and the scan angle is measured from
-the panel normal, θ = 90° − elevation. Mutual coupling, amplitude taper, element
-patterns, ground reflections, polarisation, rain fade and the whole link budget
-are omitted. The wavefront spacing, the ring radii and the distance to the
-satellites are exaggerated and labelled in the UI; the real wavefronts are
-25 mm apart. The three satellites follow closed apparent tracks, not Keplerian
-ephemerides, and their motion is time-compressed; their positions never depend
-on the beam. The binary labels are a visual device — one array row per ring —
-but the words themselves are computed from the current scan angle. This is
-**not** a live Starlink control system, not telemetry, and not a reproduction of
-any product's firmware or hardware; real terminals differ by generation.
+The **satellite internet simulation** propagates every satellite with a
+circular two-body model from published shell parameters (RAAN, inclination and
+mean anomaly per plane and slot, so periods, speeds and ground-track geometry
+are correct), and computes dish elevation, Earth line-of-sight blocking, laser
+adjacency and BFS relay routes from the same physics. Satellite, dish and beam
+sizes are exaggerated for visibility and labelled as such in the UI; the
+wavefront rings and binary digits on the RF beam are a visual device, not an
+electromagnetic solver. The latency figure is path length over the speed of
+light — real latency adds processing and queuing. This is **not** a live
+Starlink control system, not telemetry, and not a reproduction of any product's
+firmware or hardware.
 
 The 3D model is **not live telemetry**: satellites are propagated with a simple
 circular two-body model from published shell parameters. Distances are to scale
@@ -95,7 +97,7 @@ npm run build:single  # portable one-file build in dist-single/
 npm run preview       # serves dist/ on http://localhost:3000
 npm run test          # typecheck + all jsdom suites
 npm run test:smoke    # every route mounts in jsdom, including no-WebGL fallbacks
-npm run test:dish     # drives the dish lab controls end-to-end in jsdom
+npm run test:sim      # drives the simulation controls end-to-end in jsdom
 npm run test:steer    # drives the beam-steering lab controls end-to-end in jsdom
 ```
 
@@ -162,12 +164,12 @@ The page is deliberately built to show words before it shows WebGL:
 ```
 src/
   App.tsx                 route switch + page frame
-  pages/                  Home, HowItWorks, DishLab, Explorer, Numbers, Faq
+  pages/                  Home, HowItWorks, SatelliteSim, BeamSteering, Explorer, Numbers, Faq
   components/
     site/                 header, footer, primitives, FAQ accordion, scene gate/posters
     home/                 home-page sections
     diagrams/             the interactive SVG figures
-    beam/                 dish beam lab (scene, dish, wavefront column, satellites, sky plot, phase strip, controls)
+    SatelliteSimulation/  reusable 3D satellite-internet simulation (config, scenes, hooks, ui, utils)
     steer/                satellite beam-steering lab (space scene, gimbaled dish/optical terminal, dynamic beam, targets, telemetry, stage rail, controls)
     explorer/             UI around the 3D scene
     three/                cinematic hero globe
@@ -175,13 +177,12 @@ src/
   lib/
     astro.ts              orbital mechanics, shells, coverage, gateways
     content.ts            editorial copy and chapter metadata
-    dishBeam.ts           beam model: scan angle, phase words, beamwidth, satellite tracks
     router.tsx            tiny hash router + retrying section scroll
     preload.ts            route-chunk prefetching (idle + hover)
     useViewportActivity.ts pauses animations that nobody can see
     worldPath.ts          Natural Earth land outlines for the 2D map
-public/textures/          Earth day / night / cloud maps (served locally)
-scripts/                  smoke test + jsdom interaction test for the dish lab
+public/textures/          Earth day / night maps (served locally)
+scripts/                  smoke test + jsdom interaction tests for the simulation and steering labs
 vite.config.ts            dev server + code-split build
 vite.config.singlefile.ts one-file build used by `npm run build:single`
 ```
@@ -194,8 +195,7 @@ a deep link and a real nav click fail to swap pages.
 ## Credits
 
 - Earth textures from the [three.js](https://threejs.org) examples (MIT).
-- The phased-array explanation, and the look of the dish beam lab, follow
-  Branch Education's
+- The phased-array explanation follows Branch Education's
   [How does Starlink satellite internet work?](https://www.youtube.com/watch?v=qs2QcycggWU)
   (phased arrays, beamforming, beam steering, 64QAM). The reference animation
   in `Video Project 2.mp4` was the visual brief for the simulation.

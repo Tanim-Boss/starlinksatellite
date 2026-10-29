@@ -10,7 +10,7 @@ import { scrollToSectionWhenReady, scrollToTop, useRoute } from "@/lib/router";
 /*
  * Pages are split into their own chunks. The entry bundle now contains the
  * shell (header, footer, router, copy) and the current route only; the 3D
- * scenes behind /explorer, /antenna and /steering, and the diagrams on the
+ * scenes behind /explorer, /steering and /simulation, and the diagrams on the
  * overview and the explainer, arrive after the first paint instead of
  * blocking it. Before this, every visitor downloaded every page and three.js
  * before the tab showed anything, which is why the long pages felt like they
@@ -18,7 +18,9 @@ import { scrollToSectionWhenReady, scrollToTop, useRoute } from "@/lib/router";
  */
 const Home = lazy(() => import("@/pages/Home").then((m) => ({ default: m.Home })));
 const HowItWorks = lazy(() => import("@/pages/HowItWorks").then((m) => ({ default: m.HowItWorks })));
-const DishLab = lazy(() => import("@/pages/DishLab").then((m) => ({ default: m.DishLab })));
+const SatelliteSim = lazy(() =>
+  import("@/pages/SatelliteSim").then((m) => ({ default: m.SatelliteSim })),
+);
 const BeamSteering = lazy(() =>
   import("@/pages/BeamSteering").then((m) => ({ default: m.BeamSteering })),
 );
@@ -118,8 +120,8 @@ function renderRoute(path: string) {
       return <Home />;
     case "/how-it-works":
       return <HowItWorks />;
-    case "/antenna":
-      return <DishLab />;
+    case "/simulation":
+      return <SatelliteSim />;
     case "/steering":
       return <BeamSteering />;
     case "/explorer":

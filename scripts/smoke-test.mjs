@@ -15,13 +15,13 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
 
-const ROUTES = ["/", "/how-it-works", "/antenna", "/steering", "/explorer", "/numbers", "/faq"];
+const ROUTES = ["/", "/how-it-works", "/simulation", "/steering", "/explorer", "/numbers", "/faq"];
 
 /** A phrase from each route's own <h1>, used to detect that the new page won. */
 const ROUTE_HEADINGS = {
   "/": "How Starlink",
   "/how-it-works": "The whole system",
-  "/antenna": "dish that",
+  "/simulation": "satellite internet",
   "/steering": "Steer the beam",
   "/explorer": "Fly the constellation",
   "/numbers": "Distance is destiny",
