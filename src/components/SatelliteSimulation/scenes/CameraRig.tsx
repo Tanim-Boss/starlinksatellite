@@ -27,7 +27,10 @@ function easeInOutCubic(t: number): number {
  * The three camera modes, with ~1.5 s eased transitions between them:
  *
  *  - Orbit View: whole Earth, OrbitControls with damping, zoom limits and a
- *    slow auto-rotate while idle.
+ *    slow auto-rotate while idle. Drag rotates, the mouse wheel / pinch /
+ *    zoom buttons and slider dolly between `orbitMin` and `orbitMax`, and
+ *    "Reset view" frames the whole planet again. When the visitor picks
+ *    "Page scroll" the wheel is handed back to the page instead.
  *  - Dish View: first-person above the dish, looking up at the sky.
  *  - Laser View: cinematic fly-along beside the dish-connected satellite.
  *
@@ -39,7 +42,11 @@ export function CameraRig() {
   const controlsRef = useRef<ElementRef<typeof OrbitControls>>(null);
   const mode = useSimStore((s) => s.cameraMode);
   const storyActive = useSimStore((s) => s.storyActive);
+  const scrollMode = useSimStore((s) => s.scrollMode);
   const reduced = useReducedMotion();
+  const lastResetNonce = useRef(simState.resetViewNonce);
+  const recentring = useRef(false);
+  const interactWired = useRef(false);
 
   const trans = useRef({
     active: false,
@@ -61,6 +68,29 @@ export function CameraRig() {
   useFrame((_, dt) => {
     const controls = controlsRef.current;
     const tr = trans.current;
+
+    // A direct grab (drag / wheel / pinch) cancels any button-driven dolly,
+    // so the visitor's input always wins over an in-flight zoom animation.
+    if (controls && !interactWired.current) {
+      interactWired.current = true;
+      controls.addEventListener("start", () => {
+        simState.zoomTarget = null;
+      });
+    }
+    // OrbitControls forces `touch-action: none` on connect; in page-scroll
+    // mode hand vertical touch scrolling back to the page.
+    if (controls) {
+      const el = controls.domElement;
+      const wanted = scrollMode === "page" ? "pan-y" : "none";
+      if (el && el.style.touchAction !== wanted) el.style.touchAction = wanted;
+    }
+
+    // "Reset / full view": recenter on Earth while the dolly below restores
+    // the default framing distance.
+    if (simState.resetViewNonce !== lastResetNonce.current) {
+      lastResetNonce.current = simState.resetViewNonce;
+      recentring.current = true;
+    }
 
     if (lastMode.current !== mode) {
       lastMode.current = mode;
@@ -87,7 +117,37 @@ export function CameraRig() {
       camera.position.lerp(_toPos, Math.min(1, dt * 4));
       if (controls) controls.target.lerp(_toTarget, Math.min(1, dt * 4));
     } else if (controls) {
+      // Orbit view: apply any pending button/slider zoom as a smooth dolly
+      // along the current view direction, then let OrbitControls damp.
+      if (recentring.current) {
+        controls.target.lerp(_origin, Math.min(1, dt * 5));
+        if (controls.target.length() < 0.002) {
+          controls.target.copy(_origin);
+          recentring.current = false;
+        }
+      }
+      const target = simState.zoomTarget;
+      if (target !== null) {
+        _radial.copy(camera.position).sub(controls.target);
+        const dist = _radial.length();
+        if (dist > 1e-6) {
+          const next = THREE.MathUtils.damp(dist, target, 7, dt);
+          const arrived = Math.abs(next - target) < 0.005;
+          camera.position
+            .copy(controls.target)
+            .addScaledVector(_radial.normalize(), arrived ? target : next);
+          if (arrived) simState.zoomTarget = null;
+        } else {
+          simState.zoomTarget = null;
+        }
+      }
       controls.update();
+    }
+
+    // Publish the live distance so the zoom slider / readout stay in sync
+    // with wheel, pinch and drag zooms — not just the buttons.
+    if (controls) {
+      simState.cameraDistance = camera.position.distanceTo(controls.target);
     }
 
     if (controls) controls.enabled = mode === "orbit" && !tr.active;
@@ -99,6 +159,11 @@ export function CameraRig() {
       makeDefault
       enableDamping
       dampingFactor={0.08}
+      enablePan
+      panSpeed={0.6}
+      rotateSpeed={0.55}
+      zoomSpeed={0.9}
+      enableZoom={scrollMode === "zoom"}
       minDistance={cameraCfg.orbitMin}
       maxDistance={cameraCfg.orbitMax}
       autoRotate={mode === "orbit" && !storyActive && !reduced}

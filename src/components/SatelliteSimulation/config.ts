@@ -102,8 +102,12 @@ export type CameraMode = "orbit" | "dish" | "laser";
 export const camera = {
   /** Default orbit-view distance in scene units (1 unit = 6371 km). */
   orbitDistance: 4.6,
-  orbitMin: 2.3,
-  orbitMax: 9,
+  /** Closest zoom: just above the 550 km shell (shell radius ≈ 1.086). */
+  orbitMin: 1.35,
+  /** Farthest zoom: the whole constellation shell fits comfortably. */
+  orbitMax: 12,
+  /** Distance multiplier applied by one click of the zoom in/out buttons. */
+  zoomStep: 1.4,
   /** Camera-mode transition duration (s). */
   transitionS: 1.5,
   /** Dish-view standoff above the dish (scene units). */

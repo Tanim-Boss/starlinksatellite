@@ -383,6 +383,7 @@ body {
 .fs-stage:fullscreen {
   height: 100%;
   background: #02050c;
+  border-radius: 0 !important;
 }
 .fs-stage:fullscreen .fs-fill {
   height: 100% !important;
