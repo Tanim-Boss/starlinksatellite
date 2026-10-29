@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { colors } from "../config";
@@ -25,7 +25,7 @@ const LASER_VERT = /* glsl */ `
 `;
 
 const LASER_FRAG = /* glsl */ `
-  uniform float uTime;   // simulated seconds
+  uniform float uTime;   // visual seconds, independent of time acceleration
   uniform float uPulses; // pulses along each link
   uniform float uSpeed;  // cycles per simulated second
   uniform vec3 uColor;
@@ -34,7 +34,7 @@ const LASER_FRAG = /* glsl */ `
   void main() {
     float pulse = fract(vU * uPulses - uTime * uSpeed);
     float glow = pow(max(0.0, 1.0 - abs(pulse - 0.5) * 12.0), 3.0);
-    float core = smoothstep(0.3, 0.0, abs(vU - 0.5)) * 0.3;
+    float core = (1.0 - smoothstep(0.0, 0.3, abs(vU - 0.5))) * 0.3;
     float alpha = (0.08 + glow * 1.1 + core) * vVisible;
     gl_FragColor = vec4(uColor * (0.15 + glow * 1.6 + core), alpha);
   }
@@ -49,6 +49,7 @@ const LASER_FRAG = /* glsl */ `
  */
 export function LaserLinks() {
   const show = useSimStore((s) => s.toggles.laserMesh);
+  const visualTime = useRef(0);
   const geometry = useMemo(() => {
     const positions = new Float32Array(LINK_COUNT * 2 * 3);
     const uAttr = new Float32Array(LINK_COUNT * 2);
@@ -91,8 +92,12 @@ export function LaserLinks() {
     };
   }, [geometry, material]);
 
-  useFrame(() => {
-    material.uniforms.uTime.value = simState.time;
+  useFrame((_, dt) => {
+    if (!show) return;
+    if (useSimStore.getState().playing || useSimStore.getState().storyActive) {
+      visualTime.current += Math.min(dt, 0.05);
+    }
+    material.uniforms.uTime.value = visualTime.current;
     const posAttr = geometry.getAttribute("position") as THREE.BufferAttribute;
     const visAttr = geometry.getAttribute("aVisible") as THREE.BufferAttribute;
     const t = simState.time;

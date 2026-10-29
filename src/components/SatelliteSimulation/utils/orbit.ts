@@ -105,7 +105,7 @@ export function satVelocity(sat: SatSim, t: number, out: THREE.Vector3): THREE.V
   out.set(
     v * (-sat.cosO * su - sat.sinO * cu * sat.cosi),
     v * cu * sat.sini,
-    v * (sat.sinO * su - sat.cosO * cu * sat.cosi),
+    v * (-sat.sinO * su + sat.cosO * cu * sat.cosi),
   );
   return out;
 }
@@ -182,3 +182,10 @@ export function orbitalPeriodS(): number {
 
 export const ORBIT_PERIOD_MIN = orbitalPeriodS() / 60;
 export const ORBIT_SPEED_KM_S = orbitalSpeedKmS();
+
+/** Evenly sample the entire fleet when the quality fallback reduces detail. */
+export function shouldRenderSatellite(index: number, total: number, limit: number): boolean {
+  if (total <= 0 || limit <= 0 || index < 0 || index >= total) return false;
+  if (limit >= total) return true;
+  return Math.floor(((index + 1) * limit) / total) > Math.floor((index * limit) / total);
+}

@@ -1,12 +1,6 @@
 import { useSimStore, type SimToggles } from "../hooks/useSimStore";
-import { cities, timeSpeeds, type CameraMode } from "../config";
+import { cities, timeSpeeds } from "../config";
 import { useReducedMotion } from "@/lib/useMediaQuery";
-
-const CAMERA_MODES: { id: CameraMode; label: string }[] = [
-  { id: "orbit", label: "Orbit" },
-  { id: "dish", label: "Dish" },
-  { id: "laser", label: "Laser" },
-];
 
 const TOGGLE_DEFS: { key: keyof SimToggles; label: string }[] = [
   { key: "orbits", label: "Orbit rings" },
@@ -16,7 +10,7 @@ const TOGGLE_DEFS: { key: keyof SimToggles; label: string }[] = [
 ];
 
 /**
- * The control panel: time speed, play/pause, camera modes, display toggles,
+ * The control panel: time speed, play/pause, display toggles,
  * user/gateway location selectors and the Story Mode tour. Written with
  * plain buttons and native selects so it is keyboard-accessible by default;
  * on small screens it collapses behind a disclosure.
@@ -26,8 +20,6 @@ export function Controls() {
   const setSpeed = useSimStore((s) => s.setSpeed);
   const playing = useSimStore((s) => s.playing);
   const togglePlay = useSimStore((s) => s.togglePlay);
-  const cameraMode = useSimStore((s) => s.cameraMode);
-  const setCameraMode = useSimStore((s) => s.setCameraMode);
   const toggles = useSimStore((s) => s.toggles);
   const setToggle = useSimStore((s) => s.setToggle);
   const user = useSimStore((s) => s.user);
@@ -40,8 +32,8 @@ export function Controls() {
   const reduced = useReducedMotion();
 
   return (
-    <details className="absolute bottom-3.5 right-3.5 z-[6] w-[min(308px,calc(100%-28px))] overflow-hidden rounded-[12px] border border-white/12 shadow-[0_8px_32px_rgba(0,0,0,0.4)] max-[640px]:w-[calc(100%-28px)]">
-      <summary className="flex cursor-pointer list-none select-none items-center justify-between gap-[10px] p-[10px_14px] [&::-webkit-details-marker]:hidden">
+    <details className="absolute bottom-3.5 right-3.5 z-[8] w-[min(308px,calc(100%-28px))] max-h-[calc(100%-28px)] overflow-y-auto overscroll-contain rounded-[12px] border border-white/12 shadow-[0_8px_32px_rgba(0,0,0,0.4)] max-[640px]:w-[calc(100%-28px)]">
+      <summary className="flex cursor-pointer list-none select-none items-center justify-between gap-[10px] bg-[rgba(4,10,20,0.94)] p-[10px_14px] backdrop-blur-[10px] [&::-webkit-details-marker]:hidden">
         <span className="flex items-center gap-[6px]">
           <span aria-hidden="true" className="font-mono text-[12px] text-[#3ddbd9]">
             ⚙
@@ -85,30 +77,6 @@ export function Controls() {
           </div>
         </div>
 
-        {/* Camera modes */}
-        <div className="flex flex-col gap-[6px]">
-          <span className="font-mono text-[8.5px] uppercase tracking-[0.14em] text-white/45">
-            Camera
-          </span>
-          <div className="flex flex-wrap gap-[6px]" role="group" aria-label="Camera mode">
-            {CAMERA_MODES.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                aria-pressed={cameraMode === m.id}
-                className={`min-w-[58px] flex-1 cursor-pointer rounded-[8px] border p-[6px_10px] font-mono text-[10px] transition duration-150 focus-visible:outline-2 focus-visible:outline-[#3ddbd9] focus-visible:outline-offset-2 ${
-                  cameraMode === m.id
-                    ? "border-[rgba(61,219,217,0.7)] bg-[rgba(61,219,217,0.12)] text-[#7ff0ec]"
-                    : "border-white/14 bg-white/3 text-white/70 [&:hover]:border-[rgba(61,219,217,0.5)] [&:hover]:text-white"
-                }`}
-                onClick={() => setCameraMode(m.id)}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Toggles */}
         <div className="flex flex-col gap-[6px]">
           <span className="font-mono text-[8.5px] uppercase tracking-[0.14em] text-white/45">
@@ -133,6 +101,10 @@ export function Controls() {
             ))}
           </div>
         </div>
+
+        <p className="hidden text-[10px] leading-relaxed text-white/60 max-[640px]:block">
+          <span className="text-[#ff9e4a]">Orange</span> radio · <span className="text-[#3ddbd9]">cyan</span> lasers · white satellites
+        </p>
 
         {/* Locations */}
         <div className="flex flex-col gap-[6px]">

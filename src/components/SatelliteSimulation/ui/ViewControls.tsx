@@ -49,7 +49,7 @@ export function ViewControls({
   const atMax = distance >= cameraCfg.orbitMax - 0.01;
 
   return (
-    <div className="absolute right-3.5 top-3.5 z-[7] flex max-w-[calc(100%-24px)] flex-col items-end gap-1.5">
+    <div className="absolute right-3.5 top-3.5 z-[7] flex max-w-[calc(100%-24px)] flex-col items-end gap-1.5 max-[640px]:max-w-[165px]">
       {/* Zoom cluster */}
       <div
         className="flex items-center gap-1.5 rounded-full border border-white/12 bg-[rgba(4,10,20,0.88)] p-1 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-[10px]"
@@ -77,7 +77,7 @@ export function ViewControls({
           step={1}
           value={pct}
           onChange={(e) => zoomTo(zoomPctToDistance(Number(e.target.value)))}
-          className="h-1 w-20 cursor-pointer appearance-none rounded-full bg-white/15 accent-[#3ddbd9] sm:w-28 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#3ddbd9]"
+          className="h-1 w-20 cursor-pointer appearance-none rounded-full bg-white/15 accent-[#3ddbd9] max-[640px]:w-10 sm:w-28 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#3ddbd9]"
         />
         <button
           type="button"
@@ -90,7 +90,7 @@ export function ViewControls({
           +
         </button>
         <span
-          className="w-[52px] pr-1 text-right font-mono text-[10px] tabular-nums text-[#7ff0ec]"
+          className="w-[52px] pr-1 text-right max-[640px]:w-9 font-mono text-[10px] tabular-nums text-[#7ff0ec]"
           aria-live="off"
           title={`Camera distance ${distance.toFixed(2)} Earth radii`}
         >
@@ -118,7 +118,7 @@ export function ViewControls({
           Reset view
         </button>
 
-        <FullscreenButton onClick={onToggleFullscreen} active={isFullscreen} />
+        <FullscreenButton onClick={onToggleFullscreen} active={isFullscreen} className="max-[640px]:px-2" />
 
         <div
           className="flex items-center rounded-full border border-white/12 bg-[#040a14]/70 p-0.5 backdrop-blur"
@@ -141,7 +141,7 @@ export function ViewControls({
                   ? "Mouse wheel / trackpad scroll zooms the 3D view"
                   : "Mouse wheel scrolls the page past the simulation"
               }
-              className={`cursor-pointer rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.08em] transition-colors ${
+              className={`cursor-pointer whitespace-nowrap rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.08em] transition-colors max-[640px]:px-1.5 max-[640px]:text-[7.5px] max-[640px]:tracking-normal ${
                 scrollMode === m.id
                   ? "bg-[rgba(61,219,217,0.16)] text-[#7ff0ec]"
                   : "text-muted hover:text-white"
@@ -158,7 +158,9 @@ export function ViewControls({
           ? scrollMode === "zoom"
             ? "Drag to orbit · Scroll to zoom · Pinch on touch"
             : "Drag to orbit · Use + / − to zoom · Scroll moves the page"
-          : "Follow camera · Zoom returns to full Earth view"}
+          : cameraMode === "dish"
+            ? "Ground camera · Zoom returns to full Earth view"
+            : "Follow camera · Zoom returns to full Earth view"}
       </p>
     </div>
   );

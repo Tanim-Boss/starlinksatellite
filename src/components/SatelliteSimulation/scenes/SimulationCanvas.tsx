@@ -1,10 +1,8 @@
 import { Suspense, useEffect, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Stars, PerformanceMonitor } from "@react-three/drei";
-import { Bloom, EffectComposer } from "@react-three/postprocessing";
+import { Stars } from "@react-three/drei";
 import { camera as cameraCfg, performance } from "../config";
 import { simState, smoothFps, useSimStore } from "../hooks/useSimStore";
-import { useReducedMotion } from "@/lib/useMediaQuery";
 import { EarthAssembly } from "./Earth";
 import { DishModel, DishBeam } from "./DishStation";
 import { GatewayStation } from "./GatewayStation";
@@ -29,8 +27,8 @@ function FrameloopPause({ active }: { active: boolean }) {
 
 /**
  * Automatic quality fallback: samples the frame rate in the render loop and,
- * after a sustained period below the floor, drops one tier (fewer satellites,
- * bloom off). It never upgrades again, so the display cannot oscillate.
+ * after a sustained period below the floor, drops one tier (fewer satellites).
+ * It never upgrades again, so the display cannot oscillate.
  */
 function QualityGuard() {
   const tierRef = useRef(0);
@@ -64,18 +62,15 @@ function QualityGuard() {
 
 /**
  * The whole 3D scene: Earth + satellites + dish + laser mesh + camera rig,
- * bloom on beams, starfield, and the render-loop pause / quality guards.
- * Rendered inside the page's Suspense boundary; texture loads suspend
- * naturally and show the progress screen.
+ * a steady starfield, and the render-loop pause / quality guards.
+ * The local Earth maps load asynchronously without blanking the scene.
  */
 export function SimulationCanvas({ active }: { active: boolean }) {
-  const reduced = useReducedMotion();
-  const qualityTier = useSimStore((s) => s.qualityTier);
   const scrollMode = useSimStore((s) => s.scrollMode);
 
   return (
     <Canvas
-      camera={{ position: [0, 1.4, cameraCfg.orbitDistance], fov: 50, near: 0.02, far: 200 }}
+      camera={{ position: [0, 1.05, cameraCfg.orbitDistance], fov: 50, near: 0.001, far: 200 }}
       dpr={performance.dpr}
       gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
       // In page-scroll mode a touch drag scrolls the page instead of
@@ -87,10 +82,10 @@ export function SimulationCanvas({ active }: { active: boolean }) {
         <FrameloopPause active={active} />
         <QualityGuard />
 
-        <ambientLight intensity={0.35} color="#335577" />
-        <directionalLight position={[6, 4, 5]} intensity={1.7} />
+        <ambientLight intensity={0.7} color="#e5eef6" />
+        <directionalLight position={[6, 4, 5]} intensity={1.25} />
 
-        <Stars radius={90} depth={50} count={6000} factor={4} saturation={0} fade speed={0.2} />
+        <Stars radius={90} depth={50} count={3500} factor={2.2} saturation={0} fade speed={0} />
 
         <EarthAssembly>
           <DishModel />
@@ -106,19 +101,6 @@ export function SimulationCanvas({ active }: { active: boolean }) {
         <RouteOverlay />
 
         <CameraRig />
-        <PerformanceMonitor />
-
-        {qualityTier === 0 && !reduced && (
-          <EffectComposer>
-            <Bloom
-              luminanceThreshold={0.6}
-              luminanceSmoothing={0.2}
-              mipmapBlur
-              intensity={0.85}
-              radius={0.6}
-            />
-          </EffectComposer>
-        )}
       </Suspense>
     </Canvas>
   );

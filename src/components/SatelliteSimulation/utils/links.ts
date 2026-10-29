@@ -7,6 +7,9 @@ import {
   type SatSim,
 } from "./orbit";
 
+/** Maximum laser hops used by the relay path and its rendering buffer. */
+export const MAX_RELAY_HOPS = 16;
+
 /** One directed inter-satellite laser link, stored as a pair of sat ids. */
 export interface LaserLink {
   a: number;
@@ -38,8 +41,9 @@ export function elevationDeg(observer: THREE.Vector3, target: THREE.Vector3): nu
   const len = _d.length();
   if (len <= 1e-9) return 90;
   _d.multiplyScalar(1 / len);
-  const up = observer.length() > 1e-9 ? observer.clone().normalize() : new THREE.Vector3(0, 1, 0);
-  return THREE.MathUtils.radToDeg(Math.asin(THREE.MathUtils.clamp(_d.dot(up), -1, 1)));
+  const radius = observer.length();
+  const vertical = radius > 1e-9 ? _d.dot(observer) / radius : _d.y;
+  return THREE.MathUtils.radToDeg(Math.asin(THREE.MathUtils.clamp(vertical, -1, 1)));
 }
 
 /**
@@ -173,6 +177,31 @@ export function bestSatelliteFor(
   return best ? { sat: best, elevation: bestElev } : null;
 }
 
+/** Whether a previously computed route is still usable at the current time. */
+export function routeIsValid(
+  route: RouteInfo,
+  sats: SatSim[],
+  dishGround: THREE.Vector3,
+  gatewayGround: THREE.Vector3,
+  connectedSat: number | null,
+  t: number,
+  minElevationDeg: number,
+): boolean {
+  const ids = route.satIds;
+  if (ids.length === 0 || ids[0] !== connectedSat || !sats[ids[0]]) return false;
+  const previous = new THREE.Vector3();
+  const next = new THREE.Vector3();
+  satPosition(sats[ids[0]], t, previous);
+  if (elevationDeg(dishGround, previous) < minElevationDeg) return false;
+  for (let i = 1; i < ids.length; i++) {
+    if (!sats[ids[i]]) return false;
+    satPosition(sats[ids[i]], t, next);
+    if (!lineOfSightClear(previous, next)) return false;
+    previous.copy(next);
+  }
+  return elevationDeg(gatewayGround, previous) >= minElevationDeg;
+}
+
 /**
  * Builds the full relay route: dish aperture → connected satellite → laser
  * hops (BFS) → gateway satellite → gateway antenna. Returns null when either
@@ -193,9 +222,14 @@ export function computeRoute(
 
   let satPath: number[] | null = null;
   if (dishSat.id !== gatewayPick.sat.id) {
-    // The mesh links adjacent planes only, so a hemisphere-spanning route
-    // can need up to ~planes hops; 16 covers every pair with margin.
-    satPath = bfsRoute(mesh, dishSat.id, gatewayPick.sat.id, 16);
+    // Only use laser links whose straight segments clear Earth and its
+    // atmosphere at this instant. A topological BFS alone can route through
+    // the planet even when that link is hidden by the renderer.
+    const positions = sats.map((sat) => satPosition(sat, t, new THREE.Vector3()));
+    const available = mesh.filter(({ a, b }) =>
+      positions[a] && positions[b] && lineOfSightClear(positions[a], positions[b]),
+    );
+    satPath = bfsRoute(available, dishSat.id, gatewayPick.sat.id, MAX_RELAY_HOPS);
   } else {
     satPath = [dishSat.id];
   }

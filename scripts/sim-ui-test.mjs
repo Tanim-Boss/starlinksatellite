@@ -123,6 +123,9 @@ assert("3D stage degrades without WebGL", text().includes("WebGL unavailable"));
 assert("HUD telemetry card present", text().includes("SIM TIME"));
 assert("legend present", text().includes("Radio link"));
 assert("location selects present", !!$("#sim-user-location") && !!$("#sim-gateway-location"));
+assert("camera picker is visible outside the settings disclosure", !!$('[aria-label="Camera mode"]') && !$('[aria-label="Camera mode"]').closest("details"));
+assert("orbit rings start on", byText("#simulation button", "Orbit rings")?.getAttribute("aria-pressed") === "true");
+assert("laser mesh starts off for a clearer orbit view", byText("#simulation button", "Laser mesh")?.getAttribute("aria-pressed") === "false");
 
 /* -------------------------------------------------------------------------- */
 /* Transport: play/pause and time speed                                        */
@@ -155,6 +158,9 @@ for (const label of ["Orbit", "Dish", "Laser"]) {
   click(chip);
   await wait(120);
   assert(`camera mode ${label} toggles`, chip.getAttribute("aria-pressed") === "true");
+  if (label === "Dish") {
+    assert("dish view explains the fixed antenna", text().includes("Ground view · Dhaka") && text().includes("antenna stays fixed"));
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -240,6 +246,7 @@ const storyBtn = byText("#simulation button", "Story Mode");
 click(storyBtn);
 await wait(120);
 assert("story mode starts", !!byText("#simulation button", "Stop story"));
+assert("story mode reveals the laser mesh", byText("#simulation button", "Laser mesh")?.getAttribute("aria-pressed") === "true");
 click(byText("#simulation button", "Stop story"));
 await wait(120);
 assert("story mode stops", !!byText("#simulation button", "Story Mode"));
@@ -257,9 +264,10 @@ assert("space key resumes", !!byText("#simulation button", "Pause"));
 key("2");
 await wait(120);
 assert("keyboard camera switch", byText("#simulation button", "Dish")?.getAttribute("aria-pressed") === "true");
+const orbitsBeforeKey = byText("#simulation button", "Orbit rings")?.getAttribute("aria-pressed");
 key("o");
 await wait(120);
-assert("keyboard orbit-rings toggle", byText("#simulation button", "Orbit rings")?.getAttribute("aria-pressed") === "true");
+assert("keyboard orbit-rings toggle", byText("#simulation button", "Orbit rings")?.getAttribute("aria-pressed") !== orbitsBeforeKey);
 
 /* -------------------------------------------------------------------------- */
 

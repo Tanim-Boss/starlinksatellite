@@ -16,7 +16,6 @@ const _pos = new THREE.Vector3();
  */
 export function SatTooltip() {
   const spriteRef = useRef<THREE.Sprite>(null);
-  const prevMap = useRef<THREE.Texture | null>(null);
   const selected = useSimStore((s) => s.selectedSat);
   const [map, setMap] = useState<THREE.Texture | null>(null);
 
@@ -25,12 +24,7 @@ export function SatTooltip() {
       setMap(null);
       return;
     }
-    const next = makeTooltipTexture(selected);
-    setMap(next);
-    // Release the previous card; the maker caches by sat id, so only the
-    // outgoing texture needs disposing.
-    if (prevMap.current && prevMap.current !== next) prevMap.current.dispose();
-    prevMap.current = next;
+    setMap(makeTooltipTexture(selected));
   }, [selected]);
 
   useEffect(() => {

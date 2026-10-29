@@ -8,6 +8,7 @@ import { useSimStore } from "./hooks/useSimStore";
 import { LoadingScreen } from "./ui/LoadingScreen";
 import { Hud } from "./ui/Hud";
 import { Controls } from "./ui/Controls";
+import { CameraPicker } from "./ui/CameraPicker";
 import { ViewControls } from "./ui/ViewControls";
 
 /**
@@ -127,6 +128,7 @@ export function SatelliteSimulation() {
 
       <Hud />
       <ViewControls isFullscreen={fs.isFullscreen} onToggleFullscreen={fs.toggle} />
+      <CameraPicker />
       <Controls />
     </div>
   );

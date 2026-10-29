@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { SATS } from "../hooks/useSimDriver";
 import { useSimStore } from "../hooks/useSimStore";
@@ -19,8 +19,8 @@ export function OrbitRings() {
       const pts: number[] = [];
       const p = new THREE.Vector3();
       const probe: SatSim = { ...sat, n: 1, m0: 0 };
-      for (let i = 0; i <= 96; i++) {
-        satPosition(probe, (i / 96) * Math.PI * 2, p);
+      for (let i = 0; i < 192; i++) {
+        satPosition(probe, (i / 192) * Math.PI * 2, p);
         pts.push(p.x, p.y, p.z);
       }
       const geo = new THREE.BufferGeometry();
@@ -29,13 +29,15 @@ export function OrbitRings() {
     });
   }, []);
 
+  useEffect(() => () => rings.forEach((geometry) => geometry.dispose()), [rings]);
+
   if (!show) return null;
 
   return (
     <group>
       {rings.map((geo, i) => (
         <lineLoop key={i} geometry={geo}>
-          <lineBasicMaterial color="#3ddbd9" transparent opacity={0.16} />
+          <lineBasicMaterial color="#76b9c6" transparent opacity={0.16} depthWrite={false} />
         </lineLoop>
       ))}
     </group>

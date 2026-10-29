@@ -2,18 +2,12 @@ import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Line2 } from "three/examples/jsm/lines/Line2.js";
-import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { colors } from "../config";
 import { SATS, sitePositions } from "../hooks/useSimDriver";
-import { simState } from "../hooks/useSimStore";
+import { simState, useSimStore } from "../hooks/useSimStore";
 import { satPosition } from "../utils/orbit";
-
-/** Waypoints = dish aperture + up to 10 satellites + gateway antenna. */
-const MAX_HOPS = 10;
-const MAX_SEGMENTS = MAX_HOPS + 1;
-
-const _satPos = new THREE.Vector3();
+import { makeRouteGeometry, MAX_ROUTE_SATELLITES, MAX_ROUTE_SEGMENTS } from "../utils/routeGeometry";
 
 /**
  * The highlighted relay route: User dish → Satellite A → laser hops →
@@ -23,18 +17,17 @@ const _satPos = new THREE.Vector3();
  * no per-frame allocations.
  */
 export function RouteOverlay() {
+  const show = useSimStore((s) => s.toggles.laserMesh);
   const groupRef = useRef<THREE.Group>(null);
   const lineRef = useRef<Line2>(null);
   const markersRef = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
+  const points = useMemo(
+    () => Array.from({ length: MAX_ROUTE_SATELLITES + 2 }, () => new THREE.Vector3()),
+    [],
+  );
 
-  const lineGeo = useMemo(() => {
-    const g = new LineGeometry();
-    // One dummy segment to allocate the interleaved buffers; the real
-    // polyline is written into them directly each frame.
-    g.setPositions([0, 0, 0, 0.001, 0, 0]);
-    return g;
-  }, []);
+  const lineGeo = useMemo(() => makeRouteGeometry(), []);
 
   const lineMat = useMemo(
     () =>
@@ -49,7 +42,7 @@ export function RouteOverlay() {
   );
   const size = useThree((s) => s.size);
 
-  const markerGeo = useMemo(() => new THREE.SphereGeometry(0.012, 12, 12), []);
+  const markerGeo = useMemo(() => new THREE.SphereGeometry(0.004, 12, 12), []);
   const markerMat = useMemo(
     () => new THREE.MeshBasicMaterial({ color: new THREE.Color(colors.route) }),
     [],
@@ -66,7 +59,7 @@ export function RouteOverlay() {
     group.add(line);
     lineRef.current = line;
 
-    const markers = new THREE.InstancedMesh(markerGeo, markerMat, MAX_HOPS);
+    const markers = new THREE.InstancedMesh(markerGeo, markerMat, MAX_ROUTE_SATELLITES);
     markers.visible = false;
     markers.frustumCulled = false;
     markers.raycast = () => null;
@@ -86,7 +79,7 @@ export function RouteOverlay() {
   useFrame(() => {
     const line = lineRef.current;
     const markers = markersRef.current;
-    if (!line || !markers) return;
+    if (!line || !markers || !show) return;
 
     lineMat.resolution.set(size.width, size.height);
 
@@ -104,19 +97,17 @@ export function RouteOverlay() {
     const instanceStart = lineGeo.attributes.instanceStart as THREE.InterleavedBufferAttribute;
     const instanceEnd = lineGeo.attributes.instanceEnd as THREE.InterleavedBufferAttribute;
     const arr = instanceStart.data.array as Float32Array;
-    const dish = sitePositions.dishAperture;
-    const gateway = sitePositions.gatewayAntenna;
-    const pts: THREE.Vector3[] = [dish];
-    for (let i = 0; i < ids.length && pts.length <= MAX_HOPS; i++) {
-      satPosition(SATS[ids[i]], t, _satPos);
-      pts.push(_satPos.clone());
+    const count = Math.min(ids.length, MAX_ROUTE_SATELLITES);
+    points[0].copy(sitePositions.dishAperture);
+    for (let i = 0; i < count; i++) {
+      satPosition(SATS[ids[i]], t, points[i + 1]);
     }
-    pts.push(gateway);
+    points[count + 1].copy(sitePositions.gatewayAntenna);
 
-    const segments = Math.min(pts.length - 1, MAX_SEGMENTS);
+    const segments = Math.min(count + 1, MAX_ROUTE_SEGMENTS);
     for (let i = 0; i < segments; i++) {
-      const a = pts[i];
-      const b = pts[i + 1];
+      const a = points[i];
+      const b = points[i + 1];
       arr[i * 6] = a.x;
       arr[i * 6 + 1] = a.y;
       arr[i * 6 + 2] = a.z;
@@ -129,10 +120,9 @@ export function RouteOverlay() {
     lineGeo.instanceCount = segments;
     line.visible = true;
 
-    for (let i = 0; i < MAX_HOPS; i++) {
-      if (i < ids.length) {
-        satPosition(SATS[ids[i]], t, _satPos);
-        dummy.position.copy(_satPos);
+    for (let i = 0; i < MAX_ROUTE_SATELLITES; i++) {
+      if (i < count) {
+        dummy.position.copy(points[i + 1]);
         dummy.updateMatrix();
         markers.setMatrixAt(i, dummy.matrix);
       } else {
@@ -145,5 +135,5 @@ export function RouteOverlay() {
     markers.visible = true;
   });
 
-  return <group ref={groupRef} />;
+  return <group ref={groupRef} visible={show} />;
 }

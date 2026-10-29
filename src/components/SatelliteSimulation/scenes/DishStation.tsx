@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
-import { colors } from "../config";
+import { colors, stationSize } from "../config";
 import { SATS, sitePositions } from "../hooks/useSimDriver";
 import { simState, useSimStore } from "../hooks/useSimStore";
 import { latLonToEarthFixed, satPosition } from "../utils/orbit";
@@ -20,7 +20,7 @@ const BEAM_VERT = /* glsl */ `
 `;
 
 const BEAM_FRAG = /* glsl */ `
-  uniform float uTime;      // simulated seconds
+  uniform float uTime;      // visual seconds, independent of time acceleration
   uniform float uAlpha;     // 0..1 overall opacity (handoff fade)
   uniform float uRingCount; // wavefront rings along the beam
   uniform float uRingSpeed; // cycles per simulated second
@@ -34,7 +34,7 @@ const BEAM_FRAG = /* glsl */ `
     float u = vUv.y; // 0 at the dish, 1 at the satellite
 
     // The beam is a taper: cut off at the dish, sharp at the satellite.
-    float taper = smoothstep(0.0, 0.25, u) * smoothstep(1.0, 0.7, u);
+    float taper = smoothstep(0.0, 0.25, u) * (1.0 - smoothstep(0.7, 1.0, u));
     float edge = smoothstep(0.0, 0.12, abs(vUv.x - 0.5) * 2.0);
 
     // Animated wavefront rings travelling dish → satellite.
@@ -46,14 +46,16 @@ const BEAM_FRAG = /* glsl */ `
     vec4 down = texture2D(uDigits, vec2(fract(u * uDigitRepeat - uTime * uDigitSpeed * 0.75), 0.5));
     float digits = max(up.a, down.a);
 
-    vec3 col = uColor * (0.22 + ring * 1.5 + digits * 0.9);
-    float alpha = taper * edge * (0.3 + ring * 1.3 + digits * 1.1) * uAlpha;
+    vec3 col = uColor * (0.28 + ring * 0.7 + digits * 0.35);
+    float alpha = clamp(taper * edge * (0.3 + ring * 0.5 + digits * 0.35) * uAlpha, 0.0, 0.8);
     gl_FragColor = vec4(col, alpha);
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
   }
 `;
 
 /** Shared beam uniforms; the strips differ only in which satellite they target. */
-function makeBeamMaterial(): THREE.ShaderMaterial {
+function makeBeamMaterial(digits: THREE.Texture): THREE.ShaderMaterial {
   return new THREE.ShaderMaterial({
     uniforms: {
       uTime: { value: 0 },
@@ -62,7 +64,7 @@ function makeBeamMaterial(): THREE.ShaderMaterial {
       uRingSpeed: { value: 0.3 },
       uDigitRepeat: { value: 22 },
       uDigitSpeed: { value: 0.55 },
-      uDigits: { value: makeDigitTexture() },
+      uDigits: { value: digits },
       uColor: { value: new THREE.Color(colors.rf) },
     },
     vertexShader: BEAM_VERT,
@@ -74,7 +76,6 @@ function makeBeamMaterial(): THREE.ShaderMaterial {
   });
 }
 
-const _a = new THREE.Vector3();
 const _b = new THREE.Vector3();
 const _dir = new THREE.Vector3();
 const _upY = new THREE.Vector3(0, 1, 0);
@@ -85,9 +86,10 @@ function updateBeamStrip(
   mat: THREE.ShaderMaterial,
   satId: number | null,
   alpha: number,
+  visualTime: number,
 ): void {
   mat.uniforms.uAlpha.value = alpha;
-  mat.uniforms.uTime.value = simState.time;
+  mat.uniforms.uTime.value = visualTime;
   if (!strip) return;
   if (satId === null) {
     strip.visible = false;
@@ -104,7 +106,7 @@ function updateBeamStrip(
   strip.visible = true;
   _dir.multiplyScalar(1 / len);
   strip.position.copy(dish).addScaledVector(_dir, len * 0.5);
-  strip.scale.set(0.05, len, 1);
+  strip.scale.set(0.004, len, 1);
   strip.quaternion.setFromUnitVectors(_upY, _dir);
 }
 
@@ -116,15 +118,13 @@ function updateBeamStrip(
  * The user terminal: a flat white phased-array panel on a short black pole
  * with a tripod base. No moving parts — the beam steers electronically, which
  * is why the dish never rotates even as it tracks satellites. Sizes are
- * exaggerated for visibility. Also publishes its world anchors each frame.
+ * exaggerated for visibility. The driver computes matching world anchors.
  */
 export function DishModel() {
   const user = useSimStore((s) => s.user);
-  const groupRef = useRef<THREE.Group>(null);
-
   const local = useMemo(() => {
     const v = new THREE.Vector3();
-    latLonToEarthFixed(user.lat, user.lon, 1.004, v);
+    latLonToEarthFixed(user.lat, user.lon, stationSize.baseRadius, v);
     return v;
   }, [user]);
 
@@ -133,61 +133,45 @@ export function DishModel() {
     return new THREE.Quaternion().setFromUnitVectors(_upY, _radial);
   }, [local]);
 
-  useFrame(() => {
-    if (groupRef.current) {
-      groupRef.current.getWorldPosition(_a);
-      _radial.copy(_a).normalize();
-      sitePositions.dishWorld.copy(_a);
-      sitePositions.dishAperture.copy(_a).addScaledVector(_radial, 0.035);
-    }
-  });
-
-  // Three tripod legs.
-  const legs = [0, (Math.PI * 2) / 3, (Math.PI * 4) / 3];
+  const legs = useMemo(() => [0, (Math.PI * 2) / 3, (Math.PI * 4) / 3].map((angle) => {
+    const top = new THREE.Vector3(0, 0.0037, 0);
+    const foot = new THREE.Vector3(Math.cos(angle) * 0.0038, 0.00015, Math.sin(angle) * 0.0038);
+    const direction = foot.clone().sub(top);
+    return {
+      position: top.add(foot).multiplyScalar(0.5),
+      length: direction.length(),
+      quaternion: new THREE.Quaternion().setFromUnitVectors(_upY, direction.normalize()),
+    };
+  }), []);
 
   return (
-    <group ref={groupRef} position={[local.x, local.y, local.z]} quaternion={orientation}>
-      {/* Tripod base */}
-      {legs.map((a) => (
-        <mesh
-          key={a}
-          position={[Math.cos(a) * 0.014, 0.0015, Math.sin(a) * 0.014]}
-          rotation={[0, -a, 0.28]}
-        >
-          <boxGeometry args={[0.003, 0.006, 0.022]} />
-          <meshStandardMaterial color="#0b0f18" metalness={0.7} roughness={0.35} />
+    <group position={[local.x, local.y, local.z]} quaternion={orientation}>
+      {/* A small, earth-fixed pad makes the feet visibly rest on the surface. */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.00035, 0]} raycast={() => null}>
+        <circleGeometry args={[0.008, 48]} />
+        <meshStandardMaterial color="#526252" roughness={1} />
+      </mesh>
+      {legs.map((leg, i) => (
+        <mesh key={i} position={leg.position} quaternion={leg.quaternion}>
+          <cylinderGeometry args={[0.00024, 0.00032, leg.length, 8]} />
+          <meshStandardMaterial color="#27323b" metalness={0.45} roughness={0.55} />
         </mesh>
       ))}
-      {/* Pole */}
-      <mesh position={[0, 0.015, 0]}>
-        <cylinderGeometry args={[0.002, 0.0028, 0.03, 8]} />
-        <meshStandardMaterial color="#0b0f18" metalness={0.8} roughness={0.3} />
+      <mesh position={[0, 0.003, 0]}>
+        <cylinderGeometry args={[0.00042, 0.0005, 0.006, 10]} />
+        <meshStandardMaterial color="#27323b" metalness={0.5} roughness={0.5} />
       </mesh>
-      {/* Phased-array panel, tilted toward the sky */}
-      <group position={[0, 0.033, 0]} rotation={[0.4, 0, 0]}>
+      {/* The panel is fixed: only its electronic radio beam changes direction. */}
+      <group position={[0, stationSize.dishApertureHeight, 0]} rotation={[0.3, 0, 0]}>
         <mesh>
-          <boxGeometry args={[0.038, 0.0024, 0.03]} />
-          <meshStandardMaterial
-            color="#f2f5fa"
-            emissive="#16293f"
-            emissiveIntensity={0.8}
-            metalness={0.4}
-            roughness={0.5}
-          />
+          <boxGeometry args={[0.013, 0.0006, 0.0104]} />
+          <meshStandardMaterial color="#dce5e9" roughness={0.8} metalness={0.08} />
+        </mesh>
+        <mesh position={[0, -0.00045, 0]}>
+          <boxGeometry args={[0.0132, 0.0003, 0.0106]} />
+          <meshStandardMaterial color="#475664" roughness={0.7} />
         </mesh>
       </group>
-      {/* Faint translucent field-of-view cone above the dish */}
-      <mesh position={[0, 0.045, 0]}>
-        <coneGeometry args={[0.13, 0.24, 24, 1, true]} />
-        <meshBasicMaterial
-          color={colors.fov}
-          transparent
-          opacity={0.05}
-          side={THREE.DoubleSide}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-        />
-      </mesh>
     </group>
   );
 }
@@ -207,8 +191,10 @@ export function DishBeam() {
   const primaryRef = useRef<THREE.Mesh>(null);
   const secondaryRef = useRef<THREE.Mesh>(null);
   const coreRef = useRef<THREE.Line>(null);
-  const primaryMat = useMemo(() => makeBeamMaterial(), []);
-  const secondaryMat = useMemo(() => makeBeamMaterial(), []);
+  const digits = useMemo(() => makeDigitTexture(), []);
+  const primaryMat = useMemo(() => makeBeamMaterial(digits), [digits]);
+  const secondaryMat = useMemo(() => makeBeamMaterial(digits), [digits]);
+  const visualTime = useRef(0);
   const geometry = useMemo(() => new THREE.PlaneGeometry(1, 1, 1, 24), []);
   const coreGeometry = useMemo(
     () => new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]),
@@ -219,7 +205,7 @@ export function DishBeam() {
       new THREE.LineBasicMaterial({
         color: new THREE.Color(colors.rf),
         transparent: true,
-        opacity: 0.25,
+        opacity: 0.85,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
       }),
@@ -229,6 +215,9 @@ export function DishBeam() {
     () => {
       const line = new THREE.Line(coreGeometry, coreMaterial);
       line.visible = false;
+      // Its positions change every frame; the original zero-length bounding
+      // sphere would incorrectly cull the core in the close ground camera.
+      line.frustumCulled = false;
       line.raycast = () => null;
       return line;
     },
@@ -242,18 +231,18 @@ export function DishBeam() {
       primaryMat.dispose();
       secondaryMat.dispose();
       coreMaterial.dispose();
-      const digitsA = primaryMat.uniforms.uDigits.value as THREE.Texture;
-      const digitsB = secondaryMat.uniforms.uDigits.value as THREE.Texture;
-      digitsA.dispose();
-      digitsB.dispose();
+      digits.dispose();
     };
-  }, [geometry, coreGeometry, primaryMat, secondaryMat, coreMaterial]);
+  }, [geometry, coreGeometry, primaryMat, secondaryMat, coreMaterial, digits]);
 
-  useFrame(() => {
+  useFrame((_, dt) => {
+    if (useSimStore.getState().playing || useSimStore.getState().storyActive) {
+      visualTime.current += Math.min(dt, 0.05);
+    }
     const connected = simState.connectedSat;
     const secondary = simState.secondarySat;
-    updateBeamStrip(primaryRef.current, primaryMat, connected, 1);
-    updateBeamStrip(secondaryRef.current, secondaryMat, secondary, simState.secondaryAlpha);
+    updateBeamStrip(primaryRef.current, primaryMat, connected, 1, visualTime.current);
+    updateBeamStrip(secondaryRef.current, secondaryMat, secondary, simState.secondaryAlpha, visualTime.current);
 
     // Faint core line along the primary beam.
     const core = coreRef.current;

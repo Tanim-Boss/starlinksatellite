@@ -24,6 +24,7 @@ await build({
   outfile,
   format: "esm",
   platform: "node",
+  alias: { "@": path.join(root, "src") },
   logLevel: "silent",
 });
 
