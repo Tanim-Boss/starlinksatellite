@@ -16,6 +16,7 @@ Three Fiber.
 | `#/` | Overview — the four-step signal path, why low orbit wins, laser mesh, handovers, key numbers |
 | `#/how-it-works` | Nine-chapter explainer with interactive figures and a scroll-spy chapter rail |
 | `#/antenna` | Dish beam lab — a cinematic 3D simulation of a Starlink-style terminal: a fixed dish, a column of orange wavefronts, four-bit phase words, three satellites and a working sky plot |
+| `#/steering` | Satellite beam-steering lab — a relay satellite in space slews a gimbaled RF dish or optical laser terminal from Satellite A to Satellite B, with a five-stage walkthrough, live azimuth/elevation/pointing-error telemetry and a mechanism close-up |
 | `#/explorer` | 3D constellation explorer: five views, speed control, layers, satellite inspector, coverage probe |
 | `#/numbers` | Orbit sandbox, latency budget and the fibre-vs-space crossover chart |
 | `#/faq` | Short answers to the common questions, plus sources |
@@ -38,6 +39,7 @@ any static host, including a sub-folder and a single file.
   beamwidth. Track mode follows a satellite and slews the column when you pick
   another; manual mode lets you aim anywhere. Not telemetry or proprietary
   firmware.
+- **Satellite beam steering lab** (`#/steering`) — a source satellite holds a link with Satellite A, then hands its narrow beam to Satellite B while the bus stays attitude-fixed. The mast carries a two-axis gimbal: an azimuth stage and an elevation stage rotate an RF parabolic dish (orange constant-phase wavefronts) or an optical laser terminal (thin violet beam with PAT-style acquisition), and the wavefronts, laser and data packets are rebuilt every frame from the live pointing direction. Two target satellites, manual azimuth/elevation sliders, an auto-tracking switch, three cameras including a mechanism close-up, a five-stage narrative rail, and live telemetry (target, azimuth, elevation, pointing error, link status). All values are illustrative: the targets follow closed apparent tracks, and it is neither an orbital propagator nor an electromagnetic solver.
 - **Spot beams** — hover the cells to see how frequency bands are reused.
 - **Satellite anatomy** — hover the numbered callouts to inspect the hardware.
 - **Coverage map** — click anywhere to count covering satellites in the model.
@@ -91,9 +93,10 @@ npm run typecheck     # tsc --noEmit (TypeScript 7)
 npm run build         # code-split build in dist/ (the default)
 npm run build:single  # portable one-file build in dist-single/
 npm run preview       # serves dist/ on http://localhost:3000
-npm run test          # typecheck + both jsdom suites
+npm run test          # typecheck + all jsdom suites
 npm run test:smoke    # every route mounts in jsdom, including no-WebGL fallbacks
 npm run test:dish     # drives the dish lab controls end-to-end in jsdom
+npm run test:steer    # drives the beam-steering lab controls end-to-end in jsdom
 ```
 
 `npm run build` emits a normal Vite build: the shell and the current page are
@@ -165,6 +168,7 @@ src/
     home/                 home-page sections
     diagrams/             the interactive SVG figures
     beam/                 dish beam lab (scene, dish, wavefront column, satellites, sky plot, phase strip, controls)
+    steer/                satellite beam-steering lab (space scene, gimbaled dish/optical terminal, dynamic beam, targets, telemetry, stage rail, controls)
     explorer/             UI around the 3D scene
     three/                cinematic hero globe
     scene/                reusable three.js layers (Earth, satellites, links…)

@@ -7,6 +7,7 @@ export const NAV = [
   { label: "Overview", path: "/" },
   { label: "How it works", path: "/how-it-works" },
   { label: "Beam lab", path: "/antenna" },
+  { label: "Beam steering", path: "/steering" },
   { label: "3D explorer", path: "/explorer" },
   { label: "Numbers", path: "/numbers" },
   { label: "FAQ", path: "/faq" },
@@ -233,6 +234,11 @@ export const PAGE_META: Record<string, { title: string; description: string }> =
     title: "Dish Beam Lab — How Starlink Works",
     description:
       "A Starlink-style dish steers without moving: follow the wavefronts, read the four-bit phase words, and aim at three satellites from a working sky plot.",
+  },
+  "/steering": {
+    title: "Satellite Beam Steering Lab — How Starlink Works",
+    description:
+      "An interactive 3D simulation of inter-satellite beam steering: a gimbaled RF dish or optical laser terminal slews its beam from Satellite A to Satellite B, with live azimuth, elevation and pointing-error telemetry.",
   },
   "/explorer": {
     title: "3D Constellation Explorer — How Starlink Works",

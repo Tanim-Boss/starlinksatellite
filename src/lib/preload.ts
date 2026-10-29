@@ -16,6 +16,7 @@ const loaders: Record<string, Preloadable> = {
   "/": () => import("@/pages/Home"),
   "/how-it-works": () => import("@/pages/HowItWorks"),
   "/antenna": () => import("@/pages/DishLab"),
+  "/steering": () => import("@/pages/BeamSteering"),
   "/explorer": () => import("@/pages/Explorer"),
   "/numbers": () => import("@/pages/Numbers"),
   "/faq": () => import("@/pages/Faq"),
@@ -37,8 +38,9 @@ type IdleWindow = Window & {
 
 /**
  * Warms the three text-heavy pages once the current page has settled.
- * Explorer and the dish lab are excluded on purpose: they carry three.js and
- * should not be downloaded for visitors who never open them.
+ * Explorer, the dish lab and the beam-steering lab are excluded on purpose:
+ * they carry three.js and should not be downloaded for visitors who never
+ * open them.
  */
 export function preloadLightRoutes(): () => void {
   if (typeof window === "undefined") return () => {};
