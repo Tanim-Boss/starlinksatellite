@@ -158,6 +158,52 @@ for (const label of ["Orbit", "Dish", "Laser"]) {
 }
 
 /* -------------------------------------------------------------------------- */
+/* 3D view controls: zoom, reset/full view, scroll mode                        */
+/* -------------------------------------------------------------------------- */
+
+assert("zoom in button present", !!$("[aria-label='Zoom in']"));
+assert("zoom out button present", !!$("[aria-label='Zoom out']"));
+assert("zoom slider present", !!$("#sim-zoom-slider"));
+click($("[aria-label='Zoom in']"));
+await wait(120);
+assert(
+  "zoom in returns to Orbit view",
+  byText("#simulation button", "Orbit")?.getAttribute("aria-pressed") === "true",
+);
+const zoomPctAfterIn = parseInt($("#sim-zoom-slider").value, 10);
+assert("zoom slider moved up after zoom in", zoomPctAfterIn > 0, `${zoomPctAfterIn}%`);
+click($("[aria-label='Zoom out']"));
+await wait(120);
+assert(
+  "zoom slider moved down after zoom out",
+  parseInt($("#sim-zoom-slider").value, 10) < zoomPctAfterIn,
+);
+click(byText("#simulation button", "Reset view"));
+await wait(120);
+assert(
+  "reset view keeps Orbit view",
+  byText("#simulation button", "Orbit")?.getAttribute("aria-pressed") === "true",
+);
+assert("full view button present", !!byText("#simulation button", "Full view"));
+const scrollPageBtn = byText("#simulation button", "Scroll page");
+assert("scroll-mode switch present", !!scrollPageBtn);
+click(scrollPageBtn);
+await wait(120);
+assert("scroll page mode selected", scrollPageBtn.getAttribute("aria-pressed") === "true");
+click(byText("#simulation button", "Scroll zooms"));
+await wait(120);
+assert(
+  "scroll zoom mode selected back",
+  byText("#simulation button", "Scroll zooms")?.getAttribute("aria-pressed") === "true",
+);
+key("+");
+await wait(120);
+assert("keyboard + zooms (slider rises)", parseInt($("#sim-zoom-slider").value, 10) >= zoomPctAfterIn);
+key("0");
+await wait(120);
+assert("keyboard 0 resets view", parseInt($("#sim-zoom-slider").value, 10) < 100);
+
+/* -------------------------------------------------------------------------- */
 /* Display toggles                                                             */
 /* -------------------------------------------------------------------------- */
 

@@ -1,5 +1,6 @@
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useState } from "react";
 import { supportsWebGL } from "@/components/site/SceneGate";
+import { fsStageClass, useFullscreen } from "@/components/site/FullscreenStage";
 import { useReducedMotion } from "@/lib/useMediaQuery";
 import { useActivity } from "./hooks/useActivity";
 import { SimDriver } from "./hooks/useSimDriver";
@@ -7,6 +8,7 @@ import { useSimStore } from "./hooks/useSimStore";
 import { LoadingScreen } from "./ui/LoadingScreen";
 import { Hud } from "./ui/Hud";
 import { Controls } from "./ui/Controls";
+import { ViewControls } from "./ui/ViewControls";
 
 /**
  * The heavy three.js scene is its own lazy chunk: the page shell (HUD,
@@ -37,12 +39,24 @@ const SimulationCanvas = lazy(() =>
  * WebGL the stage shows a labelled message instead of a broken canvas.
  */
 export function SatelliteSimulation() {
-  const { ref, active } = useActivity<HTMLDivElement>();
+  const { ref: activityRef, active } = useActivity<HTMLDivElement>();
+  const fs = useFullscreen<HTMLDivElement>();
   const [webglOk] = useState(() => supportsWebGL());
   const reduced = useReducedMotion();
 
+  // The stage element is shared by the activity tracker (render pausing)
+  // and the fullscreen hook; one callback ref feeds both.
+  const setStageRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      activityRef.current = el;
+      fs.ref.current = el;
+    },
+    [activityRef, fs.ref],
+  );
+
   // Keyboard control: space = play/pause, 1/2/3 = camera modes,
-  // O/L/B = orbit rings / laser mesh / dish beam.
+  // O/L/B = orbit rings / laser mesh / dish beam, +/− = zoom, 0 = reset
+  // view, F = full view (fullscreen).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
@@ -71,11 +85,19 @@ export function SatelliteSimulation() {
         s.setToggle("laserMesh");
       } else if (e.key === "b" || e.key === "B") {
         s.setToggle("dishBeam");
+      } else if (e.key === "+" || e.key === "=") {
+        s.zoomIn();
+      } else if (e.key === "-" || e.key === "_") {
+        s.zoomOut();
+      } else if (e.key === "0") {
+        s.resetView();
+      } else if (e.key === "f" || e.key === "F") {
+        fs.toggle();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [fs.toggle]);
 
   // Respect prefers-reduced-motion: start paused; CameraRig skips auto-rotate.
   useEffect(() => {
@@ -84,10 +106,14 @@ export function SatelliteSimulation() {
 
   return (
     <div
-      ref={ref}
-      className="relative h-full w-full min-h-[320px] overflow-hidden rounded-[14px] bg-[#02040a]"
+      ref={setStageRef}
+      className={fsStageClass(
+        fs.isFullscreen,
+        fs.hasNative,
+        "relative h-full w-full min-h-[320px] overflow-hidden rounded-[14px] bg-[#02040a]",
+      )}
     >
-      <div className="absolute inset-0 [&>canvas]:block [&>canvas]:h-full [&>canvas]:w-full">
+      <div className="fs-fill absolute inset-0 [&>canvas]:block [&>canvas]:h-full [&>canvas]:w-full">
         {webglOk ? (
           <Suspense fallback={<LoadingScreen />}>
             <SimulationCanvas active={active} />
@@ -100,6 +126,7 @@ export function SatelliteSimulation() {
       {webglOk && <SimDriver active={active} />}
 
       <Hud />
+      <ViewControls isFullscreen={fs.isFullscreen} onToggleFullscreen={fs.toggle} />
       <Controls />
     </div>
   );

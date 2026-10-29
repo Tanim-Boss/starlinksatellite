@@ -71,12 +71,16 @@ function QualityGuard() {
 export function SimulationCanvas({ active }: { active: boolean }) {
   const reduced = useReducedMotion();
   const qualityTier = useSimStore((s) => s.qualityTier);
+  const scrollMode = useSimStore((s) => s.scrollMode);
 
   return (
     <Canvas
       camera={{ position: [0, 1.4, cameraCfg.orbitDistance], fov: 50, near: 0.02, far: 200 }}
       dpr={performance.dpr}
       gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
+      // In page-scroll mode a touch drag scrolls the page instead of
+      // rotating the globe; in zoom mode the canvas owns the gesture.
+      style={{ touchAction: scrollMode === "page" ? "pan-y" : "none" }}
     >
       <color attach="background" args={["#02040a"]} />
       <Suspense fallback={null}>

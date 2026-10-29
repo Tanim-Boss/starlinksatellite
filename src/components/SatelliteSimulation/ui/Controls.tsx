@@ -51,7 +51,7 @@ export function Controls() {
           </span>
         </span>
         <span className="font-mono text-[8px] text-white/35 max-[640px]:hidden">
-          Space: play/pause · 1/2/3: camera · O/L/B: toggles
+          Space: play/pause · 1/2/3: camera · +/−: zoom · 0: reset · F: full view
         </span>
       </summary>
 

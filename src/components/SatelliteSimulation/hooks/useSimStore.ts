@@ -1,5 +1,11 @@
 import { create } from "zustand";
-import { defaultGateway, storySegments, type CameraMode, type City } from "../config";
+import {
+  camera as cameraCfg,
+  defaultGateway,
+  storySegments,
+  type CameraMode,
+  type City,
+} from "../config";
 import type { RouteInfo } from "../utils/links";
 
 /* -------------------------------------------------------------------------- */
@@ -34,6 +40,16 @@ export const simState = {
   route: null as RouteInfo | null,
   /** Hovered/clicked satellite id, for the tooltip. */
   selectedSat: null as number | null,
+  /** Camera distance from its target (scene units), published by CameraRig. */
+  cameraDistance: cameraCfg.orbitDistance,
+  /**
+   * Absolute distance the camera should dolly to, set by the zoom buttons /
+   * slider / reset view. Consumed (and cleared on arrival) by CameraRig;
+   * null means the visitor is driving the camera directly.
+   */
+  zoomTarget: null as number | null,
+  /** Incremented by "Reset / full view"; CameraRig recentres on Earth. */
+  resetViewNonce: 0,
   /** Measured frame rate (Smoothed). */
   fps: 60,
   /** Quality tier: 0 = full, 1 = reduced (fewer satellites, bloom off). */
@@ -51,6 +67,9 @@ export interface SimToggles {
   dishBeam: boolean;
 }
 
+/** What the mouse wheel / touch scroll does over the 3D stage. */
+export type ScrollMode = "zoom" | "page";
+
 interface SimStore {
   speed: number;
   setSpeed: (v: number) => void;
@@ -59,6 +78,18 @@ interface SimStore {
   setPlaying: (v: boolean) => void;
   cameraMode: CameraMode;
   setCameraMode: (m: CameraMode) => void;
+  /** Wheel behaviour over the canvas: zoom the 3D view, or scroll the page. */
+  scrollMode: ScrollMode;
+  setScrollMode: (m: ScrollMode) => void;
+  /** Dolly one step closer / farther (switches to Orbit view). */
+  zoomIn: () => void;
+  zoomOut: () => void;
+  /** Dolly to an absolute camera distance in scene units. */
+  zoomTo: (distance: number) => void;
+  /** Bumped by every zoom/reset action so the view toolbar re-renders. */
+  viewNonce: number;
+  /** Frame the whole Earth again: Orbit view, default distance, centred. */
+  resetView: () => void;
   toggles: SimToggles;
   setToggle: <K extends keyof SimToggles>(key: K, value?: boolean) => void;
   user: City;
@@ -97,6 +128,33 @@ export const useSimStore = create<SimStore>((set) => ({
   setPlaying: (v) => set({ playing: v }),
   cameraMode: "orbit",
   setCameraMode: (m) => set({ cameraMode: m }),
+  viewNonce: 0,
+  scrollMode: "zoom",
+  setScrollMode: (m) => set({ scrollMode: m }),
+  // Taking manual control of the camera ends the guided tour.
+  zoomIn: () =>
+    set((s) => {
+      const base = simState.zoomTarget ?? simState.cameraDistance;
+      simState.zoomTarget = clampZoom(base / cameraCfg.zoomStep);
+      return takenControl(s);
+    }),
+  zoomOut: () =>
+    set((s) => {
+      const base = simState.zoomTarget ?? simState.cameraDistance;
+      simState.zoomTarget = clampZoom(base * cameraCfg.zoomStep);
+      return takenControl(s);
+    }),
+  zoomTo: (distance) =>
+    set((s) => {
+      simState.zoomTarget = clampZoom(distance);
+      return takenControl(s);
+    }),
+  resetView: () =>
+    set((s) => {
+      simState.zoomTarget = cameraCfg.orbitDistance;
+      simState.resetViewNonce += 1;
+      return takenControl(s);
+    }),
   toggles: initialToggles,
   setToggle: (key, value) =>
     set((s) => ({ toggles: { ...s.toggles, [key]: value ?? !s.toggles[key] } })),
@@ -124,4 +182,37 @@ export const useSimStore = create<SimStore>((set) => ({
 /** Smooths a noisy FPS sample; keeps the quality fallback from flickering. */
 export function smoothFps(previous: number, sample: number): number {
   return previous * 0.9 + sample * 0.1;
+}
+
+/** State returned when a zoom/reset action takes manual camera control. */
+function takenControl(s: SimStore) {
+  return {
+    cameraMode: "orbit" as const,
+    storyActive: false,
+    storyCaption: "",
+    viewNonce: s.viewNonce + 1,
+  };
+}
+
+/** Keeps a requested camera distance inside the OrbitControls zoom range. */
+export function clampZoom(distance: number): number {
+  return Math.min(cameraCfg.orbitMax, Math.max(cameraCfg.orbitMin, distance));
+}
+
+/**
+ * Maps a camera distance to a 0–100 zoom percentage (log scale, so each
+ * step feels equal) and back. 100% = closest, 0% = farthest.
+ */
+export function distanceToZoomPct(distance: number): number {
+  const lo = Math.log(cameraCfg.orbitMin);
+  const hi = Math.log(cameraCfg.orbitMax);
+  const pct = ((hi - Math.log(clampZoom(distance))) / (hi - lo)) * 100;
+  return Math.round(Math.min(100, Math.max(0, pct)));
+}
+
+export function zoomPctToDistance(pct: number): number {
+  const clamped = Math.min(100, Math.max(0, pct));
+  const lo = Math.log(cameraCfg.orbitMin);
+  const hi = Math.log(cameraCfg.orbitMax);
+  return Math.exp(hi - (clamped / 100) * (hi - lo));
 }

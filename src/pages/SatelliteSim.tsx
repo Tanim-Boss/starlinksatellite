@@ -123,7 +123,7 @@ export function SatelliteSim() {
                 480 satellites · 24 planes · 53° · 550 km · phased array · laser mesh · BFS routing
               </p>
               <p className="font-mono text-[8px] uppercase tracking-[0.1em] text-faint">
-                Sizes exaggerated · orbits physical · click the globe to move the dish
+                Drag to orbit · scroll or +/− to zoom · full view for fullscreen · click the globe to move the dish
               </p>
             </div>
           </div>
