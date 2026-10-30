@@ -170,6 +170,20 @@ for (const label of ["Orbit", "Dish", "Laser"]) {
 assert("zoom in button present", !!$("[aria-label='Zoom in']"));
 assert("zoom out button present", !!$("[aria-label='Zoom out']"));
 assert("zoom slider present", !!$("#sim-zoom-slider"));
+for (const mode of ["Dish", "Laser"]) {
+  click(byText("#simulation button", mode));
+  await wait(120);
+  click($("[aria-label='Zoom in']"));
+  await wait(120);
+  const closer = Number($("#sim-zoom-slider").value);
+  assert(`${mode} zoom in preserves camera`, byText("#simulation button", mode)?.getAttribute("aria-pressed") === "true");
+  click($("[aria-label='Zoom out']"));
+  await wait(120);
+  assert(`${mode} zoom out preserves camera`, byText("#simulation button", mode)?.getAttribute("aria-pressed") === "true");
+  assert(`${mode} zoom out reduces zoom`, Number($("#sim-zoom-slider").value) < closer);
+}
+click(byText("#simulation button", "Orbit"));
+await wait(120);
 click($("[aria-label='Zoom in']"));
 await wait(120);
 assert(

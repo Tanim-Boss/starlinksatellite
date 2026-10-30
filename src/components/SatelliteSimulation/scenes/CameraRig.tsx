@@ -4,7 +4,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { camera as cameraCfg, type CameraMode } from "../config";
 import { SATS, sitePositions } from "../hooks/useSimDriver";
-import { simState, useSimStore } from "../hooks/useSimStore";
+import { clampZoom, simState, useSimStore } from "../hooks/useSimStore";
 import { groundCameraFrame, satelliteBearing, turnTowardBearing } from "../utils/groundView";
 import { satPosition, satVelocity } from "../utils/orbit";
 import { useReducedMotion } from "@/lib/useMediaQuery";
@@ -33,10 +33,12 @@ function easeInOutCubic(t: number): number {
  * Orbit uses normal OrbitControls. Dish is a ground-level third-person view,
  * keeping the fixed antenna and its linked satellite in frame; Laser follows
  * a spacecraft. Scripted cameras orient themselves explicitly because
- * OrbitControls is disabled in those modes.
+ * OrbitControls is disabled in those modes; wheel and pinch adjust the lens.
  */
 export function CameraRig() {
   const camera = useThree((s) => s.camera);
+  const gl = useThree((s) => s.gl);
+  const followZoom = useRef(cameraCfg.orbitDistance);
   const controlsRef = useRef<ElementRef<typeof OrbitControls>>(null);
   const mode = useSimStore((s) => s.cameraMode);
   const storyActive = useSimStore((s) => s.storyActive);
@@ -66,6 +68,44 @@ export function CameraRig() {
     camera.updateProjectionMatrix();
   }, [camera]);
 
+  // Follow cameras own their pose; zoom their lens instead of letting
+  // OrbitControls move the camera (which the next frame would undo).
+  useEffect(() => {
+    if (mode === "orbit" || scrollMode !== "zoom") return;
+    const el = gl.domElement;
+    const zoom = (factor: number) => {
+      const state = useSimStore.getState();
+      state.zoomTo(clampZoom((simState.zoomTarget ?? followZoom.current) * factor));
+    };
+    const wheel = (event: WheelEvent) => {
+      event.preventDefault();
+      const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? el.clientHeight : 1);
+      zoom(Math.exp(THREE.MathUtils.clamp(delta * 0.001, -0.5, 0.5)));
+    };
+    let pinchDistance: number | null = null;
+    const touch = (event: TouchEvent) => {
+      if (event.touches.length !== 2) { pinchDistance = null; return; }
+      event.preventDefault();
+      const [a, b] = event.touches;
+      const distance = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+      if (pinchDistance !== null && distance > 0) zoom(pinchDistance / distance);
+      pinchDistance = distance;
+    };
+    const clear = () => { pinchDistance = null; };
+    el.addEventListener("wheel", wheel, { passive: false });
+    el.addEventListener("touchstart", touch, { passive: false });
+    el.addEventListener("touchmove", touch, { passive: false });
+    el.addEventListener("touchend", clear);
+    el.addEventListener("touchcancel", clear);
+    return () => {
+      el.removeEventListener("wheel", wheel);
+      el.removeEventListener("touchstart", touch);
+      el.removeEventListener("touchmove", touch);
+      el.removeEventListener("touchend", clear);
+      el.removeEventListener("touchcancel", clear);
+    };
+  }, [gl, mode, scrollMode]);
+
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 0.05);
     const controls = controlsRef.current;
@@ -94,6 +134,8 @@ export function CameraRig() {
 
     if (lastMode.current !== mode) {
       lastMode.current = mode;
+      followZoom.current = cameraCfg.orbitDistance;
+      if (mode !== "orbit") simState.cameraDistance = cameraCfg.orbitDistance;
       computeGoal(mode, camera.position, bearing.current ?? 0, _toPos, _toTarget, _toUp);
       tr.fromPos.copy(camera.position);
       tr.fromTarget.copy(controls ? controls.target : _origin);
@@ -169,6 +211,22 @@ export function CameraRig() {
       simState.cameraDistance = camera.position.distanceTo(controls.target);
     }
 
+    if (mode !== "orbit" && !tr.active && camera instanceof THREE.PerspectiveCamera) {
+      const target = simState.zoomTarget;
+      if (target !== null) {
+        followZoom.current = THREE.MathUtils.damp(followZoom.current, target, 7, dt);
+        if (Math.abs(followZoom.current - target) < 0.005) {
+          followZoom.current = target;
+          simState.zoomTarget = null;
+        }
+      }
+      simState.cameraDistance = followZoom.current;
+      const baseFov = mode === "dish" ? cameraCfg.dishFov : 50;
+      camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(
+        Math.tan(THREE.MathUtils.degToRad(baseFov / 2)) * followZoom.current / cameraCfg.orbitDistance,
+      ));
+      camera.updateProjectionMatrix();
+    }
     if (controls) controls.enabled = mode === "orbit" && !tr.active;
   });
 

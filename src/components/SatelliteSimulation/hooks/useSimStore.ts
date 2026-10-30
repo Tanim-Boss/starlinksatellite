@@ -139,24 +139,20 @@ export const useSimStore = create<SimStore>((set) => ({
   // Taking manual control of the camera ends the guided tour.
   zoomIn: () =>
     set((s) => {
-      const base = s.cameraMode === "orbit"
-        ? simState.zoomTarget ?? simState.cameraDistance
-        : cameraCfg.orbitDistance;
+      const base = simState.zoomTarget ?? simState.cameraDistance;
       simState.zoomTarget = clampZoom(base / cameraCfg.zoomStep);
-      return takenControl(s);
+      return { ...takenControl(s), cameraMode: s.cameraMode };
     }),
   zoomOut: () =>
     set((s) => {
-      const base = s.cameraMode === "orbit"
-        ? simState.zoomTarget ?? simState.cameraDistance
-        : cameraCfg.orbitDistance;
+      const base = simState.zoomTarget ?? simState.cameraDistance;
       simState.zoomTarget = clampZoom(base * cameraCfg.zoomStep);
-      return takenControl(s);
+      return { ...takenControl(s), cameraMode: s.cameraMode };
     }),
   zoomTo: (distance) =>
     set((s) => {
       simState.zoomTarget = clampZoom(distance);
-      return takenControl(s);
+      return { ...takenControl(s), cameraMode: s.cameraMode };
     }),
   resetView: () =>
     set((s) => {
