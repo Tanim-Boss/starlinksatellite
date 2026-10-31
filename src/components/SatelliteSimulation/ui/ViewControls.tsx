@@ -158,9 +158,11 @@ export function ViewControls({
           ? scrollMode === "zoom"
             ? "Drag to orbit · Scroll to zoom · Pinch on touch"
             : "Drag to orbit · Use + / − to zoom · Scroll moves the page"
+          : scrollMode === "page"
+            ? "Use + / − to zoom · Scroll moves the page"
           : cameraMode === "dish"
-            ? "Ground camera · Zoom returns to full Earth view"
-            : "Follow camera · Zoom returns to full Earth view"}
+            ? "Ground camera · + / − or scroll to zoom"
+            : "Follow camera · + / − or scroll to zoom"}
       </p>
     </div>
   );
