@@ -219,9 +219,9 @@ export const SOURCES = [
  */
 export const PAGE_META: Record<string, { title: string; description: string }> = {
   "/": {
-    title: "How Starlink Works — An Interactive Field Guide",
+    title: "Orbital — Broadcast vs Starlink Satellite Simulation",
     description:
-      "How does Starlink actually work? An interactive guide to the satellite constellation: low Earth orbit, phased-array terminals, spot beams, gateways, laser links and the physics of latency.",
+      "Explore an interactive 3D comparison of broadcast TV satellites and the Starlink constellation: dishes, orbits, signal direction, coverage and latency.",
   },
   "/how-it-works": {
     title: "How Starlink Works — The Full Explainer",

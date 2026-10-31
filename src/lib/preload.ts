@@ -12,7 +12,7 @@ const LIGHT_ROUTES = ["/how-it-works", "/faq"] as const;
 type Preloadable = () => Promise<unknown>;
 
 const loaders: Record<string, Preloadable> = {
-  "/": () => import("@/pages/Home"),
+  "/": () => import("@/pages/OrbitLab"),
   "/how-it-works": () => import("@/pages/HowItWorks"),
   "/simulation": () => import("@/pages/SatelliteSim"),
   "/comparison": () => import("@/pages/BroadcastComparison"),
