@@ -2,7 +2,7 @@
 
 An independent, interactive field guide comparing a traditional TV broadcast
 satellite with the Starlink constellation. The landing page is a 3D simulation
-inspired by the supplied `compressO-Video Project 3.mp4` reference: it explores
+inspired by the supplied `public/videos/broadcast-vs-starlink.mp4` video: it explores
 the two dishes, one- and two-way signals, GEO and LEO orbits, distance, latency,
 and a moving satellite network.
 
@@ -38,7 +38,7 @@ hash routes:
 | `#/` | Orbital's interactive broadcast-vs-Starlink landing page |
 | `#/how-it-works` | Nine-chapter Starlink explainer |
 | `#/simulation` | Detailed Starlink-focused satellite internet simulation |
-| `#/comparison` | Six-stage TV-vs-Starlink guided 3D story |
+| `#/comparison` | Broadcast TV Satellite vs Starlink explainer video |
 | `#/faq` | Common questions and sources |
 
 ## Accuracy and visual scale
