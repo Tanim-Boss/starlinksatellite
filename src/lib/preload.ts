@@ -7,7 +7,7 @@
  * visitor hovers or focuses their link.
  */
 
-const LIGHT_ROUTES = ["/how-it-works", "/faq"] as const;
+const LIGHT_ROUTES = ["/how-it-works", "/comparison", "/faq"] as const;
 
 type Preloadable = () => Promise<unknown>;
 

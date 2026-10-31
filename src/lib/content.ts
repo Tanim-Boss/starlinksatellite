@@ -234,9 +234,9 @@ export const PAGE_META: Record<string, { title: string; description: string }> =
       "A real-time 3D satellite-internet simulation: hundreds of satellites on physical orbits, a phased-array dish with live handoffs, a laser relay mesh with routing, and a cinematic story tour.",
   },
   "/comparison": {
-    title: "Broadcast TV Satellite vs Starlink — Interactive Simulation",
+    title: "Broadcast TV Satellite vs Starlink",
     description:
-      "Compare one-way geostationary TV satellite broadcasting with two-way low-Earth-orbit internet in a six-stage interactive 3D story.",
+      "Watch the Broadcast TV Satellite vs Starlink explainer video comparing geostationary TV broadcast satellites with Starlink's low-Earth-orbit constellation.",
   },
   "/faq": {
     title: "FAQ — How Starlink Works",

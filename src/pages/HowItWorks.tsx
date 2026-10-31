@@ -686,7 +686,7 @@ export function HowItWorks() {
                   <NextPageCTA
                     eyebrow="Next"
                     title="Compare the two satellite systems."
-                    body="Watch the fixed TV broadcast beam, low-orbit handoffs, latency and laser mesh in a guided 3D story."
+                    body="Watch how a fixed TV broadcast satellite compares with Starlink's moving low-orbit constellation."
                     to="/comparison"
                     cta="Open the comparison"
                   />

@@ -1,10 +1,11 @@
 /**
- * End-to-end DOM smoke test for the six-stage satellite comparison.
- * WebGL is intentionally absent in jsdom; the UI, fallback, story controls,
- * counters, location selector and comparison table must still work.
+ * End-to-end DOM smoke test for the Broadcast TV Satellite vs Starlink video page.
+ * Verifies that #/comparison keeps the site navigation and page heading, removes
+ * the old six-stage simulation UI, and renders the repository video player.
  */
 import { build } from "esbuild";
 import { JSDOM, VirtualConsole } from "jsdom";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -73,11 +74,6 @@ async function waitFor(predicate, timeout = 5000) {
 }
 const $ = (selector) => window.document.querySelector(selector);
 const $$ = (selector) => [...window.document.querySelectorAll(selector)];
-const mainText = () => $("#main")?.textContent ?? "";
-const button = (label) => $$('button').find((item) => item.getAttribute("aria-label") === label || item.textContent?.includes(label));
-const click = (element) => element?.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
-const key = (value, code = value) => window.dispatchEvent(new window.KeyboardEvent("keydown", { key: value, code, bubbles: true }));
-const stageButton = (number) => $$('button[aria-label^="Go to stage"]').find((item) => item.getAttribute("aria-label")?.startsWith(`Go to stage ${number}:`));
 
 let failures = 0;
 function assert(name, condition, detail = "") {
@@ -85,79 +81,39 @@ function assert(name, condition, detail = "") {
   if (!condition) failures += 1;
 }
 
-await wait(1100);
-assert("comparison page title", mainText().includes("Broadcast TV Satellite vs Starlink"));
-assert("one h1 on the page", window.document.querySelectorAll("h1").length === 1);
-assert("six direct stage-jump buttons", $$('button[aria-label^="Go to stage"]').length === 6);
-assert("WebGL-unavailable fallback is readable", mainText().includes("WebGL unavailable"));
-assert("first stage names both dishes", mainText().includes("TV Satellite Dish") && mainText().includes("Starlink Dishy"));
-assert("tour and progress UI are present", !!button("Play tour") && !!$("[role='progressbar']"));
+await waitFor(() => Boolean($("#main h1")));
+await wait(200);
 
-// The removed top-level pages are no longer exposed in navigation.
-const navLinks = $$('header nav a').map((link) => link.getAttribute("href"));
+const heading = $("#main h1")?.textContent?.replace(/\s+/g, " ").trim() ?? "";
+assert("comparison page title is kept", heading === "Broadcast TV Satellite vs Starlink", heading);
+assert("one h1 on the page", $$("h1").length === 1);
+assert("site navigation header is rendered", $$("header nav a").length >= 5);
+
+const navLinks = $$("header nav a").map((link) => link.getAttribute("href"));
 assert("old steering, explorer and numbers routes removed from nav", !navLinks.some((href) => ["#/steering", "#/explorer", "#/numbers"].includes(href)));
 
-click(button("Next →"));
-await wait(80);
-assert("stage 2 shows receive-only versus two-way specs", mainText().includes("Receive ✓ / Send ✗") && mainText().includes("Receive ✓ / Send ✓"));
-assert("stage 2 caption describes broadcast and requests", mainText().includes("passively collects a signal") && mainText().includes("transmits your requests"));
+const video = $("#main video");
+assert("video player is rendered inside main", Boolean(video));
+assert(
+  "video player uses controls and playsInline",
+  Boolean(video?.hasAttribute("controls")) && Boolean(video?.hasAttribute("playsinline")),
+);
+const videoSrc = video?.getAttribute("src") ?? "";
+assert(
+  "video points to the repo video in public/videos",
+  videoSrc.endsWith("/videos/broadcast-vs-starlink.mp4"),
+  videoSrc,
+);
 
-click(button("Next →"));
-await wait(80);
-assert("stage 3 presents GEO and LEO orbit data", mainText().includes("35,786 km") && mainText().includes("~550 km"));
-assert("true and exaggerated scale controls exist", !!button("True scale") && !!button("Exaggerated scale"));
-click(button("Exaggerated scale"));
-await wait(40);
-assert("scale toggle becomes selected", button("Exaggerated scale")?.getAttribute("aria-pressed") === "true");
-const speed = $("#sc-time-speed");
-if (speed) {
-  const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
-  setter.call(speed, "3");
-  speed.dispatchEvent(new window.Event("input", { bubbles: true }));
-  speed.dispatchEvent(new window.Event("change", { bubbles: true }));
-}
-await wait(60);
-assert("time slider supports 3000 times speed", mainText().includes("3,000×"));
-assert("orbit, laser-link and label layers are toggleable", !!button("Orbits") && !!button("Laser links") && !!button("Labels"));
+const videoDiskPath = path.join(root, "public", "videos", "broadcast-vs-starlink.mp4");
+assert(
+  "video asset exists on disk and is non-empty",
+  fs.existsSync(videoDiskPath) && fs.statSync(videoDiskPath).size > 1_000_000,
+);
 
-click(stageButton(4));
-await wait(60);
-assert("stage 4 has synchronized latency readouts and Send action", mainText().includes("TV/GEO internet") && mainText().includes("20–40 ms latency") && !!button("Send both pulses"));
-click(button("Send both pulses"));
-await wait(180);
-assert("Send starts a live stopwatch", /stopwatch\s+[1-9]\d*\s*ms/i.test(mainText()));
-
-click(stageButton(5));
-await wait(250);
-assert("stage 5 shows animated constellation counter and mesh note", mainText().includes("satellites") && mainText().includes("4-neighbour laser mesh"));
-
-click(stageButton(6));
-await wait(100);
-assert("stage 6 defaults to Dhaka and shows the final comparison table", mainText().includes("Dhaka, Bangladesh") && mainText().includes("TV Satellite") && mainText().includes("Coverage per satellite"));
-const location = $("#sc-location");
-if (location) {
-  const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, "value").set;
-  setter.call(location, "London, UK");
-  location.dispatchEvent(new window.Event("change", { bubbles: true }));
-}
-await wait(60);
-assert("location selector updates the selected city", mainText().includes("London, UK"));
-assert("about note mentions exaggerated sizes and real orbit physics", mainText().includes("beam widths are exaggerated") && mainText().includes("Orbital altitudes, speeds, periods"));
-
-click(button("Play tour"));
-await wait(60);
-assert("Play tour enters timed guided mode", button("Stop tour")?.getAttribute("aria-pressed") === "true");
-click(button("Stop tour"));
-await wait(40);
-assert("tour can be stopped", button("Play tour")?.getAttribute("aria-pressed") === "false");
-
-key("2");
-await wait(40);
-assert("number keys jump to a stage", stageButton(2)?.getAttribute("aria-current") === "step");
-key("ArrowRight", "ArrowRight");
-await wait(40);
-assert("arrow keys advance the story", stageButton(3)?.getAttribute("aria-current") === "step");
-
+assert("old six-stage simulation UI is removed", $$('button[aria-label^="Go to stage"]').length === 0 && !$(".sat-comparison"));
+assert("old stage pills and tour text are removed", !($("#main")?.textContent ?? "").includes("6 guided stages") && !($("#main")?.textContent ?? "").includes("78-second tour"));
 assert("no runtime errors", errors.length === 0, errors.slice(0, 3).join("; "));
-console.log(failures === 0 ? "\nAll comparison interactions passed." : `\n${failures} check(s) failed.`);
+
+console.log(failures === 0 ? "\nAll comparison video checks passed." : `\n${failures} check(s) failed.`);
 process.exit(failures === 0 ? 0 : 1);

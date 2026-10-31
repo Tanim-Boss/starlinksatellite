@@ -112,7 +112,7 @@ export function Faq() {
           <NextPageCTA
             eyebrow="One more thing"
             title="See the broadcast-to-internet difference."
-            body="Follow a guided 3D comparison from a fixed GEO television dish to a moving LEO constellation."
+            body="Watch how a fixed GEO television dish compares with a moving LEO constellation."
             to="/comparison"
             cta="Open the comparison"
           />
