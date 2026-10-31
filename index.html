@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>How Starlink Works — An Interactive Field Guide</title>
+    <title>Orbital — Broadcast vs Starlink Satellite Simulation</title>
     <meta
       name="description"
-      content="How does Starlink actually work? An interactive guide to the satellite constellation: low Earth orbit, phased-array terminals, spot beams, gateways, laser links and the physics of latency."
+      content="Explore an interactive 3D comparison of broadcast TV satellites and the Starlink constellation: dishes, orbits, signal direction, coverage and latency."
     />
     <meta name="theme-color" content="#04060d" />
     <meta name="color-scheme" content="dark" />
@@ -15,34 +15,14 @@
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230b1120'/><circle cx='50' cy='50' r='13' fill='%233ddbd9'/><ellipse cx='50' cy='50' rx='38' ry='17' fill='none' stroke='%239fe8ff' stroke-width='3.5' transform='rotate(-24 50 50)'/><circle cx='79' cy='35' r='5' fill='%23fbbf24'/></svg>"
     />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="How Starlink Works — An Interactive Field Guide" />
+    <meta property="og:title" content="Orbital — Broadcast vs Starlink Satellite Simulation" />
     <meta
       property="og:description"
-      content="From the phased array on your roof to the laser mesh in orbit: how a low-Earth-orbit broadband constellation actually works, with an interactive 3D model."
+      content="Compare broadcast and Starlink satellites in an interactive 3D model of their dishes, signals and orbits."
     />
     <meta name="twitter:card" content="summary_large_image" />
 
-    <!--
-      Fonts load off the critical path. A stylesheet in <head> blocks every
-      paint until it arrives, so on a slow network (or a network where Google
-      Fonts is slow or blocked) the whole page used to sit on a black screen.
-      The preload is promoted to a stylesheet once it is downloaded; the system
-      stack carries the page until then.
-    -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="preload"
-      as="style"
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
-      onload="this.onload=null;this.rel='stylesheet'"
-    />
-    <noscript>
-      <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
-      />
-    </noscript>
+    <!-- Fonts are bundled locally so the page does not depend on a font host. -->
 
     <!--
       The Earth day/night maps are deliberately NOT preloaded here. They are
@@ -182,7 +162,7 @@
             <circle cx="54" cy="20" r="3.4" fill="#fbbf24" />
           </g>
         </svg>
-        <p id="boot-title">How Starlink Works</p>
+        <p id="boot-title">Orbital — the satellite field guide</p>
         <div id="boot-bar"><i></i></div>
         <p id="boot-hint">Loading the interactive field guide…</p>
         <p id="boot-error" hidden></p>

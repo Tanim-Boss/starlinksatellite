@@ -31,6 +31,8 @@ export default defineConfig({
         "./src/pages/*.tsx",
         "./src/components/site/*.tsx",
         "./src/components/home/*.tsx",
+        "./src/components/OrbitLab/*.tsx",
+        "./src/components/OrbitLab/*.ts",
         "./src/components/diagrams/*.tsx",
         "./src/components/three/*.tsx",
         "./src/components/scene/*.tsx",

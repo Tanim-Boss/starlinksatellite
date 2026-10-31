@@ -19,7 +19,7 @@ const ROUTES = ["/", "/how-it-works", "/simulation", "/comparison", "/faq"];
 
 /** A phrase from each route's own <h1>, used to detect that the new page won. */
 const ROUTE_HEADINGS = {
-  "/": "How Starlink",
+  "/": "Same sky.",
   "/how-it-works": "The whole system",
   "/simulation": "satellite internet",
   "/comparison": "Broadcast TV Satellite",
@@ -193,7 +193,7 @@ await waitFor(() =>
   (window.document.querySelector("#main h1")?.textContent ?? "").includes("The whole system"),
 );
 window.location.hash = "#/";
-await waitFor(() => (window.document.querySelector("#main h1")?.textContent ?? "").includes("How Starlink"));
+await waitFor(() => (window.document.querySelector("#main h1")?.textContent ?? "").includes("Same sky."));
 inspect("/", "navigation /how-it-works -> /");
 
 window.location.hash = "#/how-it-works@lasers";
@@ -249,7 +249,7 @@ window.Element.prototype.getBoundingClientRect = function () {
   return rect;
 };
 window.location.hash = "#/";
-await waitFor(() => (window.document.querySelector("#main h1")?.textContent ?? "").includes("How Starlink"));
+await waitFor(() => (window.document.querySelector("#main h1")?.textContent ?? "").includes("Same sky."));
 window.location.hash = "#/how-it-works";
 await waitFor(() =>
   (window.document.querySelector("#main h1")?.textContent ?? "").includes("The whole system"),

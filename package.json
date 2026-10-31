@@ -16,13 +16,18 @@
     "test:sim": "node scripts/sim-ui-test.mjs",
     "test:sim-math": "node scripts/_verify-sim-math.mjs",
     "test:comparison": "node scripts/comparison-ui-test.mjs",
-    "test": "npm run typecheck && npm run test:smoke && npm run test:sim && npm run test:sim-math && npm run test:comparison"
+    "test": "npm run typecheck && npm run test:smoke && npm run test:lab && npm run test:lab-math && npm run test:sim && npm run test:sim-math && npm run test:comparison",
+    "test:lab": "node scripts/lab-ui-test.mjs",
+    "test:lab-math": "node scripts/lab-math-test.mjs"
   },
   "dependencies": {
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/space-grotesk": "^5.3.0",
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.2",
     "@react-three/postprocessing": "^3.2.2",
     "clsx": "2.1.1",
+    "lucide-react": "^1.65.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "tailwind-merge": "3.7.0",

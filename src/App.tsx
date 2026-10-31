@@ -1,11 +1,12 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef } from "react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
+import { LabHeader, LabFooter } from "@/components/OrbitLab/LabShell";
 import { ErrorBoundary } from "@/components/site/ErrorBoundary";
 import { PAGE_META } from "@/lib/content";
 import { LINK } from "@/lib/links";
 import { preloadLightRoutes } from "@/lib/preload";
-import { scrollToSectionWhenReady, scrollToTop, useRoute } from "@/lib/router";
+import { scrollToSection, scrollToSectionWhenReady, scrollToTop, useRoute } from "@/lib/router";
 
 /*
  * Pages are split into their own chunks. The entry bundle now contains the
@@ -15,7 +16,7 @@ import { scrollToSectionWhenReady, scrollToTop, useRoute } from "@/lib/router";
  * Before this, every visitor downloaded every page and three.js before the
  * tab showed anything, which made the long pages feel slow on weak connections.
  */
-const Home = lazy(() => import("@/pages/Home").then((m) => ({ default: m.Home })));
+const Home = lazy(() => import("@/pages/OrbitLab").then((m) => ({ default: m.OrbitLab })));
 const HowItWorks = lazy(() => import("@/pages/HowItWorks").then((m) => ({ default: m.HowItWorks })));
 const SatelliteSim = lazy(() =>
   import("@/pages/SatelliteSim").then((m) => ({ default: m.SatelliteSim })),
@@ -169,18 +170,27 @@ export default function App() {
     return;
   }, [route.path, route.section]);
 
+  const isHome = route.path === "/";
+
   return (
-    <div className="relative min-h-screen bg-void text-ink">
+    <div className={isHome ? "lab-app" : "relative min-h-screen bg-void text-ink"}>
       <a
         href="#main"
+        onClick={(event) => {
+          // A plain #main hash would be interpreted as a route by the hash router.
+          event.preventDefault();
+          const main = document.getElementById("main");
+          main?.focus({ preventScroll: true });
+          scrollToSection("main", "instant");
+        }}
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:rounded-full focus:bg-signal focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-[#04121a]"
       >
         Skip to content
       </a>
 
-      <SiteHeader />
+      {isHome ? <LabHeader /> : <SiteHeader />}
 
-      <main id="main" key={route.path} className="page-enter">
+      <main id="main" key={route.path} className="page-enter" tabIndex={-1}>
         <ErrorBoundary
           key={`boundary-${route.path}`}
           label={`page ${route.path}`}
@@ -190,8 +200,8 @@ export default function App() {
         </ErrorBoundary>
       </main>
 
-      <SiteFooter />
-      <div className="noise-overlay" aria-hidden />
+      {isHome ? <LabFooter /> : <SiteFooter />}
+      {!isHome && <div className="noise-overlay" aria-hidden />}
     </div>
   );
 }
