@@ -1,18 +1,43 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentRef,
+  type RefObject,
+} from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Stars } from "@react-three/drei";
+import { Pause, Play, RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
 import * as THREE from "three";
-import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { supportsWebGL } from "@/components/SatelliteComparison/utils/supportsWebGL";
+import { SceneGate } from "@/components/site/SceneGate";
+import { useReducedMotion } from "@/lib/useMediaQuery";
+import { cn } from "@/utils/cn";
 
-const assetBase = (typeof import.meta !== "undefined" && import.meta.env?.BASE_URL) || "/";
-const VIDEO_SRC = `${assetBase}videos/broadcast-vs-starlink.mp4`;
+/**
+ * Interactive "broadcast TV vs Starlink" view.
+ *
+ * Everything that touches the three.js renderer — `useThree`, `useFrame`, the
+ * OrbitControls instance — lives in a component rendered *inside* `<Canvas>`.
+ * React Three Fiber hooks read from a context that only exists below the
+ * Canvas, so calling them in the component that renders the Canvas throws
+ * "R3F: Hooks can only be used within the Canvas component".
+ *
+ * Sizes are exaggerated so both orbits fit on one screen; the geometry of the
+ * two shells is representative (GEO at ~35,786 km, Starlink at ~550 km).
+ */
 
-/** Scene sizes are exaggerated so both orbits fit on one screen. */
+const assetBase = import.meta.env?.BASE_URL || "/";
+
 const EARTH_RADIUS_KM = 6371;
 const EARTH_RADIUS = 1.28;
-const LEO_RADIUS = EARTH_RADIUS + 550 / EARTH_RADIUS_KM;   // Starlink shell, ≈550 km
-const GEO_RADIUS = EARTH_RADIUS + 35786 / EARTH_RADIUS_KM;  // broadcast TV, ≈35,786 km
+const LEO_RADIUS = EARTH_RADIUS + 550 / EARTH_RADIUS_KM;
+const GEO_RADIUS = EARTH_RADIUS + 35786 / EARTH_RADIUS_KM;
+
+const HOME_FOV = 40;
+/** Where the camera sits relative to the target, before fitting the frame. */
+const VIEW_DIRECTION = new THREE.Vector3(0, 0.38, 0.92).normalize();
 
 const FRESNEL_VERTEX = /* glsl */ `
   varying vec3 vNormal;
@@ -30,12 +55,19 @@ const FRESNEL_FRAGMENT = /* glsl */ `
   varying vec3 vNormal;
   varying vec3 vView;
   void main() {
-    float facing = max(dot(normalize(vNormal), normalize(vView)), 0.0);
+    // This shell is rendered from the inside (BackSide), so the view ray meets
+    // the far hemisphere. |dot| is 1 at the centre of the disc and 0 at the
+    // silhouette, which puts the glow where the atmosphere actually is.
+    float facing = abs(dot(normalize(vNormal), normalize(vView)));
     float rim = pow(1.0 - facing, 3.2);
     float glow = smoothstep(0.0, 0.9, rim) * 0.52;
     gl_FragColor = vec4(uColor * (0.72 + rim), glow);
   }
 `;
+
+/* -------------------------------------------------------------------------- */
+/* Scene                                                                      */
+/* -------------------------------------------------------------------------- */
 
 /** A thin path marking each shell's radius. */
 function OrbitRing({ radius, color }: { radius: number; color: string }) {
@@ -47,47 +79,79 @@ function OrbitRing({ radius, color }: { radius: number; color: string }) {
   );
 }
 
+interface EarthTextures {
+  day: THREE.Texture | null;
+  night: THREE.Texture | null;
+  clouds: THREE.Texture | null;
+}
+
+const NO_TEXTURES: EarthTextures = { day: null, night: null, clouds: null };
+
+/**
+ * Loads the local Earth maps after mount so a slow (or missing) texture never
+ * blanks the scene: the globe renders with flat colours until the maps land.
+ * All three are fetched together and committed in one update, which keeps the
+ * material from recompiling once per file.
+ */
+function useEarthTextures(): EarthTextures {
+  const [textures, setTextures] = useState<EarthTextures>(NO_TEXTURES);
+
+  useEffect(() => {
+    const loader = new THREE.TextureLoader();
+    const loaded: THREE.Texture[] = [];
+    let disposed = false;
+
+    const load = async (file: string, srgb: boolean) => {
+      try {
+        const texture = await loader.loadAsync(`${assetBase}textures/${file}`);
+        if (srgb) texture.colorSpace = THREE.SRGBColorSpace;
+        texture.anisotropy = 8;
+        return texture;
+      } catch {
+        // A missing map only costs detail; the globe keeps its flat colour.
+        return null;
+      }
+    };
+
+    void Promise.all([
+      load("earth-day.jpg", true),
+      load("earth-night.jpg", true),
+      load("earth-clouds.png", false),
+    ]).then(([day, night, clouds]) => {
+      if (disposed) {
+        for (const texture of [day, night, clouds]) texture?.dispose();
+        return;
+      }
+      for (const texture of [day, night, clouds]) if (texture) loaded.push(texture);
+      setTextures({ day, night, clouds });
+    });
+
+    return () => {
+      disposed = true;
+      for (const texture of loaded) texture.dispose();
+    };
+  }, []);
+
+  return textures;
+}
+
 /** Earth: day map, city lights, drifting clouds and a fresnel atmosphere. */
 function EarthGlobe() {
   const surfaceRef = useRef<THREE.Group>(null);
   const cloudRef = useRef<THREE.Group>(null);
-  const [textures, setTextures] = useState<{ day: THREE.Texture | null; night: THREE.Texture | null; clouds: THREE.Texture | null }>({ day: null, night: null, clouds: null });
+  const materialRef = useRef<THREE.MeshStandardMaterial>(null);
+  const textures = useEarthTextures();
   const uniforms = useMemo(() => ({ uColor: { value: new THREE.Color("#63a9ff") } }), []);
 
+  // three.js compiles a material's shader on first use, so attaching a map to
+  // an already-rendered material needs an explicit recompile — changing the
+  // texture alone leaves USE_MAP out of the program and the globe renders flat.
   useEffect(() => {
-    let alive = true;
-    const owned: THREE.Texture[] = [];
-    const loader = new THREE.TextureLoader();
-
-    const load = (url: string, key: "day" | "night" | "clouds", colorSpace?: THREE.ColorSpace) => {
-      loader.load(
-        url,
-        (texture) => {
-          if (!alive) {
-            texture.dispose();
-            return;
-          }
-          if (colorSpace) texture.colorSpace = colorSpace;
-          texture.anisotropy = 8;
-          owned.push(texture);
-          setTextures((current) => ({ ...current, [key]: texture }));
-        },
-        undefined,
-        () => {},
-      );
-    };
-
-    load(`${assetBase}textures/earth-day.jpg`, "day", THREE.SRGBColorSpace);
-    load(`${assetBase}textures/earth-night.jpg`, "night", THREE.SRGBColorSpace);
-    load(`${assetBase}textures/earth-clouds.png`, "clouds");
-    return () => {
-      alive = false;
-      owned.forEach((texture) => texture.dispose());
-    };
-  }, []);
+    if (materialRef.current) materialRef.current.needsUpdate = true;
+  }, [textures.day, textures.night]);
 
   useFrame((_, delta) => {
-    const turn = delta * 0.05; // one turn every ~2 minutes, illustrative only
+    const turn = delta * 0.05; // ~2 minutes per rotation, illustrative only
     if (surfaceRef.current) surfaceRef.current.rotation.y += turn;
     if (cloudRef.current) cloudRef.current.rotation.y += turn * 1.02;
   });
@@ -98,6 +162,7 @@ function EarthGlobe() {
         <mesh>
           <sphereGeometry args={[EARTH_RADIUS, 80, 60]} />
           <meshStandardMaterial
+            ref={materialRef}
             map={textures.day ?? undefined}
             color={textures.day ? "#ffffff" : "#123149"}
             emissiveMap={textures.night ?? undefined}
@@ -147,14 +212,14 @@ function LeoSatellite() {
 
   useFrame((_, delta) => {
     angle.current += delta * 1.15; // one lap every ~5.5 seconds, illustrative only
-    const inc = (53 * Math.PI) / 180;
+    const inclination = THREE.MathUtils.degToRad(53);
     const x = LEO_RADIUS * Math.cos(angle.current);
-    const y = -LEO_RADIUS * Math.sin(angle.current) * Math.sin(inc);
-    const z = LEO_RADIUS * Math.sin(angle.current) * Math.cos(inc);
-    if (ref.current) {
-      ref.current.position.set(x, y, z);
-      ref.current.rotation.set(spin.current.x + delta, spin.current.y + delta * 0.6, spin.current.z);
-    }
+    const y = -LEO_RADIUS * Math.sin(angle.current) * Math.sin(inclination);
+    const z = LEO_RADIUS * Math.sin(angle.current) * Math.cos(inclination);
+    const group = ref.current;
+    if (!group) return;
+    group.position.set(x, y, z);
+    group.rotation.set(spin.current.x + delta, spin.current.y + delta * 0.6, spin.current.z);
   });
 
   return (
@@ -163,14 +228,12 @@ function LeoSatellite() {
         <boxGeometry args={[0.16, 0.09, 0.18]} />
         <meshStandardMaterial color="#f4f5f4" metalness={0.42} roughness={0.32} emissive="#5b6674" emissiveIntensity={0.16} />
       </mesh>
-      <mesh position={[-0.28, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <boxGeometry args={[0.4, 0.03, 0.15]} />
-        <meshStandardMaterial color="#dbe7f1" metalness={0.34} roughness={0.36} emissive="#8bb8d5" emissiveIntensity={0.1} />
-      </mesh>
-      <mesh position={[0.28, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <boxGeometry args={[0.4, 0.03, 0.15]} />
-        <meshStandardMaterial color="#dbe7f1" metalness={0.34} roughness={0.36} emissive="#8bb8d5" emissiveIntensity={0.1} />
-      </mesh>
+      {[-0.28, 0.28].map((x) => (
+        <mesh key={x} position={[x, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <boxGeometry args={[0.4, 0.03, 0.15]} />
+          <meshStandardMaterial color="#dbe7f1" metalness={0.34} roughness={0.36} emissive="#8bb8d5" emissiveIntensity={0.1} />
+        </mesh>
+      ))}
       <mesh position={[0, 0.09, -0.07]} rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[0.014, 0.014, 0.2, 8]} />
         <meshStandardMaterial color="#fbfbf8" metalness={0.45} roughness={0.35} />
@@ -186,13 +249,14 @@ function GeoSatellite() {
 
   useFrame((_, delta) => {
     angle.current += delta * 0.05; // turns with Earth
-    const x = GEO_RADIUS * Math.cos(angle.current);
-    const y = 0;
-    const z = GEO_RADIUS * Math.sin(angle.current);
-    if (ref.current) {
-      ref.current.position.set(x, y, z);
-      ref.current.lookAt(0, 0, 0);
-    }
+    const group = ref.current;
+    if (!group) return;
+    group.position.set(
+      GEO_RADIUS * Math.cos(angle.current),
+      0,
+      GEO_RADIUS * Math.sin(angle.current),
+    );
+    group.lookAt(0, 0, 0);
   });
 
   return (
@@ -205,128 +269,173 @@ function GeoSatellite() {
         <coneGeometry args={[0.16, 0.4, 20]} />
         <meshStandardMaterial color="#c9d6e2" metalness={0.6} roughness={0.2} />
       </mesh>
-      <mesh position={[-0.42, 0, 0]}>
-        <boxGeometry args={[0.55, 0.04, 0.18]} />
-        <meshStandardMaterial color="#dbe7f1" metalness={0.4} roughness={0.3} emissive="#7ea6c8" emissiveIntensity={0.08} />
-      </mesh>
-      <mesh position={[0.42, 0, 0]}>
-        <boxGeometry args={[0.55, 0.04, 0.18]} />
-        <meshStandardMaterial color="#dbe7f1" metalness={0.4} roughness={0.3} emissive="#7ea6c8" emissiveIntensity={0.08} />
-      </mesh>
+      {[-0.42, 0.42].map((x) => (
+        <mesh key={x} position={[x, 0, 0]}>
+          <boxGeometry args={[0.55, 0.04, 0.18]} />
+          <meshStandardMaterial color="#dbe7f1" metalness={0.4} roughness={0.3} emissive="#7ea6c8" emissiveIntensity={0.08} />
+        </mesh>
+      ))}
     </group>
   );
 }
 
-function WebGLFallback() {
-  return (
-    <div className="h-full flex flex-col items-center justify-center p-6 text-center">
-      <p className="text-sm text-slate-300 mb-4">
-        WebGL isn't available on this device, so the 3D view can't run here.
-      </p>
-      <a
-        href={VIDEO_SRC}
-        download
-        className="rounded-full border border-white/20 bg-white/[0.06] px-4 py-2 text-[12px] text-white hover:bg-white/[0.12]"
-      >
-        Download the video (MP4)
-      </a>
-    </div>
-  );
+/* -------------------------------------------------------------------------- */
+/* Camera and controls (must live inside <Canvas>)                            */
+/* -------------------------------------------------------------------------- */
+
+/** Imperative camera actions the overlay buttons can call from outside. */
+interface SceneCameraApi {
+  zoom: (factor: number) => void;
+  reset: () => void;
 }
 
-/** Interactive 3D replacement for the broadcast vs. Starlink video. */
-function BroadcastScene() {
-  const prefersReduced =
-    typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const [autoRotate, setAutoRotate] = useState(!prefersReduced);
+function SceneCamera({
+  autoRotate,
+  api,
+}: {
+  autoRotate: boolean;
+  api: RefObject<SceneCameraApi | null>;
+}) {
+  const camera = useThree((state) => state.camera);
+  const gl = useThree((state) => state.gl);
+  const size = useThree((state) => state.size);
+  const controls = useRef<ComponentRef<typeof OrbitControls>>(null);
 
-  const cameraRef = useRef<THREE.PerspectiveCamera>(null);
-  const controlsRef = useRef<OrbitControlsImpl>(null);
-  const camera = useThree((state) => state.camera) as THREE.PerspectiveCamera;
-  const { gl } = useThree();
+  /** Pull the camera back far enough to keep the whole GEO ring on screen. */
+  const frameScene = useCallback(() => {
+    const orbit = controls.current;
+    const aspect = size.width / Math.max(size.height, 1);
+    const fov = camera instanceof THREE.PerspectiveCamera ? camera.fov : HOME_FOV;
+    const halfFov = THREE.MathUtils.degToRad(fov) / 2;
+    const radius = GEO_RADIUS * 1.12;
+    const distance = Math.max(radius / Math.tan(halfFov), radius / (Math.tan(halfFov) * aspect));
+    camera.position.copy(VIEW_DIRECTION).multiplyScalar(distance);
+    camera.lookAt(0, 0, 0);
+    if (orbit) {
+      orbit.target.set(0, 0, 0);
+      orbit.update();
+    }
+  }, [camera, size.height, size.width]);
+
+  const zoom = useCallback(
+    (factor: number) => {
+      const orbit = controls.current;
+      if (!orbit) return;
+      const offset = camera.position.clone().sub(orbit.target);
+      const distance = THREE.MathUtils.clamp(
+        offset.length() * factor,
+        orbit.minDistance,
+        orbit.maxDistance,
+      );
+      camera.position.copy(orbit.target).add(offset.setLength(distance));
+      orbit.update();
+    },
+    [camera],
+  );
+
+  // Re-fit on mount and whenever the canvas is resized.
+  useEffect(() => {
+    frameScene();
+  }, [frameScene]);
+
+  // Hand the overlay buttons a stable way to drive the camera.
+  useEffect(() => {
+    api.current = { zoom, reset: frameScene };
+    return () => {
+      api.current = null;
+    };
+  }, [api, frameScene, zoom]);
 
   useEffect(() => {
-    cameraRef.current = camera;
-  }, [camera]);
+    const orbit = controls.current;
+    if (orbit) orbit.autoRotate = autoRotate;
+  }, [autoRotate]);
 
+  // Keyboard support is bound to the canvas itself, so the page's own
+  // keyboard shortcuts keep working when the scene is not focused.
   useEffect(() => {
     const canvas = gl.domElement;
     canvas.tabIndex = 0;
     canvas.setAttribute(
       "aria-label",
-      "Interactive 3D model of Earth, a geostationary broadcast-TV satellite and a moving LEO Starlink satellite. Drag to rotate, wheel to zoom.",
+      "Interactive 3D model of Earth, a geostationary broadcast-TV satellite and a moving LEO Starlink satellite. Use the arrow keys to rotate and plus or minus to zoom.",
     );
-  }, [gl]);
 
-  // Keep the auto-rotate flag in sync with the OrbitControls instance.
-  useEffect(() => {
-    const orbit = controlsRef.current;
-    if (orbit) orbit.autoRotate = autoRotate;
-  }, [autoRotate]);
-
-  const resetView = useCallback(() => {
-    const orbit = controlsRef.current;
-    const camera = cameraRef.current;
-    if (!orbit || !camera) return;
-    camera.position.set(0, 3.2, 9);
-    orbit.target.set(0, 0, 0);
-    orbit.update();
-  }, []);
-
-  const dolly = useCallback(
-    (factor: number) => {
-      const orbit = controlsRef.current;
-      const camera = cameraRef.current;
-      if (!orbit || !camera) return;
-      const offset = camera.position.clone().sub(orbit.target);
-      offset.setLength(
-        THREE.MathUtils.clamp(offset.length() * factor, orbit.minDistance, orbit.maxDistance),
-      );
-      camera.position.copy(orbit.target).add(offset);
-      orbit.update();
-    },
-    [],
-  );
-
-  useEffect(() => {
-    const canvas = gl.domElement;
     const onKeyDown = (event: KeyboardEvent) => {
-      const orbit = controlsRef.current;
-      const camera = cameraRef.current;
-      if (!orbit || !camera) return;
+      const orbit = controls.current;
+      if (!orbit) return;
       const step = 0.2;
-      let handled = false;
-      if (event.key === "ArrowLeft") {
-        orbit.setAzimuthalAngle(orbit.getAzimuthalAngle() - step);
-        handled = true;
-      } else if (event.key === "ArrowRight") {
-        orbit.setAzimuthalAngle(orbit.getAzimuthalAngle() + step);
-        handled = true;
-      } else if (event.key === "ArrowUp") {
-        orbit.setPolarAngle(orbit.getPolarAngle() - step);
-        handled = true;
-      } else if (event.key === "ArrowDown") {
-        orbit.setPolarAngle(orbit.getPolarAngle() + step);
-        handled = true;
-      } else if (["+", "=", "-", "_"].includes(event.key)) {
-        dolly(event.key === "+" || event.key === "=" ? 0.85 : 1.18);
-        handled = true;
-      }
-      if (handled) event.preventDefault();
+      if (event.key === "ArrowLeft") orbit.setAzimuthalAngle(orbit.getAzimuthalAngle() - step);
+      else if (event.key === "ArrowRight") orbit.setAzimuthalAngle(orbit.getAzimuthalAngle() + step);
+      else if (event.key === "ArrowUp") orbit.setPolarAngle(orbit.getPolarAngle() - step);
+      else if (event.key === "ArrowDown") orbit.setPolarAngle(orbit.getPolarAngle() + step);
+      else if (event.key === "+" || event.key === "=") zoom(0.85);
+      else if (event.key === "-" || event.key === "_") zoom(1.18);
+      else return;
+      event.preventDefault();
     };
+
     canvas.addEventListener("keydown", onKeyDown);
     return () => canvas.removeEventListener("keydown", onKeyDown);
-  }, [gl, dolly]);
+  }, [gl, zoom]);
+
+  return (
+    <OrbitControls
+      ref={controls}
+      autoRotate={autoRotate}
+      autoRotateSpeed={0.7}
+      enablePan
+      enableZoom
+      enableRotate
+      enableDamping
+      dampingFactor={0.06}
+      minDistance={2.4}
+      maxDistance={90}
+      minPolarAngle={0.12}
+      maxPolarAngle={Math.PI - 0.12}
+    />
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Canvas + overlay                                                           */
+/* -------------------------------------------------------------------------- */
+
+const overlayButton = cn(
+  "pointer-events-auto inline-flex items-center gap-1.5 rounded-lg border border-white/15",
+  "bg-[#040a14]/80 px-2.5 py-1.5 text-[11px] font-medium text-white backdrop-blur",
+  "transition-colors hover:border-white/35 hover:bg-white/12",
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal",
+);
+
+function LegendEntry({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="flex items-center gap-2">
+      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} aria-hidden />
+      <span className="font-mono text-[10px] text-slate-300">{label}</span>
+    </span>
+  );
+}
+
+/** Canvas, legend and camera controls. Rendered below <SceneGate>. */
+function BroadcastScene() {
+  const reducedMotion = useReducedMotion();
+  const [autoRotate, setAutoRotate] = useState(!reducedMotion);
+  const api = useRef<SceneCameraApi | null>(null);
+
+  useEffect(() => {
+    if (reducedMotion) setAutoRotate(false);
+  }, [reducedMotion]);
 
   return (
     <>
       <Canvas
-        camera={{ position: [0, 3.2, 9], fov: 36, near: 0.1, far: 60 }}
+        camera={{ position: [0, 8, 20], fov: HOME_FOV, near: 0.1, far: 160 }}
         dpr={[1, 2]}
-        frameloop="always"
         gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+        style={{ touchAction: "none" }}
       >
+        <color attach="background" args={["#02040a"]} />
         <ambientLight intensity={0.55} color="#c8dff6" />
         <directionalLight position={[9, 7, 6]} intensity={2.4} color="#f4f7ff" />
         <directionalLight position={[-6, -4, -5]} intensity={0.6} color="#4d8dc0" />
@@ -336,78 +445,48 @@ function BroadcastScene() {
         <EarthGlobe />
         <LeoSatellite />
         <GeoSatellite />
-        <OrbitControls
-          ref={controlsRef}
-          enablePan
-          enableZoom
-          enableRotate
-          autoRotate={autoRotate}
-          autoRotateSpeed={0.7}
-          enableDamping
-          dampingFactor={0.06}
-          minDistance={1.9}
-          maxDistance={40}
-          minPolarAngle={0.12}
-          maxPolarAngle={Math.PI - 0.12}
-        />
+        <SceneCamera autoRotate={autoRotate} api={api} />
       </Canvas>
 
-      <div className="absolute left-3 bottom-3 flex flex-col gap-2 z-[20]">
-        <button
-          type="button"
-          onClick={() => dolly(0.75)}
-          aria-label="Zoom in"
-          className="pointer-events-auto flex items-center gap-1.5 rounded border border-white/20 bg-white/[0.06] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-white/[0.12] backdrop-blur"
-        >
-          <span aria-hidden="true">🔍</span> Zoom in
+      <div className="pointer-events-none absolute left-3 top-3 z-10 flex flex-col gap-1.5">
+        <LegendEntry color="#64d8ff" label="LEO — Starlink, ≈550 km" />
+        <LegendEntry color="#ff7a1a" label="GEO — broadcast TV, ≈35,786 km" />
+      </div>
+
+      <div className="absolute bottom-3 left-3 z-10 flex flex-wrap items-center gap-2">
+        <button type="button" onClick={() => api.current?.zoom(0.75)} aria-label="Zoom in" className={overlayButton}>
+          <ZoomIn className="h-3.5 w-3.5" aria-hidden /> Zoom in
         </button>
-        <button
-          type="button"
-          onClick={() => dolly(1.35)}
-          aria-label="Zoom out"
-          className="pointer-events-auto flex items-center gap-1.5 rounded border border-white/20 bg-white/[0.06] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-white/[0.12] backdrop-blur"
-        >
-          <span aria-hidden="true">🔍</span> Zoom out
+        <button type="button" onClick={() => api.current?.zoom(1.35)} aria-label="Zoom out" className={overlayButton}>
+          <ZoomOut className="h-3.5 w-3.5" aria-hidden /> Zoom out
         </button>
-        <button
-          type="button"
-          onClick={resetView}
-          aria-label="Reset camera view"
-          className="pointer-events-auto flex items-center gap-1.5 rounded border border-white/20 bg-white/[0.06] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-white/[0.12] backdrop-blur"
-        >
-          ↱ Reset view
+        <button type="button" onClick={() => api.current?.reset()} aria-label="Reset camera view" className={overlayButton}>
+          <RotateCcw className="h-3.5 w-3.5" aria-hidden /> Reset
         </button>
         <button
           type="button"
           onClick={() => setAutoRotate((on) => !on)}
           aria-pressed={autoRotate}
-          className="pointer-events-auto flex items-center gap-1.5 rounded border border-white/20 bg-white/[0.06] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-white/[0.12] backdrop-blur"
+          aria-label={autoRotate ? "Pause the automatic rotation" : "Start the automatic rotation"}
+          className={overlayButton}
         >
-          {autoRotate ? "⏸ Stop rotation" : "▶ Rotate view"}
+          {autoRotate ? <Pause className="h-3.5 w-3.5" aria-hidden /> : <Play className="h-3.5 w-3.5" aria-hidden />}
+          {autoRotate ? "Pause" : "Rotate"}
         </button>
       </div>
 
-      <div className="absolute left-3 top-3 flex flex-col gap-1.5 z-[20] pointer-events-none">
-        <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-[#64d8ff]/90" />
-          <span className="text-[10px] font-mono text-slate-300">LEO — Starlink, ≈550 km</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-[#ff7a1a]/90" />
-          <span className="text-[10px] font-mono text-slate-300">GEO — broadcast TV, ≈35,786 km</span>
-        </div>
-      </div>
-
-      <div className="absolute right-3 bottom-3 z-[20] text-[10px] tracking-tight text-slate-500/80">
-        Drag to rotate • Wheel to zoom • Right-drag to pan
-      </div>
+      <p className="pointer-events-none absolute bottom-3 right-3 z-10 hidden font-mono text-[9px] uppercase tracking-[0.12em] text-slate-500 sm:block">
+        Drag to rotate · wheel to zoom · right-drag to pan
+      </p>
     </>
   );
 }
 
-export function BroadcastComparison() {
-  const [webgl] = useState(() => supportsWebGL());
+/* -------------------------------------------------------------------------- */
+/* Page                                                                       */
+/* -------------------------------------------------------------------------- */
 
+export function BroadcastComparison() {
   return (
     <section id="comparison" className="relative overflow-hidden pb-16 pt-28 md:pb-24 md:pt-36">
       <div className="grid-bg pointer-events-none absolute inset-0 opacity-30" aria-hidden />
@@ -418,14 +497,30 @@ export function BroadcastComparison() {
 
       <div className="page-shell relative">
         <h1 className="max-w-4xl text-[clamp(2rem,4.8vw,3.4rem)] font-semibold leading-[1.05] tracking-[-0.035em] text-white">
-          Broadcast TV Satellite{" "}
-          <span className="text-gradient">vs Starlink</span>
+          Broadcast TV Satellite <span className="text-gradient">vs Starlink</span>
         </h1>
+        <p className="mt-4 max-w-2xl text-[14px] leading-relaxed text-muted md:text-[15.5px]">
+          One satellite parked 35,786 km away sends the same signal to an entire region. A
+          constellation about 550 km up keeps a two-way conversation going as its satellites move
+          overhead. Drag the model to compare the two orbits.
+        </p>
 
-        <div className="mt-8 relative overflow-hidden rounded-[18px] border border-white/10 bg-[#02040a] shadow-[0_28px_100px_rgba(0,0,0,0.45)]">
-          {webgl ? <BroadcastScene /> : <WebGLFallback />}
+        <div className="relative mt-8 h-[72svh] min-h-[380px] max-h-[680px] overflow-hidden rounded-[18px] border border-white/10 bg-[#02040a] shadow-[0_28px_100px_rgba(0,0,0,0.45)]">
+          <SceneGate
+            caption="Building the orbit view…"
+            unavailableTitle="The 3D comparison could not start."
+            unavailableBody="This view needs WebGL. The comparison figures and the rest of the guide still work without it."
+          >
+            <BroadcastScene />
+          </SceneGate>
         </div>
+
+        <p className="mt-3 font-mono text-[9px] uppercase tracking-[0.12em] text-faint">
+          Educational model · orbit radii and spacecraft sizes are exaggerated for visibility
+        </p>
       </div>
     </section>
   );
 }
+
+export default BroadcastComparison;

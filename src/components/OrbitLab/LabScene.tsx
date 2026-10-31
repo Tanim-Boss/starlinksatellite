@@ -1,8 +1,7 @@
-import { Suspense, useEffect, useMemo, useRef, type RefObject } from "react";
+import { Suspense, useEffect, useMemo, useRef, type ComponentRef, type RefObject } from "react";
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { Line, OrbitControls, Stars } from "@react-three/drei";
 import * as THREE from "three";
-import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { TelevisionDish, PhasedArrayDish } from "@/components/SatelliteComparison/scenes/DishStation";
 import { segmentClearsEarth } from "@/components/SatelliteComparison/utils/orbit";
 import { EARTH_RADIUS, LEO_RADIUS, GEO_RADIUS, SATELLITE_COUNT, earthRotationAt, groundNormalAt, geostationaryPositionAt, updateFleetPositions } from "./simulation";
@@ -26,7 +25,9 @@ const FRESNEL_FRAGMENT = `
   varying vec3 vNormal;
   varying vec3 vView;
   void main() {
-    float facing = max(dot(normalize(vNormal), normalize(vView)), 0.0);
+    // Rendered from inside the shell (BackSide): |dot| is 1 through the centre
+    // of the disc and 0 at the silhouette, which is where the rim glow belongs.
+    float facing = abs(dot(normalize(vNormal), normalize(vView)));
     float rim = pow(1.0 - facing, 3.2);
     gl_FragColor = vec4(vec3(0.22, 0.57, 0.95) * (0.5 + rim), rim * 0.28);
   }
@@ -336,7 +337,7 @@ function Camera({ mode, resetKey }: { mode: LabMode; resetKey: number }) {
   const camera = useThree((state) => state.camera);
   const aspect = useThree((state) => state.size.width / Math.max(state.size.height, 1));
   const gl = useThree((state) => state.gl);
-  const controls = useRef<OrbitControlsImpl>(null);
+  const controls = useRef<ComponentRef<typeof OrbitControls>>(null);
   useEffect(() => {
     const canvas = gl.domElement;
     canvas.tabIndex = 0;

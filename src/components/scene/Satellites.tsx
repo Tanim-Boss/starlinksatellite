@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import * as THREE from "three";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
-import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { SATS, SHELLS, satPosition, satVelocity } from "@/lib/astro";
 import { simClock } from "@/lib/simClock";
 import { useApp } from "@/store";

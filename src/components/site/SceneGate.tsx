@@ -1,40 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { resetWebGLSupport, supportsWebGL } from "@/lib/webgl";
 import { cn } from "@/utils/cn";
 import { ErrorBoundary } from "./ErrorBoundary";
-
-/* -------------------------------------------------------------------------- */
-/* WebGL availability                                                         */
-/* -------------------------------------------------------------------------- */
-
-let webglSupport: boolean | null = null;
-
-/**
- * True when the browser can hand out a WebGL context.
- *
- * Probed once and cached. Some phones, locked-down browsers and remote desktops
- * report the API but refuse the context, so the probe actually asks for one and
- * releases it again straight away.
- */
-export function supportsWebGL(): boolean {
-  if (webglSupport !== null) return webglSupport;
-  if (typeof document === "undefined") return true;
-  try {
-    const canvas = document.createElement("canvas");
-    const gl = (canvas.getContext("webgl2") ||
-      canvas.getContext("webgl") ||
-      canvas.getContext("experimental-webgl")) as WebGLRenderingContext | null;
-    webglSupport = Boolean(gl);
-    gl?.getExtension("WEBGL_lose_context")?.loseContext();
-  } catch {
-    webglSupport = false;
-  }
-  return webglSupport;
-}
-
-/** Drops the cached probe so "Try again" can ask the browser a second time. */
-function forgetWebGLSupport() {
-  webglSupport = null;
-}
 
 /* -------------------------------------------------------------------------- */
 /* Deferred mounting                                                          */
@@ -83,26 +50,29 @@ function useReadyToRender(ref: RefObject<HTMLElement | null>, rootMargin: string
     if (!inView) return;
     const w = window as IdleWindow;
     let cancelled = false;
-    let handle: number | undefined;
+    let raf = 0;
+    let cancel: (() => void) | undefined;
+
     const start = () => {
       if (!cancelled) setIdle(true);
     };
+
     // One frame for the first paint, then an idle slot (with a hard timeout so
     // a busy page still gets its canvas).
-    const raf = requestAnimationFrame(() => {
+    raf = requestAnimationFrame(() => {
       if (typeof w.requestIdleCallback === "function") {
-        handle = w.requestIdleCallback(start, { timeout: 700 });
+        const handle = w.requestIdleCallback(start, { timeout: 700 });
+        cancel = () => w.cancelIdleCallback?.(handle);
       } else {
-        handle = window.setTimeout(start, 60);
+        const handle = window.setTimeout(start, 60);
+        cancel = () => window.clearTimeout(handle);
       }
     });
+
     return () => {
       cancelled = true;
       cancelAnimationFrame(raf);
-      if (handle !== undefined) {
-        w.cancelIdleCallback?.(handle);
-        window.clearTimeout(handle);
-      }
+      cancel?.();
     };
   }, [inView]);
 
@@ -246,7 +216,7 @@ export function SceneGate({
   }, []);
 
   const retry = useCallback(() => {
-    forgetWebGLSupport();
+    resetWebGLSupport();
     setWebgl(supportsWebGL());
     setContextLost(false);
     setAttempt((value) => value + 1);

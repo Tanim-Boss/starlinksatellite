@@ -27,7 +27,7 @@ Give the component's parent a height (the component fills it at 100% width and h
 </div>
 ```
 
-The default export is `SatelliteComparison` from `index.tsx`. In this repo the route wrapper is `src/pages/BroadcastComparison.tsx`, and the story is available at `#/comparison`.
+The default export is `SatelliteComparison` from `index.tsx`. It is a standalone, self-contained component: this site's `#/comparison` route now renders the lighter `src/pages/BroadcastComparison.tsx` scene instead, while the landing page reuses this folder's dish models and orbit math.
 
 ## Source files
 
@@ -41,7 +41,6 @@ src/components/SatelliteComparison/
   hooks/
     useActivity.ts
     useComparisonStore.ts
-    useReducedMotion.ts
   scenes/
     CameraRig.tsx
     ComparisonCanvas.tsx
@@ -62,7 +61,6 @@ src/components/SatelliteComparison/
     StoryNavigation.tsx
   utils/
     orbit.ts
-    supportsWebGL.ts
     textures.ts
 ```
 

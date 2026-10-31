@@ -41,7 +41,6 @@ export default defineConfig({
         "./src/components/SatelliteComparison/scenes/DishStation.tsx",
         "./src/components/SatelliteComparison/hooks/*.ts",
         "./src/components/SatelliteComparison/utils/orbit.ts",
-        "./src/components/SatelliteComparison/utils/supportsWebGL.ts",
         "./src/components/SatelliteSimulation/*.tsx",
         "./src/components/SatelliteSimulation/scenes/*.tsx",
         "./src/components/SatelliteSimulation/ui/*.tsx",

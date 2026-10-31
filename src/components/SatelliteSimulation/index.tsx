@@ -1,5 +1,5 @@
-import { Suspense, lazy, useCallback, useEffect, useState } from "react";
-import { supportsWebGL } from "@/components/site/SceneGate";
+import { Suspense, lazy, useCallback, useEffect } from "react";
+import { useWebGLSupport } from "@/lib/webgl";
 import { fsStageClass, useFullscreen } from "@/components/site/FullscreenStage";
 import { useReducedMotion } from "@/lib/useMediaQuery";
 import { useActivity } from "./hooks/useActivity";
@@ -42,7 +42,7 @@ const SimulationCanvas = lazy(() =>
 export function SatelliteSimulation() {
   const { ref: activityRef, active } = useActivity<HTMLDivElement>();
   const fs = useFullscreen<HTMLDivElement>();
-  const [webglOk] = useState(() => supportsWebGL());
+  const webgl = useWebGLSupport();
   const reduced = useReducedMotion();
 
   // The stage element is shared by the activity tracker (render pausing)
@@ -115,16 +115,18 @@ export function SatelliteSimulation() {
       )}
     >
       <div className="fs-fill absolute inset-0 [&>canvas]:block [&>canvas]:h-full [&>canvas]:w-full">
-        {webglOk ? (
+        {webgl === false ? (
+          <WebGLFallback />
+        ) : webgl === true ? (
           <Suspense fallback={<LoadingScreen />}>
             <SimulationCanvas active={active} />
           </Suspense>
         ) : (
-          <WebGLFallback />
+          <LoadingScreen />
         )}
       </div>
 
-      {webglOk && <SimDriver active={active} />}
+      {webgl === true && <SimDriver active={active} />}
 
       <Hud />
       <ViewControls isFullscreen={fs.isFullscreen} onToggleFullscreen={fs.toggle} />
