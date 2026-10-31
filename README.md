@@ -15,10 +15,8 @@ Three Fiber.
 | --- | --- |
 | `#/` | Overview — the four-step signal path, why low orbit wins, laser mesh, handovers, key numbers |
 | `#/how-it-works` | Nine-chapter explainer with interactive figures and a scroll-spy chapter rail |
-| `#/simulation` | Satellite internet simulation — 480 satellites on real orbits, a ground-level dish view with live handoffs, a laser relay mesh with BFS routing, three cameras and a 60-second Story Mode tour |
-| `#/steering` | Satellite beam-steering lab — a relay satellite in space slews a gimbaled RF dish or optical laser terminal from Satellite A to Satellite B, with a five-stage walkthrough, live azimuth/elevation/pointing-error telemetry and a mechanism close-up |
-| `#/explorer` | 3D constellation explorer: five views, speed control, layers, satellite inspector, coverage probe |
-| `#/numbers` | Orbit sandbox, latency budget and the fibre-vs-space crossover chart |
+| `#/simulation` | Starlink-focused orbital simulation — circular LEO orbits, a ground terminal, handoffs and a laser relay mesh |
+| `#/comparison` | Six-stage “Broadcast TV Satellite vs Starlink” 3D story: dishes, one-way/two-way links, true-scale GEO/LEO orbits, latency pulses, a 600-satellite laser mesh and location-aware handoffs |
 | `#/faq` | Short answers to the common questions, plus sources |
 
 Routing is hash-based (`#/how-it-works@lasers`), so the built site works from
@@ -45,7 +43,7 @@ any static host, including a sub-folder and a single file.
   Mode, speed (1×–3000×), play/pause, a live HUD and an automatic quality
   fallback round out the scene. Exaggerated sizes, physical orbits — not live
   tracking.
-- **Satellite beam steering lab** (`#/steering`) — a source satellite holds a link with Satellite A, then hands its narrow beam to Satellite B while the bus stays attitude-fixed. The mast carries a two-axis gimbal: an azimuth stage and an elevation stage rotate an RF parabolic dish (orange constant-phase wavefronts) or an optical laser terminal (thin violet beam with PAT-style acquisition), and the wavefronts, laser and data packets are rebuilt every frame from the live pointing direction. Two target satellites, manual azimuth/elevation sliders, an auto-tracking switch, three cameras including a mechanism close-up, a five-stage narrative rail, and live telemetry (target, azimuth, elevation, pointing error, link status). All values are illustrative: the targets follow closed apparent tracks, and it is neither an orbital propagator nor an electromagnetic solver.
+- **Broadcast TV Satellite vs Starlink** (`#/comparison`) — a reusable TypeScript React component with six guided stages and a ~78-second tour. It compares a fixed parabolic receive-only dish with a flat two-way phased array; shows GEO and LEO orbits at true relative scale (plus an exaggerated readability mode); launches GEO/LEO latency pulses together; renders 600 circular-orbit satellites in 20 planes at 53°; and selects a LEO satellite above 25° for location-aware handoffs. Radio is orange, inter-satellite links are cyan, and the shared LineSegments buffer drops any laser segment that intersects Earth. The display sleeps off-screen or in a hidden tab, honors reduced-motion preferences, caps DPR at 2 and lowers detail below 30 FPS. All visitor-facing text is centralized in `copy.ts`; physical and visual tunables are in `config.ts`. See [`src/components/SatelliteComparison/README.md`](src/components/SatelliteComparison/README.md) for React 18 installation, a lazy-import example, customization guidance and free Earth-texture sources.
 - **Spot beams** — hover the cells to see how frequency bands are reused.
 - **Satellite anatomy** — hover the numbered callouts to inspect the hardware.
 - **Coverage map** — click anywhere to count covering satellites in the model.
@@ -79,6 +77,15 @@ light — real latency adds processing and queuing. This is **not** a live
 Starlink control system, not telemetry, and not a reproduction of any product's
 firmware or hardware.
 
+The **TV-vs-Starlink comparison** uses circular two-body propagation for its
+600 rendered LEO spacecraft, a 53° inclination and a GEO spacecraft that rotates
+with Earth over the selected longitude. The scale toggle changes only the
+rendered LEO radius; its altitude, speed, period and 25° elevation selection
+remain physical. The beam cones and terminal models are intentionally enlarged,
+and the two pulse animations are time-stretched to be visible; the stopwatch
+readouts retain the approximate 600 ms GEO / 20–40 ms LEO round-trip figures.
+Laser segments are rejected when their line of sight would cross Earth.
+
 The 3D model is **not live telemetry**: satellites are propagated with a simple
 circular two-body model from published shell parameters. Distances are to scale
 (1 scene unit = one Earth radius); spacecraft are drawn much larger than reality
@@ -95,11 +102,11 @@ npm run typecheck     # tsc --noEmit (TypeScript 7)
 npm run build         # code-split build in dist/ (the default)
 npm run build:single  # portable one-file build in dist-single/
 npm run preview       # serves dist/ on http://localhost:3000
-npm run test          # typecheck + jsdom suites + orbital/ground-camera math
-npm run test:smoke    # every route mounts in jsdom, including no-WebGL fallbacks
-npm run test:sim      # drives the simulation controls end-to-end in jsdom
-npm run test:sim-math # checks orbits, camera framing, handoffs and relay geometry
-npm run test:steer    # drives the beam-steering lab controls end-to-end in jsdom
+npm run test          # typecheck + jsdom suites + orbit and comparison checks
+npm run test:smoke    # every active route mounts in jsdom, including no-WebGL fallbacks
+npm run test:sim      # drives the Starlink simulation controls end-to-end in jsdom
+npm run test:sim-math # checks existing simulation orbits, handoffs and relay geometry
+npm run test:comparison # drives the six-stage comparison controls in jsdom
 ```
 
 `npm run build` emits a normal Vite build: the shell and the current page are
@@ -109,9 +116,9 @@ needed. `npm run build:single` inlines everything into `dist-single/index.html`
 (~475 kB gzipped) for hosts that only accept one file; both outputs copy the
 Earth textures to `textures/` next to the HTML.
 
-`npm run dev` still serves modules individually; the Vite `warmup` list now
-covers every component directory so the first visit to the overview or the
-explainer does not have to compile the whole diagram graph on demand.
+`npm run dev` still serves modules individually; the Vite `warmup` list covers
+the page, diagram, simulation and comparison component directories so their
+first visit does not have to compile the whole scene graph on demand.
 
 ### Toolchain
 
@@ -165,14 +172,13 @@ The page is deliberately built to show words before it shows WebGL:
 ```
 src/
   App.tsx                 route switch + page frame
-  pages/                  Home, HowItWorks, SatelliteSim, BeamSteering, Explorer, Numbers, Faq
+  pages/                  Home, HowItWorks, SatelliteSim, BroadcastComparison, Faq
   components/
     site/                 header, footer, primitives, FAQ accordion, scene gate/posters
     home/                 home-page sections
     diagrams/             the interactive SVG figures
-    SatelliteSimulation/  reusable 3D satellite-internet simulation (config, scenes, hooks, ui, utils)
-    steer/                satellite beam-steering lab (space scene, gimbaled dish/optical terminal, dynamic beam, targets, telemetry, stage rail, controls)
-    explorer/             UI around the 3D scene
+    SatelliteSimulation/  reusable Starlink orbital simulation (config, scenes, hooks, ui, utils)
+    SatelliteComparison/  reusable GEO TV vs LEO internet story (config, copy, scenes, hooks, ui)
     three/                cinematic hero globe
     scene/                reusable three.js layers (Earth, satellites, links…)
   lib/

@@ -188,10 +188,10 @@ export function SatelliteSim() {
           <Reveal>
             <NextPageCTA
               eyebrow="Next"
-              title="See how the beam is steered without moving."
-              body="The beam-steering lab takes the relay satellite's side: a gimbaled terminal slews its beam from Satellite A to Satellite B while the bus stays attitude-fixed."
-              to="/steering"
-              cta="Open the beam steering lab"
+              title="Compare broadcast TV with satellite internet."
+              body="See why a fixed geostationary broadcast dish and a two-way low-orbit terminal behave so differently."
+              to="/comparison"
+              cta="Open TV vs Starlink"
             />
           </Reveal>
         </div>

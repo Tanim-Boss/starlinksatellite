@@ -10,22 +10,19 @@ import { scrollToSectionWhenReady, scrollToTop, useRoute } from "@/lib/router";
 /*
  * Pages are split into their own chunks. The entry bundle now contains the
  * shell (header, footer, router, copy) and the current route only; the 3D
- * scenes behind /explorer, /steering and /simulation, and the diagrams on the
- * overview and the explainer, arrive after the first paint instead of
- * blocking it. Before this, every visitor downloaded every page and three.js
- * before the tab showed anything, which is why the long pages felt like they
- * needed reloading on a slow connection.
+ * scenes behind /simulation and /comparison, and the diagrams on the overview
+ * and the explainer, arrive after the first paint instead of blocking it.
+ * Before this, every visitor downloaded every page and three.js before the
+ * tab showed anything, which made the long pages feel slow on weak connections.
  */
 const Home = lazy(() => import("@/pages/Home").then((m) => ({ default: m.Home })));
 const HowItWorks = lazy(() => import("@/pages/HowItWorks").then((m) => ({ default: m.HowItWorks })));
 const SatelliteSim = lazy(() =>
   import("@/pages/SatelliteSim").then((m) => ({ default: m.SatelliteSim })),
 );
-const BeamSteering = lazy(() =>
-  import("@/pages/BeamSteering").then((m) => ({ default: m.BeamSteering })),
+const BroadcastComparison = lazy(() =>
+  import("@/pages/BroadcastComparison").then((m) => ({ default: m.BroadcastComparison })),
 );
-const Explorer = lazy(() => import("@/pages/Explorer").then((m) => ({ default: m.Explorer })));
-const Numbers = lazy(() => import("@/pages/Numbers").then((m) => ({ default: m.Numbers })));
 const Faq = lazy(() => import("@/pages/Faq").then((m) => ({ default: m.Faq })));
 
 
@@ -122,12 +119,8 @@ function renderRoute(path: string) {
       return <HowItWorks />;
     case "/simulation":
       return <SatelliteSim />;
-    case "/steering":
-      return <BeamSteering />;
-    case "/explorer":
-      return <Explorer />;
-    case "/numbers":
-      return <Numbers />;
+    case "/comparison":
+      return <BroadcastComparison />;
     case "/faq":
       return <Faq />;
     default:

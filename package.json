@@ -15,8 +15,8 @@
     "test:smoke": "node scripts/smoke-test.mjs",
     "test:sim": "node scripts/sim-ui-test.mjs",
     "test:sim-math": "node scripts/_verify-sim-math.mjs",
-    "test:steer": "node scripts/steer-ui-test.mjs",
-    "test": "npm run typecheck && npm run test:smoke && npm run test:sim && npm run test:sim-math && npm run test:steer"
+    "test:comparison": "node scripts/comparison-ui-test.mjs",
+    "test": "npm run typecheck && npm run test:smoke && npm run test:sim && npm run test:sim-math && npm run test:comparison"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

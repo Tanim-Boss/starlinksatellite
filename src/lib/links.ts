@@ -5,8 +5,6 @@ export const LINK = {
   home: href("/"),
   howItWorks: href("/how-it-works"),
   simulation: href("/simulation"),
-  steering: href("/steering"),
-  explorer: href("/explorer"),
-  numbers: href("/numbers"),
+  comparison: href("/comparison"),
   faq: href("/faq"),
 };

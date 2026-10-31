@@ -15,16 +15,14 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
 
-const ROUTES = ["/", "/how-it-works", "/simulation", "/steering", "/explorer", "/numbers", "/faq"];
+const ROUTES = ["/", "/how-it-works", "/simulation", "/comparison", "/faq"];
 
 /** A phrase from each route's own <h1>, used to detect that the new page won. */
 const ROUTE_HEADINGS = {
   "/": "How Starlink",
   "/how-it-works": "The whole system",
   "/simulation": "satellite internet",
-  "/steering": "Steer the beam",
-  "/explorer": "Fly the constellation",
-  "/numbers": "Distance is destiny",
+  "/comparison": "Broadcast TV Satellite",
   "/faq": "Questions, answered",
 };
 
@@ -207,17 +205,16 @@ if (window.document.getElementById("lasers")) {
   console.log("FAIL deep link /how-it-works@lasers did not mount the chapter");
 }
 
-// 4b. A real click on a nav link (not just assigning location.hash) must swap
-// the page: this is the path a visitor takes, including in webviews where the
-// hashchange event can be unreliable.
-const numbersLink = window.document.querySelector('a[href="#/numbers"]');
-if (!numbersLink) {
+// 4b. A real click on the comparison nav link (not just assigning
+// location.hash) must swap pages, including in webviews where hashchange can be unreliable.
+const comparisonLink = window.document.querySelector('a[href="#/comparison"]');
+if (!comparisonLink) {
   failures++;
-  console.log("FAIL no nav link to #/numbers found");
+  console.log("FAIL no nav link to #/comparison found");
 } else {
-  numbersLink.click();
+  comparisonLink.click();
   const switched = await waitFor(() =>
-    (window.document.querySelector("#main h1")?.textContent ?? "").includes("Distance is destiny"),
+    (window.document.querySelector("#main h1")?.textContent ?? "").includes("Broadcast TV Satellite"),
   );
   if (switched) {
     console.log("ok   clicking a nav link renders the next page");

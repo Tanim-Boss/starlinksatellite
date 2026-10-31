@@ -114,14 +114,14 @@ export function SiteHeader() {
 
           <div className="flex items-center gap-2">
             <Link
-              to="/explorer"
-              className="hidden items-center gap-2 rounded-full border border-signal/40 bg-signal/10 px-4 py-2 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-signal transition-all hover:border-signal hover:bg-signal/20 hover:text-white lg:inline-flex"
+              to="/comparison"
+              className="hidden items-center gap-2 rounded-full border border-[#ff7a1a]/40 bg-[#ff7a1a]/10 px-4 py-2 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-[#ffb27a] transition-all hover:border-[#ff7a1a] hover:bg-[#ff7a1a]/20 hover:text-white lg:inline-flex"
             >
               <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-signal opacity-70 animate-blink" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-signal" />
+                <span className="absolute inline-flex h-full w-full rounded-full bg-[#ff7a1a] opacity-70 animate-blink" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#ff7a1a]" />
               </span>
-              Live 3D model
+              Compare satellites
             </Link>
 
             <button
