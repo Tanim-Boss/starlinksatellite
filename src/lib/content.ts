@@ -236,7 +236,7 @@ export const PAGE_META: Record<string, { title: string; description: string }> =
   "/comparison": {
     title: "Broadcast TV Satellite vs Starlink",
     description:
-      "Watch the Broadcast TV Satellite vs Starlink explainer video comparing geostationary TV broadcast satellites with Starlink's low-Earth-orbit constellation.",
+      "An interactive 3D view of Earth with a geostationary broadcast-TV satellite and a moving LEO Starlink satellite — drag to rotate, wheel to zoom, and compare the two orbits.",
   },
   "/faq": {
     title: "FAQ — How Starlink Works",
