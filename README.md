@@ -38,7 +38,7 @@ hash routes:
 | `#/` | Orbital's interactive broadcast-vs-Starlink landing page |
 | `#/how-it-works` | Nine-chapter Starlink explainer |
 | `#/simulation` | Detailed Starlink-focused satellite internet simulation |
-| `#/comparison` | Broadcast TV Satellite vs Starlink explainer video |
+| `#/comparison` | Interactive 3D view of Earth with a GEO broadcast-TV satellite and a moving LEO Starlink satellite |
 | `#/faq` | Common questions and sources |
 
 ## Accuracy and visual scale
