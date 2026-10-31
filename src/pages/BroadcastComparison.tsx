@@ -13,7 +13,19 @@ import { Pause, Play, RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
 import * as THREE from "three";
 import { SceneGate } from "@/components/site/SceneGate";
 import { useReducedMotion } from "@/lib/useMediaQuery";
-import { EARTH_RADIUS, LEO_RADIUS, GEO_RADIUS, LEO_INCLINATION, orbitPoint, horizonCoverage } from "@/lib/broadcastOrbit";
+import {
+  EARTH_RADIUS,
+  LEO_RADIUS,
+  GEO_RADIUS,
+  GEO_HORIZON,
+  LEO_FOOTPRINT,
+  LEO_HORIZON,
+  LEO_ALTITUDE_KM,
+  ORBIT_PLANE_INCLINATION,
+  STARLINK_MIN_ELEVATION_DEG,
+  footprint,
+  orbitPoint,
+} from "@/lib/broadcastOrbit";
 import { cn } from "@/utils/cn";
 
 /**
@@ -29,6 +41,25 @@ import { cn } from "@/utils/cn";
  */
 
 const assetBase = import.meta.env?.BASE_URL || "/";
+
+/**
+ * Coverage figures quoted in the copy. They come from the same footprint math
+ * as the 3D cones, so the numbers on the page and the shapes in the scene can
+ * never drift apart.
+ */
+const formatKm = (value: number) => Math.round(value).toLocaleString("en-US");
+/** Horizon share of Earth's surface (zero minimum elevation). */
+const GEO_HORIZON_SHARE = (GEO_HORIZON.fraction * 100).toFixed(1);
+const LEO_HORIZON_SHARE = (LEO_HORIZON.fraction * 100).toFixed(1);
+/** Starlink's real servable share of Earth's surface per satellite. */
+const LEO_SERVICE_SHARE = (LEO_FOOTPRINT.fraction * 100).toFixed(2);
+/** How much of the geometric cap the 25° elevation mask removes. */
+const ELEVATION_MASK_LOSS = Math.round((1 - LEO_FOOTPRINT.fraction / LEO_HORIZON.fraction) * 100);
+const LEO_ALTITUDE_LABEL = LEO_ALTITUDE_KM.toLocaleString("en-US");
+const LEO_FOOTPRINT_RADIUS = formatKm(LEO_FOOTPRINT.radiusKm);
+const LEO_FOOTPRINT_DIAMETER = formatKm(LEO_FOOTPRINT.diameterKm);
+const GEO_HORIZON_RADIUS = formatKm(GEO_HORIZON.radiusKm);
+const GEO_HORIZON_DIAMETER = formatKm(GEO_HORIZON.diameterKm);
 
 const HOME_FOV = 40;
 /** Where the camera sits relative to the target, before fitting the frame. */
@@ -76,14 +107,26 @@ function OrbitRing({ radius, color, inclination = 0 }: { radius: number; color: 
   </group>;
 }
 
-/** Tangent cone and spherical cap: geometric horizon, not a service map. */
-function CoverageCone({ satellite, radius, color }: {
-  satellite: RefObject<THREE.Group | null>; radius: number; color: string;
+/**
+ * Cone, spherical cap and rim drawn from a real minimum elevation angle.
+ *
+ * A satellite does not "see" its whole horizon cap: Starlink terminals only work
+ * at 25° of elevation or more, so its footprint is the much smaller cap where
+ * the spacecraft sits at least 25° above the local horizon. The TV satellite is
+ * drawn down to its true horizon (0°), because that is the geometry usually
+ * quoted for it.
+ */
+function CoverageCone({ satellite, radius, color, minElevationDeg = 0, showSpokes = true }: {
+  satellite: RefObject<THREE.Group | null>;
+  radius: number;
+  color: string;
+  minElevationDeg?: number;
+  showSpokes?: boolean;
 }) {
   const ref = useRef<THREE.Group>(null);
   const up = useMemo(() => new THREE.Vector3(0, 1, 0), []);
   const direction = useMemo(() => new THREE.Vector3(), []);
-  const { angle } = horizonCoverage(radius);
+  const { angle } = footprint(radius, minElevationDeg);
   const baseY = EARTH_RADIUS * Math.cos(angle);
   const baseRadius = EARTH_RADIUS * Math.sin(angle);
   const rim = useMemo(() => Array.from({ length: 129 }, (_, i) => {
@@ -106,7 +149,7 @@ function CoverageCone({ satellite, radius, color }: {
       <meshBasicMaterial color={color} transparent opacity={0.28} depthWrite={false} />
     </mesh>
     <group scale={1.016}><Line points={rim} color={color} lineWidth={2} transparent opacity={0.9} depthWrite={false} /></group>
-    {[0, Math.PI / 2, Math.PI, Math.PI * 1.5].map(t =>
+    {showSpokes && [0, Math.PI / 2, Math.PI, Math.PI * 1.5].map(t =>
       <Line key={t} points={[[0, radius, 0], [baseRadius * Math.cos(t), baseY, baseRadius * Math.sin(t)]]}
         color={color} lineWidth={1} transparent opacity={0.45} depthWrite={false} />)}
   </group>;
@@ -237,7 +280,14 @@ function EarthGlobe() {
   );
 }
 
-/** Starlink-style LEO spacecraft: bus, two wings and an antenna mast. */
+/**
+ * Starlink LEO spacecraft: bus, two wings and an antenna mast.
+ *
+ * It flies 550 km up in the TV satellite's own orbital plane — the equatorial
+ * plane — so the two altitudes are compared in one shared geometry rather than
+ * across a tilted ring. Its coverage cone is clipped to Starlink's real 25°
+ * minimum elevation instead of the geometric horizon.
+ */
 function LeoSatellite({ coverage }: { coverage: boolean }) {
   const ref = useRef<THREE.Group>(null);
   const angle = useRef(0);
@@ -247,13 +297,13 @@ function LeoSatellite({ coverage }: { coverage: boolean }) {
     angle.current += delta * 1.15; // one lap every ~5.5 seconds, illustrative only
     const group = ref.current;
     if (!group) return;
-    group.position.set(...orbitPoint(LEO_RADIUS, angle.current, LEO_INCLINATION));
+    group.position.set(...orbitPoint(LEO_RADIUS, angle.current));
     group.rotation.set(spin.current.x + delta, spin.current.y + delta * 0.6, spin.current.z);
   });
 
   return (
     <>
-    <group ref={ref} position={orbitPoint(LEO_RADIUS, 0, LEO_INCLINATION)} scale={0.16}>
+    <group ref={ref} position={orbitPoint(LEO_RADIUS, 0)} scale={0.16}>
       <mesh>
         <sphereGeometry args={[0.26, 16, 12]} />
         <meshBasicMaterial color="#64d8ff" transparent opacity={0.5} depthWrite={false} />
@@ -273,7 +323,15 @@ function LeoSatellite({ coverage }: { coverage: boolean }) {
         <meshStandardMaterial color="#fbfbf8" metalness={0.45} roughness={0.35} />
       </mesh>
     </group>
-    {coverage && <CoverageCone satellite={ref} radius={LEO_RADIUS} color="#64d8ff" />}
+    {coverage && (
+      <CoverageCone
+        satellite={ref}
+        radius={LEO_RADIUS}
+        color="#64d8ff"
+        minElevationDeg={STARLINK_MIN_ELEVATION_DEG}
+        showSpokes={false}
+      />
+    )}
     </>
   );
 }
@@ -403,7 +461,7 @@ function SceneCamera({
     canvas.tabIndex = 0;
     canvas.setAttribute(
       "aria-label",
-      "Interactive 3D model of Earth, a geostationary broadcast-TV satellite and a moving LEO Starlink satellite. Use the arrow keys to rotate and plus or minus to zoom.",
+      "Interactive 3D model of Earth, a geostationary broadcast-TV satellite and a moving LEO Starlink satellite 550 km above the ground in the same equatorial plane. Use the arrow keys to rotate and plus or minus to zoom.",
     );
 
     const onKeyDown = (event: KeyboardEvent) => {
@@ -486,7 +544,9 @@ function BroadcastScene() {
         <directionalLight position={[9, 7, 6]} intensity={2.4} color="#f4f7ff" />
         <directionalLight position={[-6, -4, -5]} intensity={0.6} color="#4d8dc0" />
         <Stars radius={110} depth={45} count={3500} factor={3} saturation={0} fade speed={0} />
-        <OrbitRing radius={LEO_RADIUS} color="#64d8ff" inclination={LEO_INCLINATION} />
+        {/* Both rings are coplanar: the 550 km Starlink orbit sits in the TV
+            satellite's equatorial plane, so only the altitude differs. */}
+        <OrbitRing radius={LEO_RADIUS} color="#64d8ff" inclination={ORBIT_PLANE_INCLINATION} />
         <OrbitRing radius={GEO_RADIUS} color="#ff7a1a" />
         <EarthGlobe />
         <LeoSatellite coverage={coverage} />
@@ -495,15 +555,28 @@ function BroadcastScene() {
       </Canvas>
 
       <div className="pointer-events-none absolute left-3 top-3 z-10 flex flex-col gap-1.5">
-        <LegendEntry color="#64d8ff" label="LEO — Starlink, ≈550 km" />
+        <LegendEntry color="#64d8ff" label={`LEO — Starlink, ≈${LEO_ALTITUDE_LABEL} km, same plane`} />
         <LegendEntry color="#ff7a1a" label="GEO — broadcast TV, ≈35,786 km" />
+        <span className="max-w-[15rem] font-mono text-[9px] leading-snug text-slate-500">
+          Both orbits lie in the TV satellite’s equatorial plane.
+        </span>
+        {coverage && (
+          <div className="mt-1 flex max-w-[15rem] flex-col gap-1 rounded-lg border border-white/10 bg-[#040a14]/80 p-2">
+            <span className="font-mono text-[10px] text-orange-300">
+              TV footprint · {GEO_HORIZON_DIAMETER} km across · horizon
+            </span>
+            <span className="font-mono text-[10px] text-cyan-300">
+              Starlink footprint · {LEO_FOOTPRINT_DIAMETER} km across · {STARLINK_MIN_ELEVATION_DEG}° min elevation
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="absolute bottom-3 left-3 right-3 z-10 flex flex-wrap items-center gap-2">
         <button type="button" onClick={() => setCoverage(on => !on)} aria-pressed={coverage} className={overlayButton}>
           {coverage ? "Hide coverage" : "Show coverage"}
         </button>
-        <button type="button" onClick={() => api.current?.focusLeo()} className={overlayButton}>550 km close-up</button>
+        <button type="button" onClick={() => api.current?.focusLeo()} className={overlayButton}>{LEO_ALTITUDE_LABEL} km close-up</button>
         <button type="button" onClick={() => api.current?.zoom(0.75)} aria-label="Zoom in" className={overlayButton}>
           <ZoomIn className="h-3.5 w-3.5" aria-hidden /> Zoom in
         </button>
@@ -550,9 +623,10 @@ export function BroadcastComparison() {
           Broadcast TV Satellite <span className="text-gradient">vs Starlink</span>
         </h1>
         <p className="mt-4 max-w-2xl text-[14px] leading-relaxed text-muted md:text-[15.5px]">
-          One satellite parked 35,786 km away sends the same signal to an entire region. A
-          constellation about 550 km up keeps a two-way conversation going as its satellites move
-          overhead. Drag the model to compare the two orbits.
+          One satellite parked 35,786 km away sends the same signal to an entire region. Starlink
+          satellites fly about 550 km up — here on the TV satellite’s own equatorial orbit, 550 km
+          above the ground — and a constellation of them keeps a two-way conversation going as they
+          move overhead. Drag the model to compare the two altitudes.
         </p>
 
         <div className="relative mt-8 h-[72svh] min-h-[380px] max-h-[680px] overflow-hidden rounded-[18px] border border-white/10 bg-[#02040a] shadow-[0_28px_100px_rgba(0,0,0,0.45)]">
@@ -566,20 +640,43 @@ export function BroadcastComparison() {
         </div>
 
         <p className="mt-3 font-mono text-[9px] uppercase tracking-[0.12em] text-faint">
-          Educational model · orbit radii to scale · spacecraft enlarged · motion accelerated · dashed paths show the far side
+          Educational model · orbit radii to scale · both orbits share the equatorial plane · Starlink footprint at its real 25° minimum elevation · spacecraft enlarged · motion accelerated · dashed paths show the far side
         </p>
         <section className="mt-8 rounded-2xl border border-white/10 bg-white/[0.025] p-5 md:p-8" aria-labelledby="coverage-heading">
           <h2 id="coverage-heading" className="text-xl font-semibold text-white">How much of Earth can one satellite see?</h2>
           <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted">
-            Select Show coverage to see the signal spread from each spacecraft toward Earth, like a flashlight.
-            Orange marks the TV satellite’s wide footprint; cyan marks Starlink’s smaller, moving footprint.
-            At greater altitude, a satellite can see farther around Earth’s curve.
+            Select Show coverage to see each spacecraft’s footprint on the globe — the area from which it can be
+            seen above a given minimum elevation. Orange is the TV satellite, drawn down to its true horizon. Cyan
+            is Starlink, drawn at the {STARLINK_MIN_ELEVATION_DEG}° minimum elevation its user terminals need, which is why it
+            is a small patch and not a hemisphere. Both satellites fly in the same equatorial plane here, so only
+            the altitude changes.
           </p>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-orange-400/20 p-4"><h3 className="font-semibold text-orange-300">TV satellite · 35,786 km</h3><p className="mt-2 text-sm text-muted">Up to {(horizonCoverage(GEO_RADIUS).fraction * 100).toFixed(1)}% of Earth’s surface in line of sight at once.</p></div>
-            <div className="rounded-xl border border-cyan-300/20 p-4"><h3 className="font-semibold text-cyan-300">Starlink · 550 km</h3><p className="mt-2 text-sm text-muted">Up to {(horizonCoverage(LEO_RADIUS).fraction * 100).toFixed(1)}% of Earth’s surface per satellite in line of sight at once.</p></div>
+            <div className="rounded-xl border border-orange-400/20 p-4">
+              <h3 className="font-semibold text-orange-300">TV satellite · 35,786 km</h3>
+              <p className="mt-2 text-sm text-muted">
+                Up to {GEO_HORIZON_SHARE}% of Earth’s surface inside its line-of-sight horizon, a circle about{" "}
+                {GEO_HORIZON_RADIUS} km in radius. Its broadcast beams are shaped to a region inside that limit.
+              </p>
+            </div>
+            <div className="rounded-xl border border-cyan-300/20 p-4">
+              <h3 className="font-semibold text-cyan-300">Starlink · {LEO_ALTITUDE_LABEL} km</h3>
+              <p className="mt-2 text-sm text-muted">
+                Real service footprint at Starlink’s {STARLINK_MIN_ELEVATION_DEG}° minimum elevation: a{" "}
+                {LEO_FOOTPRINT_RADIUS} km radius circle, {LEO_FOOTPRINT_DIAMETER} km across,{" "}
+                {LEO_SERVICE_SHARE}% of Earth’s surface per satellite.
+              </p>
+            </div>
           </div>
-          <p className="mt-4 text-xs leading-relaxed text-muted">The cones show the theoretical horizon limit (zero minimum elevation), not actual radio beams or service availability. Real footprints are smaller and depend on antenna beam shape, minimum elevation, terrain and network capacity. Clouds are drawn above the surface for visibility.</p>
+          <p className="mt-4 text-xs leading-relaxed text-muted">
+            Line of sight alone is far more generous: ignoring elevation, the {LEO_ALTITUDE_LABEL} km satellite would see{" "}
+            {LEO_HORIZON_SHARE}% of Earth and the TV satellite {GEO_HORIZON_SHARE}%. The 25° mask that Starlink’s
+            terminals operate at cuts away about {ELEVATION_MASK_LOSS}% of that LEO cap, because a signal that low
+            skims the atmosphere and cannot carry a reliable link. The lost area is recovered with many satellites
+            and frequent handoffs — never by one spacecraft. These cones are still idealised circles, not actual
+            radio beams or service availability: real footprints depend on antenna beam shape, terrain and network
+            capacity. Clouds are drawn above the surface for visibility.
+          </p>
         </section>
         <section className="mt-8" aria-labelledby="differences-heading">
           <h2 id="differences-heading" className="text-xl font-semibold text-white">Broadcast TV vs Starlink: key differences</h2>
@@ -588,10 +685,10 @@ export function BroadcastComparison() {
               <caption className="sr-only">Comparison of geostationary broadcast TV and Starlink satellite internet</caption>
               <thead className="bg-white/5"><tr><th scope="col" className="p-4">Feature</th><th scope="col" className="p-4 text-orange-300">Broadcast TV satellite</th><th scope="col" className="p-4 text-cyan-300">Starlink satellite</th></tr></thead>
               <tbody>{[
-                ["Orbit", "Geostationary: 35,786 km above the equator.", "Low Earth orbit: 550 km in this model, inclined 53°."],
+                ["Orbit", "Geostationary: 35,786 km above the equator.", `Low Earth orbit: ${LEO_ALTITUDE_LABEL} km, drawn here in the TV satellite’s equatorial plane; operational Starlink shells are inclined about 53°.`],
                 ["Motion", "One orbit per sidereal day (~23 h 56 min); appears fixed above one location.", "One orbit in about 95 minutes; moves rapidly across the sky."],
                 ["Purpose", "One-way delivery of the same TV channels to many receivers.", "Two-way internet: sends requests and receives data."],
-                ["Coverage", "Broad, stationary regional footprint; actual beams target selected areas.", "Smaller moving footprints; many satellites and handoffs maintain service."],
+                ["Coverage", `Broad, stationary regional footprint — up to ${GEO_HORIZON_SHARE}% of Earth in line of sight; the beams themselves target selected areas.`, `Real footprint at ${STARLINK_MIN_ELEVATION_DEG}° minimum elevation: about ${LEO_FOOTPRINT_RADIUS} km radius (${LEO_SERVICE_SHARE}% of Earth). Many satellites and handoffs maintain service.`],
                 ["Ground antenna", "A dish aimed at a fixed point in the sky.", "An electronically steered phased array tracks passing satellites."],
                 ["Signal travel time", "About 119 ms for one vertical ground-to-satellite leg.", "About 1.8 ms for one vertical ground-to-satellite leg; full internet latency is higher."],
               ].map(([feature, tv, starlink]) => <tr key={feature} className="border-t border-white/10"><th scope="row" className="p-4 align-top font-medium text-white">{feature}</th><td className="p-4 align-top leading-relaxed text-muted">{tv}</td><td className="p-4 align-top leading-relaxed text-muted">{starlink}</td></tr>)}</tbody>
