@@ -117,29 +117,11 @@ function prefersReducedMotion(): boolean {
   }
 }
 
-/**
- * Runs a scroll with the page's smooth-scroll preference temporarily off.
- *
- * `behavior: "auto"` honours `html { scroll-behavior: smooth }`, so a route
- * change that must jump to the top (or to a deep-linked chapter) would
- * otherwise animate through the whole previous page — which looks exactly like
- * a page that failed to render. Overriding the CSS property for the duration of
- * the call avoids depending on the newer `"instant"` enum value as well.
- */
-function scrollImmediately(run: () => void) {
-  const html = document.documentElement;
-  const previous = html.style.scrollBehavior;
-  html.style.scrollBehavior = "auto";
-  try {
-    run();
-  } finally {
-    html.style.scrollBehavior = previous;
-  }
-}
-
 /** Jumps to the top of the page without animation. */
 export function scrollToTop() {
-  scrollImmediately(() => window.scrollTo({ top: 0, behavior: "auto" }));
+  // `"auto"` would honour `html { scroll-behavior: smooth }` and animate
+  // through the previous page; `"instant"` is the standard way to opt out.
+  window.scrollTo({ top: 0, behavior: "instant" });
 }
 
 /**
@@ -149,11 +131,8 @@ export function scrollToTop() {
 export function scrollToSection(section: string, behavior?: ScrollBehavior): boolean {
   const el = document.getElementById(section);
   if (!el) return false;
-  const jumping = behavior === "instant" || prefersReducedMotion();
-  const apply = () =>
-    el.scrollIntoView({ behavior: jumping ? "auto" : "smooth", block: "start" });
-  if (jumping) scrollImmediately(apply);
-  else apply();
+  const jump = behavior === "instant" || prefersReducedMotion();
+  el.scrollIntoView({ behavior: jump ? "instant" : "smooth", block: "start" });
   return true;
 }
 

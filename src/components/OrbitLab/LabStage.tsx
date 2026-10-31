@@ -2,8 +2,8 @@ import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { ArrowUpRight, ChevronDown, CircleHelp, Maximize2, Minimize2, MousePointer2, Pause, Play, Radio, RotateCcw, Satellite, SatelliteDish } from "lucide-react";
 import { ErrorBoundary } from "@/components/site/ErrorBoundary";
 import { useActivity } from "@/components/SatelliteComparison/hooks/useActivity";
-import { useReducedMotion } from "@/components/SatelliteComparison/hooks/useReducedMotion";
-import { supportsWebGL } from "@/components/SatelliteComparison/utils/supportsWebGL";
+import { useReducedMotion } from "@/lib/useMediaQuery";
+import { useWebGLSupport } from "@/lib/webgl";
 import type { LabMode } from "./types";
 
 const LabScene = lazy(() => import("./LabScene"));
@@ -89,7 +89,8 @@ export function LabStage() {
   const [resetKey, setResetKey] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const [ready, setReady] = useState(false);
-  const [webglAvailable] = useState(() => supportsWebGL());
+  const webglAvailable = useWebGLSupport();
+  const webglOff = webglAvailable === false;
   const { ref, active } = useActivity();
   const onReady = useCallback(() => setReady(true), []);
 
@@ -128,16 +129,18 @@ export function LabStage() {
         <div className="lab-viewport">
           <div className="lab-viewport-glow" aria-hidden="true" />
           <div className="lab-viewport-canvas">
-            {webglAvailable ? (
+            {webglOff ? <Poster message="WebGL unavailable · the comparison remains available below" /> : webglAvailable === null ? (
+              <Poster message="Preparing the 3D view" />
+            ) : (
               <ErrorBoundary label="orbital simulation" fallback={<Poster message="3D view unavailable on this device" />}>
                 <Suspense fallback={<Poster message="Preparing the 3D view" />}>
                   {!ready && <Poster message="Preparing the 3D view" />}
                   <LabScene mode={mode} playing={playing} speed={speed} showOrbits={showOrbits} showSignals={showSignals} showMesh={showMesh} resetKey={resetKey} active={active || expanded} onReady={onReady} />
                 </Suspense>
               </ErrorBoundary>
-            ) : <Poster message="WebGL unavailable · the comparison remains available below" />}
+            )}
           </div>
-          <div className="lab-viewport-topline"><span><span className={`lab-live-dot${playing && webglAvailable ? "" : " lab-live-dot--paused"}`} /> {!webglAvailable ? "3D VIEW UNAVAILABLE" : playing ? "SIMULATION RUNNING" : "SIMULATION PAUSED"}</span><span><MousePointer2 size={13} /> DRAG TO ROTATE</span></div>
+          <div className="lab-viewport-topline"><span><span className={`lab-live-dot${playing && !webglOff ? "" : " lab-live-dot--paused"}`} /> {webglOff ? "3D VIEW UNAVAILABLE" : playing ? "SIMULATION RUNNING" : "SIMULATION PAUSED"}</span><span><MousePointer2 size={13} /> DRAG TO ROTATE</span></div>
           {mode === "dishes" ? (
             <div className="lab-dish-labels" aria-hidden="true">
               <div><span className="lab-dot lab-dot--warm" /> TV SATELLITE DISH <small>RECEIVE ONLY</small></div>

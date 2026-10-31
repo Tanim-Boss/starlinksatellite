@@ -29,15 +29,8 @@ export function useMediaQuery(query: string, fallback = false): boolean {
     const onChange = () => setMatches(mq.matches);
     onChange();
 
-    // addEventListener replaced the older MediaQueryList listener API, but a
-    // number of embedded browsers still only implement addListener.
-    if (typeof mq.addEventListener === "function") {
-      mq.addEventListener("change", onChange);
-      return () => mq.removeEventListener("change", onChange);
-    }
-
-    mq.addListener?.(onChange);
-    return () => mq.removeListener?.(onChange);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
   }, [query, fallback]);
 
   return matches;

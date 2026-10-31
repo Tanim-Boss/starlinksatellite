@@ -1,11 +1,17 @@
 /**
- * End-to-end DOM smoke test for the Broadcast TV Satellite vs Starlink video page.
- * Verifies that #/comparison keeps the site navigation and page heading, removes
- * the old six-stage simulation UI, and renders the repository video player.
+ * End-to-end DOM smoke test for the Broadcast TV Satellite vs Starlink page.
+ *
+ * jsdom cannot create a WebGL context, so the 3D scene itself must degrade to
+ * the shared "3D view off" state rather than crash the route. This test checks
+ * the page shell, that the interactive scene is wired through the site's
+ * SceneGate, and that no runtime error reaches the console.
+ *
+ * The interactive scene itself (WebGL context, R3F render loop, camera
+ * controls) can only be exercised in a real browser; jsdom deliberately has no
+ * WebGL, so that path is covered by the app's SceneGate error boundary instead.
  */
 import { build } from "esbuild";
 import { JSDOM, VirtualConsole } from "jsdom";
-import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -14,6 +20,7 @@ const root = path.resolve(__dirname, "..");
 const errors = [];
 const virtualConsole = new VirtualConsole();
 virtualConsole.on("jsdomError", (error) => {
+  // jsdom reports "not implemented" for canvas.getContext — expected here.
   if (/not implemented/i.test(error.message ?? "")) return;
   errors.push(`jsdom: ${error.message}`);
 });
@@ -39,7 +46,9 @@ const dom = new JSDOM(`<!doctype html><html><body><div id="root"></div></body></
 });
 const { window } = dom;
 window.IntersectionObserver = class {
-  constructor(callback) { this.callback = callback; }
+  constructor(callback) {
+    this.callback = callback;
+  }
   observe(element) {
     this.callback([{ isIntersecting: true, target: element, boundingClientRect: { top: 0 } }], this);
   }
@@ -82,38 +91,40 @@ function assert(name, condition, detail = "") {
 }
 
 await waitFor(() => Boolean($("#main h1")));
-await wait(200);
+await wait(300);
 
-const heading = $("#main h1")?.textContent?.replace(/\s+/g, " ").trim() ?? "";
+const main = $("#main");
+const mainText = (main?.textContent ?? "").replace(/\s+/g, " ");
+const heading = main?.querySelector("h1")?.textContent?.replace(/\s+/g, " ").trim() ?? "";
+
 assert("comparison page title is kept", heading === "Broadcast TV Satellite vs Starlink", heading);
 assert("one h1 on the page", $$("h1").length === 1);
 assert("site navigation header is rendered", $$("header nav a").length >= 5);
 
 const navLinks = $$("header nav a").map((link) => link.getAttribute("href"));
-assert("old steering, explorer and numbers routes removed from nav", !navLinks.some((href) => ["#/steering", "#/explorer", "#/numbers"].includes(href)));
-
-const video = $("#main video");
-assert("video player is rendered inside main", Boolean(video));
 assert(
-  "video player uses controls and playsInline",
-  Boolean(video?.hasAttribute("controls")) && Boolean(video?.hasAttribute("playsinline")),
-);
-const videoSrc = video?.getAttribute("src") ?? "";
-assert(
-  "video points to the repo video in public/videos",
-  videoSrc.endsWith("/videos/broadcast-vs-starlink.mp4"),
-  videoSrc,
+  "old steering, explorer and numbers routes removed from nav",
+  !navLinks.some((href) => ["#/steering", "#/explorer", "#/numbers"].includes(href)),
 );
 
-const videoDiskPath = path.join(root, "public", "videos", "broadcast-vs-starlink.mp4");
-assert(
-  "video asset exists on disk and is non-empty",
-  fs.existsSync(videoDiskPath) && fs.statSync(videoDiskPath).size > 1_000_000,
-);
+assert("page did not fall back to the error screen", !mainText.includes("This view failed to render"));
+assert("page lede is present", mainText.includes("35,786 km") && mainText.includes("550 km"));
+
+// The 3D stage is the site's error-guarded SceneGate, not a bare <Canvas>.
+assert("comparison stage is present", Boolean($("#comparison")));
+assert("no obsolete <video> player is rendered", !$("#main video"));
+assert("video asset is no longer required by the page", !mainText.includes("Download the video"));
+
+// Without WebGL the gate swaps the canvas for an explanation instead of
+// crashing the route; both states keep the page usable.
+assert("3D gate degrades gracefully without WebGL", mainText.includes("3D view off"));
 
 assert("old six-stage simulation UI is removed", $$('button[aria-label^="Go to stage"]').length === 0 && !$(".sat-comparison"));
-assert("old stage pills and tour text are removed", !($("#main")?.textContent ?? "").includes("6 guided stages") && !($("#main")?.textContent ?? "").includes("78-second tour"));
+assert(
+  "old stage pills and tour text are removed",
+  !mainText.includes("6 guided stages") && !mainText.includes("78-second tour"),
+);
 assert("no runtime errors", errors.length === 0, errors.slice(0, 3).join("; "));
 
-console.log(failures === 0 ? "\nAll comparison video checks passed." : `\n${failures} check(s) failed.`);
+console.log(failures === 0 ? "\nAll comparison view checks passed." : `\n${failures} check(s) failed.`);
 process.exit(failures === 0 ? 0 : 1);

@@ -1,4 +1,4 @@
-import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js";
+import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { MAX_RELAY_HOPS } from "./links";
 
 // A path can contain one satellite more than its number of laser hops, plus

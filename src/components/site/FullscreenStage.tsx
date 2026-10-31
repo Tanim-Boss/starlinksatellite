@@ -2,81 +2,66 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/utils/cn";
 
 /**
- * Full-view support for the simulations.
+ * Full-screen support for the simulations.
  *
- * Uses the native Fullscreen API when the browser has one; otherwise (iOS
- * Safari) it falls back to a fixed overlay that covers the viewport. The
- * stage's inner scene container should carry the `fs-fill` class so the CSS
- * in index.css can stretch it to the full height in either mode.
+ * Uses the standard Fullscreen API. Browsers that do not expose it (or that
+ * refuse the request — an iframe without `allow="fullscreen"`, an untrusted
+ * gesture) fall back to a fixed overlay that covers the viewport, so the
+ * control always does something. `hasNative` reports which mode is in use.
+ *
+ * The stage's inner scene container carries the `fs-fill` class so the CSS in
+ * index.css can stretch it in either mode.
  */
-
-type FullscreenDocument = Document & {
-  webkitFullscreenElement?: Element | null;
-  webkitExitFullscreen?: () => void;
-};
-
-type FullscreenElement = HTMLElement & {
-  webkitRequestFullscreen?: () => void;
-};
 
 export function useFullscreen<T extends HTMLElement>() {
   const ref = useRef<T | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [hasNative, setHasNative] = useState(true);
+  const [hasNative, setHasNative] = useState(false);
 
-  // Detect support once, after mount.
+  // Detect support after mount: refs are empty during render.
   useEffect(() => {
-    const el = ref.current as FullscreenElement | null;
-    if (!el) return;
-    const native =
-      typeof el.requestFullscreen === "function" || typeof el.webkitRequestFullscreen === "function";
-    setHasNative(native);
+    const el = ref.current;
+    setHasNative(typeof el?.requestFullscreen === "function" && document.fullscreenEnabled === true);
   }, []);
 
-  // Track native fullscreen changes (also catches Esc / browser UI exits).
+  // Track native fullscreen changes (also catches Esc and browser UI exits).
   useEffect(() => {
-    const doc = document as FullscreenDocument;
     const onChange = () => {
       const el = ref.current;
-      setIsFullscreen(Boolean(el && (document.fullscreenElement === el || doc.webkitFullscreenElement === el)));
+      setIsFullscreen(Boolean(el && document.fullscreenElement === el));
     };
     document.addEventListener("fullscreenchange", onChange);
-    document.addEventListener("webkitfullscreenchange", onChange);
-    return () => {
-      document.removeEventListener("fullscreenchange", onChange);
-      document.removeEventListener("webkitfullscreenchange", onChange);
-    };
+    onChange();
+    return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
 
   // Esc also leaves the fallback overlay.
   useEffect(() => {
     if (hasNative || !isFullscreen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setIsFullscreen(false);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsFullscreen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [hasNative, isFullscreen]);
 
-  const toggle = useCallback(() => {
-    const el = ref.current as FullscreenElement | null;
+  const toggle = useCallback(async () => {
+    const el = ref.current;
     if (!el) return;
-    const doc = document as FullscreenDocument;
-    const request = el.requestFullscreen?.bind(el) ?? el.webkitRequestFullscreen?.bind(el);
-    if (request) {
-      if (document.fullscreenElement || doc.webkitFullscreenElement) {
-        (document.exitFullscreen ?? doc.webkitExitFullscreen)?.call(document);
-      } else {
-        try {
-          const result = request() as unknown as Promise<void> | undefined;
-          result?.catch?.(() => setIsFullscreen((v) => !v));
-        } catch {
-          setIsFullscreen((v) => !v);
-        }
-      }
+
+    if (typeof el.requestFullscreen !== "function" || document.fullscreenEnabled !== true) {
+      setIsFullscreen((value) => !value);
       return;
     }
-    setIsFullscreen((v) => !v);
+
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await el.requestFullscreen();
+    } catch {
+      // The request was refused (permissions policy, not a user gesture):
+      // still honour the click with the overlay fallback.
+      setIsFullscreen((value) => !value);
+    }
   }, []);
 
   return { ref, isFullscreen, toggle, hasNative };

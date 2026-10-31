@@ -2,8 +2,8 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { comparisonConfig, type ComparisonStage } from "./config";
 import { useActivity } from "./hooks/useActivity";
 import { useComparisonStore } from "./hooks/useComparisonStore";
-import { useReducedMotion } from "./hooks/useReducedMotion";
-import { supportsWebGL } from "./utils/supportsWebGL";
+import { useReducedMotion } from "@/lib/useMediaQuery";
+import { useWebGLSupport } from "@/lib/webgl";
 import { Controls } from "./ui/Controls";
 import { StagePanels } from "./ui/StagePanels";
 import { StoryNavigation } from "./ui/StoryNavigation";
@@ -96,7 +96,7 @@ function useLatencyStopwatch(active: boolean) {
 export function SatelliteComparison() {
   const { ref, active } = useActivity();
   const prefersReducedMotion = useReducedMotion();
-  const [webglAvailable] = useState(() => supportsWebGL());
+  const webglAvailable = useWebGLSupport();
   const [controlsOpen, setControlsOpen] = useState(false);
   const stage = useComparisonStore((state) => state.stage);
 
@@ -154,12 +154,14 @@ export function SatelliteComparison() {
       data-stage={stage + 1}
     >
       <div className="sat-comparison__canvas">
-        {webglAvailable ? (
+        {webglAvailable === false ? (
+          <WebGLFallback />
+        ) : webglAvailable === true ? (
           <Suspense fallback={<LazySceneFallback />}>
             <ComparisonCanvas active={active} />
           </Suspense>
         ) : (
-          <WebGLFallback />
+          <LazySceneFallback />
         )}
       </div>
       <div className="sat-comparison__vignette" aria-hidden />

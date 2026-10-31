@@ -2,7 +2,7 @@
 
 An independent, interactive field guide comparing a traditional TV broadcast
 satellite with the Starlink constellation. The landing page is a 3D simulation
-inspired by the supplied `public/videos/broadcast-vs-starlink.mp4` video: it explores
+built around the Branch Education reference animation below: it explores
 the two dishes, one- and two-way signals, GEO and LEO orbits, distance, latency,
 and a moving satellite network.
 
@@ -91,7 +91,8 @@ no external font or texture host is required.
 src/components/OrbitLab/  landing-page shell, controls, styling and 3D scene
 src/pages/OrbitLab.tsx    comparison, metrics and signal journey
 src/components/SatelliteComparison/
-                          reusable six-stage legacy comparison and orbit math
+                          standalone six-stage comparison component (not routed)
+                          and shared orbit math used by the landing page
 src/components/SatelliteSimulation/
                           detailed legacy Starlink simulation
 src/pages/                legacy guide pages
@@ -103,7 +104,7 @@ scripts/                  route, UI and orbital-math tests
 
 - The supplied reference animation features Branch Education. The related
   [How does Starlink satellite internet work?](https://www.youtube.com/watch?v=qs2QcycggWU)
-  explainer informed the educational comparison.
+  explainer informed the educational comparison and the 3D scene.
 - Earth day, night and cloud textures are based on the
   [three.js examples](https://github.com/mrdoob/three.js/tree/master/examples/textures/planets).
 - Typography: Space Grotesk and IBM Plex Mono, bundled locally through
