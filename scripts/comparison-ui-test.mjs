@@ -124,6 +124,8 @@ assert(
   "old stage pills and tour text are removed",
   !mainText.includes("6 guided stages") && !mainText.includes("78-second tour"),
 );
+assert("comparison text remains available without WebGL", Boolean($("#differences-heading")) && $$("#comparison tbody tr").length === 6);
+assert("coverage figures and limitations are explained", mainText.includes("4.0%") && mainText.includes("42.4%") && mainText.includes("not actual radio beams"));
 assert("no runtime errors", errors.length === 0, errors.slice(0, 3).join("; "));
 
 console.log(failures === 0 ? "\nAll comparison view checks passed." : `\n${failures} check(s) failed.`);
