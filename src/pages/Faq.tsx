@@ -101,7 +101,7 @@ export function Faq() {
 
             <div className="mt-8 flex flex-wrap gap-6">
               <LinkArrow href="#/how-it-works">Read the full explainer</LinkArrow>
-              <LinkArrow href="#/explorer">Open the 3D model</LinkArrow>
+              <LinkArrow href="#/comparison">Compare the satellite systems</LinkArrow>
             </div>
           </div>
         </div>
@@ -111,10 +111,10 @@ export function Faq() {
         <Reveal>
           <NextPageCTA
             eyebrow="One more thing"
-            title="Watch it all move."
-            body="Nine chapters are easier to believe when you can spin the constellation yourself."
-            to="/explorer"
-            cta="Open the explorer"
+            title="See the broadcast-to-internet difference."
+            body="Follow a guided 3D comparison from a fixed GEO television dish to a moving LEO constellation."
+            to="/comparison"
+            cta="Open the comparison"
           />
         </Reveal>
       </Section>

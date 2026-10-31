@@ -162,7 +162,7 @@ export function HowItWorks() {
                 ))}
               </nav>
               <div className="mt-6 border-t border-white/[0.08] pt-4">
-                <LinkArrow href="#/explorer">Open the 3D model</LinkArrow>
+                <LinkArrow href="#/comparison">Open the satellite comparison</LinkArrow>
               </div>
             </div>
           </aside>
@@ -347,7 +347,7 @@ export function HowItWorks() {
                         coverage. Everything else is engineering and radio.
                       </p>
                       <div className="mt-4">
-                        <LinkArrow href="#/numbers">Play with the numbers</LinkArrow>
+                        <LinkArrow href="#/comparison">Compare orbit and latency</LinkArrow>
                       </div>
                     </div>
                   </div>
@@ -640,7 +640,7 @@ export function HowItWorks() {
                     </p>
                   </Prose>
                   <div className="mt-5">
-                    <LinkArrow href="#/numbers">Open the latency calculator</LinkArrow>
+                    <LinkArrow href="#/comparison">Compare the round-trip delay</LinkArrow>
                   </div>
                 </Reveal>
               </Chapter>
@@ -685,10 +685,10 @@ export function HowItWorks() {
                 <Reveal>
                   <NextPageCTA
                     eyebrow="Next"
-                    title="See it move."
-                    body="The 3D explorer renders four shells, their orbital planes, coverage footprints, gateways and laser links. Poke at it."
-                    to="/explorer"
-                    cta="Open the explorer"
+                    title="Compare the two satellite systems."
+                    body="Watch the fixed TV broadcast beam, low-orbit handoffs, latency and laser mesh in a guided 3D story."
+                    to="/comparison"
+                    cta="Open the comparison"
                   />
                 </Reveal>
               </div>

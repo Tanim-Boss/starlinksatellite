@@ -300,7 +300,7 @@ body {
   border-radius: 4px;
 }
 
-/* Explorer canvas should not steal page scroll on mobile until focused */
+/* Simulation canvas yields vertical scroll gestures on mobile */
 .touch-pan-y {
   touch-action: pan-y;
 }

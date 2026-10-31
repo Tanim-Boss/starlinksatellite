@@ -171,10 +171,10 @@ export function ChapterGrid() {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Explorer teaser                                                            */
+/* Broadcast vs LEO comparison teaser                                         */
 /* -------------------------------------------------------------------------- */
 
-export function ExplorerTeaser() {
+export function ComparisonTeaser() {
   return (
     <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#08131f] via-[#060c16] to-[#080914]">
       <div className="grid-bg pointer-events-none absolute inset-0 opacity-40" aria-hidden />
@@ -186,23 +186,23 @@ export function ExplorerTeaser() {
         <div>
           <Pill>Interactive · WebGL</Pill>
           <h2 className="mt-4 text-[clamp(1.6rem,3.4vw,2.4rem)] font-semibold leading-[1.1] tracking-tight text-white">
-            Watch the whole constellation move.
+            Compare two very different satellite systems.
           </h2>
           <p className="mt-4 max-w-lg text-sm leading-relaxed text-muted md:text-[15px]">
-            A real-time 3D model of the orbital shells, built from the published altitudes and
-            inclinations. Follow a single satellite, drop a coverage probe, watch gateways trade
-            links, or light up the laser mesh between planes.
+            A six-stage 3D story contrasts a fixed TV broadcast dish with a two-way phased-array
+            terminal. See their antennas, true orbital altitudes, light-time delay, a 600-satellite
+            laser mesh, and the handoffs that keep a moving network connected.
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <Link
-              to="/explorer"
+              to="/comparison"
               className="group inline-flex items-center gap-2 rounded-full bg-signal px-5 py-2.5 text-[13px] font-semibold text-[#04121a] transition-colors hover:bg-white"
             >
-              Open the 3D explorer
+              Open the comparison
               <ArrowIcon className="transition-transform group-hover:translate-x-0.5" />
             </Link>
             <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-faint">
-              528 satellites · 4 shells · 5 views
+              6 stages · 78-second tour · 600 satellites
             </span>
           </div>
         </div>

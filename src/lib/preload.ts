@@ -2,23 +2,20 @@
  * Route chunk prefetching.
  *
  * The app is code-split, which makes the first paint fast but leaves a short
- * wait the first time a page is opened. These helpers close that gap without
- * giving the benefit back: the text-heavy pages are prefetched during an idle
- * slot, and the two heavy interactive pages (which pull three.js) are only
- * prefetched when the visitor hovers or focuses their link.
+ * wait the first time a page is opened. Text-heavy routes are prefetched during
+ * an idle slot; the two interactive 3D routes are only prefetched when a
+ * visitor hovers or focuses their link.
  */
 
-const LIGHT_ROUTES = ["/how-it-works", "/numbers", "/faq"] as const;
+const LIGHT_ROUTES = ["/how-it-works", "/faq"] as const;
 
 type Preloadable = () => Promise<unknown>;
 
 const loaders: Record<string, Preloadable> = {
   "/": () => import("@/pages/Home"),
   "/how-it-works": () => import("@/pages/HowItWorks"),
-  "/steering": () => import("@/pages/BeamSteering"),
   "/simulation": () => import("@/pages/SatelliteSim"),
-  "/explorer": () => import("@/pages/Explorer"),
-  "/numbers": () => import("@/pages/Numbers"),
+  "/comparison": () => import("@/pages/BroadcastComparison"),
   "/faq": () => import("@/pages/Faq"),
 };
 
@@ -37,10 +34,9 @@ type IdleWindow = Window & {
 };
 
 /**
- * Warms the three text-heavy pages once the current page has settled.
- * Explorer, the dish lab and the beam-steering lab are excluded on purpose:
- * they carry three.js and should not be downloaded for visitors who never
- * open them.
+ * Warms the text-heavy pages once the current page has settled. The 3D
+ * simulations are excluded so visitors who never open them do not download
+ * the WebGL scene chunks.
  */
 export function preloadLightRoutes(): () => void {
   if (typeof window === "undefined") return () => {};

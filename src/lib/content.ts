@@ -7,9 +7,7 @@ export const NAV = [
   { label: "Overview", path: "/" },
   { label: "How it works", path: "/how-it-works" },
   { label: "Satellite sim", path: "/simulation" },
-  { label: "Beam steering", path: "/steering" },
-  { label: "3D explorer", path: "/explorer" },
-  { label: "Numbers", path: "/numbers" },
+  { label: "TV vs Starlink", path: "/comparison" },
   { label: "FAQ", path: "/faq" },
 ] as const;
 
@@ -235,20 +233,10 @@ export const PAGE_META: Record<string, { title: string; description: string }> =
     description:
       "A real-time 3D satellite-internet simulation: hundreds of satellites on physical orbits, a phased-array dish with live handoffs, a laser relay mesh with routing, and a cinematic story tour.",
   },
-  "/steering": {
-    title: "Satellite Beam Steering Lab — How Starlink Works",
+  "/comparison": {
+    title: "Broadcast TV Satellite vs Starlink — Interactive Simulation",
     description:
-      "An interactive 3D simulation of inter-satellite beam steering: a gimbaled RF dish or optical laser terminal slews its beam from Satellite A to Satellite B, with live azimuth, elevation and pointing-error telemetry.",
-  },
-  "/explorer": {
-    title: "3D Constellation Explorer — How Starlink Works",
-    description:
-      "A real-time 3D model of the Starlink shells, orbital planes, coverage footprints, gateways and laser mesh, built from published parameters.",
-  },
-  "/numbers": {
-    title: "The Numbers — How Starlink Works",
-    description:
-      "Orbital speed, footprint size and latency from the same three variables. Move the altitude slider and watch coverage and light-time respond.",
+      "Compare one-way geostationary TV satellite broadcasting with two-way low-Earth-orbit internet in a six-stage interactive 3D story.",
   },
   "/faq": {
     title: "FAQ — How Starlink Works",

@@ -6,7 +6,7 @@ import { HandoverDemo } from "@/components/diagrams/HandoverDemo";
 import { FaqAccordion } from "@/components/site/FaqAccordion";
 import {
   ChapterGrid,
-  ExplorerTeaser,
+  ComparisonTeaser,
   NextPageCTA,
   QuickSteps,
   StatsBand,
@@ -81,11 +81,11 @@ export function Home() {
                   <ArrowIcon className="transition-transform group-hover:translate-x-0.5" />
                 </Link>
                 <Link
-                  to="/explorer"
+                  to="/comparison"
                   className="group inline-flex items-center gap-2 rounded-full border border-white/15 px-5 py-3 text-[13px] font-medium text-ink transition-colors hover:border-signal/50 hover:text-signal"
                 >
                   <span className="text-[15px] leading-none">◍</span>
-                  Open the 3D model
+                  Compare TV and Starlink
                 </Link>
               </div>
 
@@ -153,7 +153,7 @@ export function Home() {
             The whole round trip is roughly a quarter of a second — a bit more than a geostationary
             satellite needs to send a signal <em>one way</em>.
           </p>
-          <LinkArrow href="#/numbers">See the physics</LinkArrow>
+          <LinkArrow href="#/comparison">Compare the latency</LinkArrow>
         </Reveal>
       </Section>
 
@@ -219,7 +219,7 @@ export function Home() {
               ))}
             </div>
             <div className="mt-7">
-              <LinkArrow href="#/numbers">Try the latency calculator</LinkArrow>
+              <LinkArrow href="#/comparison">Compare the latency</LinkArrow>
             </div>
           </Reveal>
 
@@ -307,7 +307,7 @@ export function Home() {
 
       <Section className="pt-0">
         <Reveal>
-          <ExplorerTeaser />
+          <ComparisonTeaser />
         </Reveal>
       </Section>
 
