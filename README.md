@@ -38,7 +38,7 @@ hash routes:
 | `#/` | Orbital's interactive broadcast-vs-Starlink landing page |
 | `#/how-it-works` | Nine-chapter Starlink explainer |
 | `#/simulation` | Detailed Starlink-focused satellite internet simulation |
-| `#/comparison` | Interactive 3D view of Earth with a GEO broadcast-TV satellite and a moving LEO Starlink satellite |
+| `#/comparison` | Interactive 3D view of Earth with a GEO broadcast-TV satellite and a 550 km LEO Starlink satellite flying in the same equatorial plane |
 | `#/faq` | Common questions and sources |
 
 ## Accuracy and visual scale
@@ -51,6 +51,17 @@ GEO altitude is 35,786 km and a representative Starlink LEO altitude is about
 550 km. GEO internet round-trip latency is commonly around 500–600 ms; Starlink
 is often around 20–40 ms, depending on the route and conditions. A TV broadcast
 receiver is one-way and does not itself have an internet round-trip latency.
+
+The `#/comparison` page draws both spacecraft in one plane — the equatorial
+plane the TV satellite must occupy to stand still — and puts the Starlink
+satellite 550 km above the ground inside it, so only the altitude differs.
+Its coverage cone is cut at Starlink's real 25° minimum elevation mask rather
+than the geometric horizon: for a 550 km satellite that is a circle about
+941 km in radius (≈1,880 km across, ≈0.54% of Earth's surface, ~2.8 M km²).
+For comparison the same spacecraft would see 4.0% of Earth down to the true
+horizon, and the TV satellite's horizon cap is 42.4%. Operational Starlink
+shells are actually inclined about 53°; the 3D comparison is a like-for-like
+altitude comparison, not a ground-track simulation.
 
 The landing-page constellation uses a simplified circular-orbit model (600
 spacecraft in 20 planes at a 53° inclination, approximately 95 minutes per

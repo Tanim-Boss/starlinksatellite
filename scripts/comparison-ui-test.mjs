@@ -126,6 +126,16 @@ assert(
 );
 assert("comparison text remains available without WebGL", Boolean($("#differences-heading")) && $$("#comparison tbody tr").length === 6);
 assert("coverage figures and limitations are explained", mainText.includes("4.0%") && mainText.includes("42.4%") && mainText.includes("not actual radio beams"));
+
+// The LEO satellite shares the TV satellite's equatorial plane at 550 km, and
+// its footprint is the real Starlink one: 25° minimum elevation, ~941 km radius.
+assert("LEO orbit is drawn in the TV satellite's plane at 550 km", mainText.includes("same equatorial plane"));
+assert(
+  "Starlink footprint uses the real 25° minimum elevation",
+  mainText.includes("25°") && mainText.includes("941 km") && mainText.includes("0.54%"),
+);
+assert("shared-plane caption is shown under the scene", mainText.includes("both orbits share the equatorial plane"));
+assert("old 53° LEO plane is no longer claimed for this view", !mainText.includes("550 km in this model, inclined 53°"));
 assert("no runtime errors", errors.length === 0, errors.slice(0, 3).join("; "));
 
 console.log(failures === 0 ? "\nAll comparison view checks passed." : `\n${failures} check(s) failed.`);
