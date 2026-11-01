@@ -20,7 +20,7 @@ const result = await build({
   define: { "process.env.NODE_ENV": '"development"' }, logLevel: "silent",
 });
 const dom = new JSDOM('<!doctype html><html><head></head><body><div id="root"></div></body></html>', {
-  url: "http://localhost/", runScripts: "dangerously", pretendToBeVisual: true, virtualConsole,
+  url: "http://localhost/#/satellite", runScripts: "dangerously", pretendToBeVisual: true, virtualConsole,
 });
 const { window } = dom;
 window.IntersectionObserver = class {
@@ -106,7 +106,7 @@ click($('a[href="#main"]')); await wait(40);
 assert("skip link focuses main without changing the hash route", window.document.activeElement?.id === "main" && window.location.hash === beforeSkipHash);
 
 const reducedDom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', {
-  url: "http://localhost/", runScripts: "dangerously", pretendToBeVisual: true, virtualConsole,
+  url: "http://localhost/#/satellite", runScripts: "dangerously", pretendToBeVisual: true, virtualConsole,
 });
 const reducedWindow = reducedDom.window;
 reducedWindow.matchMedia = (query) => ({ matches: true, media: query, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });

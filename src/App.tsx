@@ -3,7 +3,7 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { LabHeader, LabFooter } from "@/components/OrbitLab/LabShell";
 import { ErrorBoundary } from "@/components/site/ErrorBoundary";
-import { PAGE_META } from "@/lib/content";
+import { PAGE_META, usesLabShell } from "@/lib/content";
 import { LINK } from "@/lib/links";
 import { preloadLightRoutes } from "@/lib/preload";
 import { scrollToSection, scrollToSectionWhenReady, scrollToTop, useRoute } from "@/lib/router";
@@ -16,7 +16,8 @@ import { scrollToSection, scrollToSectionWhenReady, scrollToTop, useRoute } from
  * Before this, every visitor downloaded every page and three.js before the
  * tab showed anything, which made the long pages feel slow on weak connections.
  */
-const Home = lazy(() => import("@/pages/OrbitLab").then((m) => ({ default: m.OrbitLab })));
+const Hub = lazy(() => import("@/pages/Hub").then((m) => ({ default: m.Hub })));
+const SatelliteLab = lazy(() => import("@/pages/OrbitLab").then((m) => ({ default: m.OrbitLab })));
 const HowItWorks = lazy(() => import("@/pages/HowItWorks").then((m) => ({ default: m.HowItWorks })));
 const SatelliteSim = lazy(() =>
   import("@/pages/SatelliteSim").then((m) => ({ default: m.SatelliteSim })),
@@ -25,6 +26,34 @@ const BroadcastComparison = lazy(() =>
   import("@/pages/BroadcastComparison").then((m) => ({ default: m.BroadcastComparison })),
 );
 const Faq = lazy(() => import("@/pages/Faq").then((m) => ({ default: m.Faq })));
+
+/* Computer Network — Interactive Visual Learning Lab (Bangla). */
+const NetworkIndex = lazy(() => import("@/pages/network/Index").then((m) => ({ default: m.NetworkIndex })));
+const NetworkPlayground = lazy(() =>
+  import("@/pages/network/Playground").then((m) => ({ default: m.NetworkPlayground })),
+);
+const NetworkServerClient = lazy(() =>
+  import("@/pages/network/ServerClient").then((m) => ({ default: m.NetworkServerClient })),
+);
+const NetworkMedia = lazy(() =>
+  import("@/pages/network/Media").then((m) => ({ default: m.NetworkMedia })),
+);
+const NetworkNic = lazy(() => import("@/pages/network/Nic").then((m) => ({ default: m.NetworkNic })));
+const NetworkResources = lazy(() =>
+  import("@/pages/network/Resources").then((m) => ({ default: m.NetworkResources })),
+);
+const NetworkUser = lazy(() =>
+  import("@/pages/network/User").then((m) => ({ default: m.NetworkUser })),
+);
+const NetworkProtocol = lazy(() =>
+  import("@/pages/network/Protocol").then((m) => ({ default: m.NetworkProtocol })),
+);
+const NetworkLearn = lazy(() =>
+  import("@/pages/network/Learn").then((m) => ({ default: m.NetworkLearn })),
+);
+const NetworkChallenge = lazy(() =>
+  import("@/pages/network/Challenge").then((m) => ({ default: m.NetworkChallenge })),
+);
 
 
 function NotFound() {
@@ -115,7 +144,9 @@ function PageFallback({ path }: { path: string }) {
 function renderRoute(path: string) {
   switch (path) {
     case "/":
-      return <Home />;
+      return <Hub />;
+    case "/satellite":
+      return <SatelliteLab />;
     case "/how-it-works":
       return <HowItWorks />;
     case "/simulation":
@@ -124,6 +155,26 @@ function renderRoute(path: string) {
       return <BroadcastComparison />;
     case "/faq":
       return <Faq />;
+    case "/network":
+      return <NetworkIndex />;
+    case "/network/playground":
+      return <NetworkPlayground />;
+    case "/network/server-client":
+      return <NetworkServerClient />;
+    case "/network/media":
+      return <NetworkMedia />;
+    case "/network/nic":
+      return <NetworkNic />;
+    case "/network/resources":
+      return <NetworkResources />;
+    case "/network/user":
+      return <NetworkUser />;
+    case "/network/protocol":
+      return <NetworkProtocol />;
+    case "/network/learn":
+      return <NetworkLearn />;
+    case "/network/challenge":
+      return <NetworkChallenge />;
     default:
       return <NotFound />;
   }
@@ -170,10 +221,12 @@ export default function App() {
     return;
   }, [route.path, route.section]);
 
-  const isHome = route.path === "/";
+  // The satellite landing page keeps its own "Orbital" shell; everything else
+  // — the new home hub and the Computer Network lab — uses the site chrome.
+  const labShell = usesLabShell(route.path);
 
   return (
-    <div className={isHome ? "lab-app" : "relative min-h-screen bg-void text-ink"}>
+    <div className={labShell ? "lab-app" : "relative min-h-screen bg-void text-ink"}>
       <a
         href="#main"
         onClick={(event) => {
@@ -188,9 +241,17 @@ export default function App() {
         Skip to content
       </a>
 
-      {isHome ? <LabHeader /> : <SiteHeader />}
+      {labShell ? <LabHeader /> : <SiteHeader />}
 
-      <main id="main" key={route.path} className="page-enter" tabIndex={-1}>
+      {/* The network lab is written in Bangla; declaring it here makes screen
+          readers switch voice for every lesson without tagging each block. */}
+      <main
+        id="main"
+        key={route.path}
+        className="page-enter"
+        tabIndex={-1}
+        lang={route.path.startsWith("/network") ? "bn" : undefined}
+      >
         <ErrorBoundary
           key={`boundary-${route.path}`}
           label={`page ${route.path}`}
@@ -200,8 +261,8 @@ export default function App() {
         </ErrorBoundary>
       </main>
 
-      {isHome ? <LabFooter /> : <SiteFooter />}
-      {!isHome && <div className="noise-overlay" aria-hidden />}
+      {labShell ? <LabFooter /> : <SiteFooter />}
+      {!labShell && <div className="noise-overlay" aria-hidden />}
     </div>
   );
 }

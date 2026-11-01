@@ -1,4 +1,4 @@
-import { NAV, SOURCES } from "@/lib/content";
+import { HOME_NAV, NAV_GROUPS, SOURCES } from "@/lib/content";
 import { Link } from "@/lib/router";
 
 export function SiteFooter() {
@@ -25,29 +25,54 @@ export function SiteFooter() {
                   <circle cx="19.4" cy="8.4" r="1.25" fill="#fbbf24" />
                 </svg>
               </span>
-              <span className="text-sm font-semibold text-white">Starlink Field Guide</span>
+              <span className="text-sm font-semibold text-white">Orbital Learning Lab</span>
             </div>
             <p className="mt-5 max-w-sm text-sm leading-relaxed text-muted">
-              An independent, interactive explainer on how a low-Earth-orbit broadband
-              constellation actually works — from the phased array on the ground to the lasers in
-              the sky.
+              Two interactive teaching projects in one site: a 3D satellite-internet field guide,
+              and a Bangla visual learning lab for computer networks.
+            </p>
+            <p className="bangla mt-5 max-w-sm text-[12.5px] leading-relaxed text-muted">
+              সব সিমুলেশন শিক্ষামূলক — কোনো লাইভ টেলিমেট্রি, আসল সার্ভার বা প্রকৃত নেটওয়ার্ক
+              ট্রাফিক ব্যবহার করা হয় না।
             </p>
             <p className="mt-5 font-mono text-[10px] uppercase leading-relaxed tracking-[0.14em] text-faint">
-              Not affiliated with SpaceX. Figures approximate, as of October 2026.
+              Not affiliated with SpaceX. Satellite figures approximate, as of October 2026.
             </p>
           </div>
 
           <div>
-            <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-faint">Sections</h3>
-            <ul className="mt-4 space-y-2.5">
-              {NAV.map((item) => (
-                <li key={item.path}>
+            <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-faint">
+              Projects & pages
+            </h3>
+            <ul className="mt-4 space-y-4">
+              <li>
+                <Link
+                  to={HOME_NAV.path}
+                  className="bangla text-sm text-muted transition-colors hover:text-signal"
+                >
+                  {HOME_NAV.label}
+                </Link>
+              </li>
+              {NAV_GROUPS.map((group) => (
+                <li key={group.id}>
                   <Link
-                    to={item.path}
-                    className="text-sm text-muted transition-colors hover:text-signal"
+                    to={group.path}
+                    className="bangla block text-[12.5px] font-semibold text-white transition-colors hover:text-signal"
                   >
-                    {item.label}
+                    {group.bn}
                   </Link>
+                  <ul className="mt-2 space-y-1.5 border-l border-white/10 pl-3">
+                    {group.children.map((item) => (
+                      <li key={item.path}>
+                        <Link
+                          to={item.path}
+                          className="bangla text-[12px] leading-snug text-muted transition-colors hover:text-signal"
+                        >
+                          {item.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
                 </li>
               ))}
             </ul>

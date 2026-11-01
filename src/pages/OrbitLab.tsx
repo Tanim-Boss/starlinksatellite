@@ -87,7 +87,7 @@ export function OrbitLab() {
           <SectionEyebrow>AN INTERACTIVE FIELD GUIDE <span className="lab-eyebrow-separator">/</span> BEYOND THE HORIZON</SectionEyebrow>
           <h1 id="lab-title">Same sky. <span>Different satellites.</span></h1>
           <p>Explore how a traditional broadcast satellite and the Starlink constellation connect our world—in an interactive 3D simulation.</p>
-          <a href="#/@simulation" className="lab-hero-link">TAKE A CLOSER LOOK <ArrowDown size={14} /></a>
+          <a href="#/satellite@simulation" className="lab-hero-link">TAKE A CLOSER LOOK <ArrowDown size={14} /></a>
         </div>
         <HeroOrbit />
       </section>
@@ -122,7 +122,7 @@ export function OrbitLab() {
             <article><div className="lab-journey-top"><span>02</span><Network size={20} /></div><h3>Across the network</h3><p>The signal is relayed toward a ground station, sometimes using links between satellites.</p></article>
             <article><div className="lab-journey-top"><span>03</span><ArrowDown size={20} /></div><h3>Back to Earth</h3><p>The response travels back to your terminal, with handoffs as satellites move.</p></article>
           </div>
-          <div className="lab-accuracy-note"><span>ABOUT THE MODEL</span><p>Orbits, spacecraft and signals are simplified for learning. GEO and LEO distances are not drawn to scale; figures are approximate and are not live telemetry. GEO latency above refers to satellite internet, not a one-way TV broadcast.</p><a href="#/@simulation">BACK TO SIMULATION <ArrowUpRight size={14} /></a></div>
+          <div className="lab-accuracy-note"><span>ABOUT THE MODEL</span><p>Orbits, spacecraft and signals are simplified for learning. GEO and LEO distances are not drawn to scale; figures are approximate and are not live telemetry. GEO latency above refers to satellite internet, not a one-way TV broadcast.</p><a href="#/satellite@simulation">BACK TO SIMULATION <ArrowUpRight size={14} /></a></div>
         </div>
       </section>
     </>

@@ -3,13 +3,71 @@
  * public record as of October 2026; they change as the constellation grows.
  */
 
-export const NAV = [
-  { label: "Overview", path: "/" },
-  { label: "How it works", path: "/how-it-works" },
-  { label: "Satellite sim", path: "/simulation" },
-  { label: "TV vs Starlink", path: "/comparison" },
-  { label: "FAQ", path: "/faq" },
-] as const;
+import { NETWORK_PAGES } from "./network/nav";
+
+/**
+ * Top-level menus. The home page lists the projects; the site header shows the
+ * same two groups as dropdowns so the satellite pages and the Bangla network
+ * lab stay one click apart.
+ */
+export const HOME_NAV = { label: "হোম · Home", path: "/" } as const;
+
+export interface NavChild {
+  label: string;
+  path: string;
+  note?: string;
+}
+
+export interface NavGroup {
+  id: string;
+  /** English menu label. */
+  label: string;
+  /** Bangla menu label shown under the English one. */
+  bn: string;
+  /** Where the group title itself links. */
+  path: string;
+  children: NavChild[];
+}
+
+export const NAV_GROUPS: NavGroup[] = [
+  {
+    id: "satellite",
+    label: "Satellite",
+    bn: "স্যাটেলাইট সিমুলেশন",
+    path: "/satellite",
+    children: [
+      { label: "ওভারভিউ · Overview", path: "/satellite", note: "৩ডি তুলনা ও সিগন্যাল যাত্রা" },
+      { label: "How it works", path: "/how-it-works", note: "নয় অধ্যায়ের বিস্তারিত ব্যাখ্যা" },
+      { label: "Satellite sim", path: "/simulation", note: "কনস্টেলেশন সিমুলেশন" },
+      { label: "TV vs Starlink", path: "/comparison", note: "GEO বনাম LEO তুলনা" },
+      { label: "FAQ", path: "/faq", note: "সাধারণ প্রশ্ন ও সূত্র" },
+    ],
+  },
+  {
+    id: "network",
+    label: "Computer Network",
+    bn: "কম্পিউটার নেটওয়ার্ক ল্যাব",
+    path: "/network",
+    children: NETWORK_PAGES.map((page) => ({
+      label: `${page.title} · ${page.en}`,
+      path: page.path,
+      note: page.blurb,
+    })),
+  },
+];
+
+/** Flat list used by the footer and by tests that just need every route. */
+export const NAV: { label: string; path: string }[] = [
+  HOME_NAV,
+  ...NAV_GROUPS.flatMap((group) => group.children),
+];
+
+/** Pages that keep the original "Orbital" lab shell instead of the site chrome. */
+export const LAB_SHELL_PATHS = new Set(["/satellite"]);
+
+export function usesLabShell(path: string): boolean {
+  return LAB_SHELL_PATHS.has(path);
+}
 
 export const HERO_STATS = [
   { value: "≈550", unit: "km", label: "Orbit altitude" },
@@ -219,6 +277,11 @@ export const SOURCES = [
  */
 export const PAGE_META: Record<string, { title: string; description: string }> = {
   "/": {
+    title: "Orbital Learning Lab — স্যাটেলাইট সিমুলেশন ও কম্পিউটার নেটওয়ার্ক ল্যাব",
+    description:
+      "দুটি ইন্টারঅ্যাক্টিভ শিক্ষামূলক প্রজেক্ট: স্যাটেলাইট ইন্টারনেটের ৩ডি সিমুলেশন এবং বাংলায় কম্পিউটার নেটওয়ার্কের ভিজ্যুয়াল লার্নিং ল্যাব।",
+  },
+  "/satellite": {
     title: "Orbital — Broadcast vs Starlink Satellite Simulation",
     description:
       "Explore an interactive 3D comparison of broadcast TV satellites and the Starlink constellation: dishes, orbits, signal direction, coverage and latency.",
@@ -243,4 +306,14 @@ export const PAGE_META: Record<string, { title: string; description: string }> =
     description:
       "Straight answers about Starlink: bandwidth, latency, weather, coverage, astronomy and what this site's 3D model does and does not simulate.",
   },
+  // Every Computer Network lab page gets its own tab title and description.
+  ...Object.fromEntries(
+    NETWORK_PAGES.map((page) => [
+      page.path,
+      {
+        title: `${page.title} — কম্পিউটার নেটওয়ার্ক ল্যাব`,
+        description: `${page.blurb} একটি শিক্ষামূলক সিমুলেশন; কোনো আসল সার্ভার বা নেটওয়ার্ক সংযোগ ব্যবহার করা হয় না।`,
+      },
+    ]),
+  ),
 };
