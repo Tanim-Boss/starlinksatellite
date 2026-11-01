@@ -15,15 +15,43 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
 
-const ROUTES = ["/", "/how-it-works", "/simulation", "/comparison", "/faq"];
+const ROUTES = [
+  "/",
+  "/satellite",
+  "/how-it-works",
+  "/simulation",
+  "/comparison",
+  "/faq",
+  "/network",
+  "/network/playground",
+  "/network/server-client",
+  "/network/media",
+  "/network/nic",
+  "/network/resources",
+  "/network/user",
+  "/network/protocol",
+  "/network/learn",
+  "/network/challenge",
+];
 
 /** A phrase from each route's own <h1>, used to detect that the new page won. */
 const ROUTE_HEADINGS = {
-  "/": "Same sky.",
+  "/": "দুটি প্রজেক্ট",
+  "/satellite": "Same sky.",
   "/how-it-works": "The whole system",
   "/simulation": "satellite internet",
   "/comparison": "Broadcast TV Satellite",
   "/faq": "Questions, answered",
+  "/network": "কম্পিউটার নেটওয়ার্ক ল্যাব",
+  "/network/playground": "ইন্টারঅ্যাক্টিভ নেটওয়ার্ক প্লেগ্রাউন্ড",
+  "/network/server-client": "সার্ভার ও ক্লায়েন্ট",
+  "/network/media": "নেটওয়ার্ক মিডিয়া",
+  "/network/nic": "নেটওয়ার্ক ইন্টারফেস কার্ড",
+  "/network/resources": "নেটওয়ার্ক রিসোর্স",
+  "/network/user": "ইউজার, ক্লায়েন্ট ও সার্ভার",
+  "/network/protocol": "প্রোটোকল",
+  "/network/learn": "ধাপে ধাপে শেখা",
+  "/network/challenge": "চ্যালেঞ্জ মোড",
 };
 
 const errors = [];
@@ -192,9 +220,11 @@ window.location.hash = "#/how-it-works";
 await waitFor(() =>
   (window.document.querySelector("#main h1")?.textContent ?? "").includes("The whole system"),
 );
-window.location.hash = "#/";
-await waitFor(() => (window.document.querySelector("#main h1")?.textContent ?? "").includes("Same sky."));
-inspect("/", "navigation /how-it-works -> /");
+window.location.hash = "#/satellite";
+await waitFor(() =>
+  (window.document.querySelector("#main h1")?.textContent ?? "").includes("Same sky."),
+);
+inspect("/satellite", "navigation /how-it-works -> /satellite");
 
 window.location.hash = "#/how-it-works@lasers";
 await waitFor(() => Boolean(window.document.getElementById("lasers")));
@@ -205,22 +235,28 @@ if (window.document.getElementById("lasers")) {
   console.log("FAIL deep link /how-it-works@lasers did not mount the chapter");
 }
 
-// 4b. A real click on the comparison nav link (not just assigning
+// 4b. A real click on a link inside the page (not just assigning
 // location.hash) must swap pages, including in webviews where hashchange can be unreliable.
-const comparisonLink = window.document.querySelector('a[href="#/comparison"]');
-if (!comparisonLink) {
+window.location.hash = "#/";
+await waitFor(() =>
+  (window.document.querySelector("#main h1")?.textContent ?? "").includes("দুটি প্রজেক্ট"),
+);
+const hubLink = [...window.document.querySelectorAll('#main a[href="#/network"]')][0];
+if (!hubLink) {
   failures++;
-  console.log("FAIL no nav link to #/comparison found");
+  console.log("FAIL the home hub has no link to #/network");
 } else {
-  comparisonLink.click();
+  hubLink.click();
   const switched = await waitFor(() =>
-    (window.document.querySelector("#main h1")?.textContent ?? "").includes("Broadcast TV Satellite"),
+    (window.document.querySelector("#main h1")?.textContent ?? "").includes(
+      "কম্পিউটার নেটওয়ার্ক ল্যাব",
+    ),
   );
   if (switched) {
-    console.log("ok   clicking a nav link renders the next page");
+    console.log("ok   clicking a hub menu link renders the network lab");
   } else {
     failures++;
-    console.log("FAIL clicking a nav link did not render the next page");
+    console.log("FAIL clicking a hub menu link did not render the next page");
   }
 }
 
@@ -249,7 +285,9 @@ window.Element.prototype.getBoundingClientRect = function () {
   return rect;
 };
 window.location.hash = "#/";
-await waitFor(() => (window.document.querySelector("#main h1")?.textContent ?? "").includes("Same sky."));
+await waitFor(() =>
+  (window.document.querySelector("#main h1")?.textContent ?? "").includes("দুটি প্রজেক্ট"),
+);
 window.location.hash = "#/how-it-works";
 await waitFor(() =>
   (window.document.querySelector("#main h1")?.textContent ?? "").includes("The whole system"),

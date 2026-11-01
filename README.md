@@ -1,16 +1,48 @@
-# Orbital — broadcast satellites vs. Starlink
+# Orbital Learning Lab — satellite simulation & computer network lab
 
-An independent, interactive field guide comparing a traditional TV broadcast
-satellite with the Starlink constellation. The landing page is a 3D simulation
-built around the Branch Education reference animation below: it explores
-the two dishes, one- and two-way signals, GEO and LEO orbits, distance, latency,
-and a moving satellite network.
+An interactive teaching site with two projects behind one home menu
+(`#/`):
 
-Built with React, TypeScript, Vite, three.js and React Three Fiber.
+1. **Satellite simulation project** — an independent, interactive field guide
+   comparing a traditional TV broadcast satellite with the Starlink
+   constellation. Its landing page (`#/satellite`) is a 3D simulation built
+   around the Branch Education reference animation below: it explores the two
+   dishes, one- and two-way signals, GEO and LEO orbits, distance, latency, and
+   a moving satellite network.
+2. **Computer Network — Interactive Visual Learning Lab** (`#/network`) — a
+   Bangla module for school and college students in Bangladesh. Server, client,
+   media, NIC, resources, user and protocol each get a plain-language
+   explanation, a clickable diagram or simulation, a real-life example and a
+   short quiz.
 
-## The landing-page simulation
+Built with React, TypeScript, Vite, Tailwind CSS, three.js and React Three
+Fiber. Every simulation is an educational model running in the browser: no live
+telemetry, no real server and no real network traffic.
 
-At `#/` (or the site root), choose one of four views:
+## Routes
+
+| Route | Description |
+| --- | --- |
+| `#/` | Home hub: the menu into both projects |
+| `#/satellite` | Orbital's interactive broadcast-vs-Starlink landing page |
+| `#/how-it-works` | Nine-chapter Starlink explainer |
+| `#/simulation` | Detailed Starlink-focused satellite internet simulation |
+| `#/comparison` | Interactive 3D view of Earth with a GEO broadcast-TV satellite and a 550 km LEO Starlink satellite flying in the same equatorial plane |
+| `#/faq` | Common questions and sources |
+| `#/network` | Computer Network lab home: what a network is, plus every lesson |
+| `#/network/playground` | Interactive network playground: clients, switch, server, NIC, media, shared resource and a packet you can send |
+| `#/network/server-client` | Server and client, told as a six-step email scenario |
+| `#/network/media` | Twisted pair, optical fiber and Wi-Fi carrying the same bits |
+| `#/network/nic` | Inside one computer: where the NIC sits and what it does |
+| `#/network/resources` | Shared printer, shared file and email service |
+| `#/network/user` | User → browser → client device → network → server → back |
+| `#/network/protocol` | HTTP request/response plus a protocol-rules simulation |
+| `#/network/learn` | Guided learning mode: the seven steps in order, with quizzes |
+| `#/network/challenge` | Challenge mode: order the download path, then five what-if scenarios |
+
+## The satellite landing-page simulation
+
+At `#/satellite`, choose one of four views:
 
 - **Compare** — see a geostationary broadcast satellite and low-orbit
   satellites around Earth together.
@@ -30,16 +62,44 @@ fallback and all comparison text remain usable on devices without WebGL.
 
 Below the simulation, the page compares altitude, signal direction, latency,
 terminals and coverage, and follows a simplified two-way internet request.
-The older, more detailed guide pages remain available through their existing
-hash routes:
 
-| Route | Description |
-| --- | --- |
-| `#/` | Orbital's interactive broadcast-vs-Starlink landing page |
-| `#/how-it-works` | Nine-chapter Starlink explainer |
-| `#/simulation` | Detailed Starlink-focused satellite internet simulation |
-| `#/comparison` | Interactive 3D view of Earth with a GEO broadcast-TV satellite and a 550 km LEO Starlink satellite flying in the same equatorial plane |
-| `#/faq` | Common questions and sources |
+## The Computer Network learning lab
+
+`#/network` is written in plain Bangla with the English technical term beside
+it. Each lesson follows the same rhythm — **সহজ ব্যাখ্যা → interactive
+visualization → বাস্তব উদাহরণ → ছোট quiz** — and every control does something
+real:
+
+- **Playground.** Click any component (client, NIC, cable, switch, server,
+  shared resource) to read what it does. Pick a client and a resource, then send
+  a request: the packet walks client → NIC → media → switch → server → resource
+  and back, one explained step at a time, with start, pause, step and reset
+  controls. Cut a cable, take a client offline, switch a link between wired and
+  Wi-Fi, or turn the resource off and the simulation shows what breaks — and
+  what does not.
+- **Server and client.** A student sends an email; six steps show the request
+  leaving, the server working and the response returning.
+- **Media.** The same six bits travel as voltage in twisted pair, as light
+  pulses in fiber, and as radio waves over Wi-Fi, where a distance slider and
+  wall count move a signal-strength meter.
+- **NIC.** A motherboard diagram highlights the NIC while data moves from the
+  application through the OS network stack, out of the port or antenna, and into
+  the receiver's NIC; Ethernet and Wi-Fi adapters are compared side by side.
+- **Resources.** Printer, file and email service — including what a server
+  answers when the resource is unavailable.
+- **User.** The full chain from a person to a web server and back, with the
+  difference between a user and a client spelled out.
+- **Protocol.** A simplified HTTP message inspector fills in as the steps run,
+  then a rules simulation accepts `GET /index.html HTTP/1.1` and rejects a
+  request with no path, an unknown version or an unknown method.
+- **Guided mode** walks the seven topics in order with a question set each, and
+  **challenge mode** asks for the download path in order (the router is optional,
+  but only in the middle of the path) before five what-if scenarios.
+
+Reduced-motion preferences stop the decorative animation and keep the steps
+clickable; nothing autoplays on arrival. The diagrams are keyboard reachable
+(Tab to a node, Enter to open it) and every page carries a note that the
+behaviour is simulated.
 
 ## Accuracy and visual scale
 
@@ -86,9 +146,10 @@ npm run typecheck
 npm run build         # static, code-split output in dist/
 npm run build:single  # single HTML build in dist-single/ (textures remain separate)
 npm run preview
-npm test              # typecheck, route, lab, simulation, math and comparison tests
+npm test              # typecheck, route, lab, simulation, math, comparison and network tests
 npm run test:lab      # landing-page controls and no-WebGL fallback in jsdom
 npm run test:lab-math # landing-page orbit, scale and handoff calculations
+npm run test:network  # network lab: diagram clicks, packet flow, quizzes, challenge
 ```
 
 The dev and preview servers bind to `0.0.0.0` and accept proxied preview hosts.
@@ -99,8 +160,13 @@ no external font or texture host is required.
 ## Structure
 
 ```text
-src/components/OrbitLab/  landing-page shell, controls, styling and 3D scene
-src/pages/OrbitLab.tsx    comparison, metrics and signal journey
+src/pages/Hub.tsx     home page: the menu into both projects
+src/components/OrbitLab/  satellite landing-page shell, controls, styling and 3D scene
+src/pages/OrbitLab.tsx    satellite comparison, metrics and signal journey
+src/lib/network/      network lab data: page list and all Bangla copy
+src/components/NetworkLab/
+                        network lab simulations, diagrams and shared UI
+src/pages/network/    the ten network lab pages
 src/components/SatelliteComparison/
                           standalone six-stage comparison component (not routed)
                           and shared orbit math used by the landing page
@@ -119,4 +185,5 @@ scripts/                  route, UI and orbital-math tests
 - Earth day, night and cloud textures are based on the
   [three.js examples](https://github.com/mrdoob/three.js/tree/master/examples/textures/planets).
 - Typography: Space Grotesk and IBM Plex Mono, bundled locally through
-  Fontsource. Icons: Lucide.
+  Fontsource; the Bangla lab uses Hind Siliguri, also bundled locally. Icons:
+  Lucide.

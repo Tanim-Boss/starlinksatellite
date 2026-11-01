@@ -15,9 +15,11 @@ export function OrbitalMark() {
 }
 
 const nav = [
-  { label: "Simulation", href: "#/@simulation" },
-  { label: "The comparison", href: "#/@comparison" },
-  { label: "How it works", href: "#/@how-it-works" },
+  { label: "হোম · Home", href: "#/" },
+  { label: "Simulation", href: "#/satellite@simulation" },
+  { label: "The comparison", href: "#/satellite@comparison" },
+  { label: "How it works", href: "#/satellite@how-it-works" },
+  { label: "Computer Network", href: "#/network" },
 ];
 
 export function LabHeader() {
@@ -31,14 +33,14 @@ export function LabHeader() {
   return (
     <header className="lab-header">
       <div className="lab-header-inner lab-container">
-        <a className="lab-brand" href="#/" aria-label="Orbital field guide home" onClick={() => setOpen(false)}>
+        <a className="lab-brand" href="#/" aria-label="Orbital learning lab — home" onClick={() => setOpen(false)}>
           <OrbitalMark />
           <span className="lab-brand-copy"><strong>ORBITAL</strong><small>THE SATELLITE FIELD GUIDE</small></span>
         </a>
         <nav className="lab-desktop-nav" aria-label="Main navigation">
           {nav.map((item) => <a key={item.label} href={item.href}>{item.label}</a>)}
         </nav>
-        <a className="lab-header-action" href="#/@simulation">
+        <a className="lab-header-action" href="#/satellite@simulation">
           <span className="lab-live-dot" /> EXPLORE THE SIMULATION <ArrowUpRight size={14} />
         </a>
         <button type="button" className="lab-menu-button" aria-label={open ? "Close menu" : "Open menu"} aria-expanded={open} onClick={() => setOpen(!open)}>
@@ -59,7 +61,7 @@ export function LabFooter() {
     <footer className="lab-footer" id="about">
       <div className="lab-container lab-footer-inner">
         <div>
-          <a className="lab-brand" href="#/" aria-label="Orbital field guide home">
+          <a className="lab-brand" href="#/" aria-label="Orbital learning lab — home">
             <OrbitalMark />
             <span className="lab-brand-copy"><strong>ORBITAL</strong><small>THE SATELLITE FIELD GUIDE</small></span>
           </a>

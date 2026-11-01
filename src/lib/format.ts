@@ -2,6 +2,19 @@ export function formatInt(n: number): string {
   return Math.round(n).toLocaleString("en-US");
 }
 
+const BANGLA_DIGITS = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
+
+/**
+ * Writes a number with Bangla digits, e.g. 12 → "১২". Used by the Bangla
+ * learning lab so counters read the way the rest of the copy does.
+ */
+export function toBn(value: number): string {
+  return String(Math.round(value))
+    .split("")
+    .map((ch) => (ch >= "0" && ch <= "9" ? BANGLA_DIGITS[Number(ch)] : ch))
+    .join("");
+}
+
 export function formatSpeedMult(s: number): string {
   if (s >= 1000) {
     const k = s / 1000;
