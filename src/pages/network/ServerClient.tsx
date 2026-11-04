@@ -2,6 +2,7 @@ import { networkPage } from "@/lib/network/nav";
 import { SimNote } from "@/components/NetworkLab/ui/primitives";
 import { LabFooterNav, LabNav, LessonBlock, LessonHero } from "@/components/NetworkLab/ui/LessonPage";
 import { ClientServerSim } from "@/components/NetworkLab/ClientServerSim";
+import { BrowserJourney } from "@/components/NetworkLab/BrowserJourney";
 
 const PAGE = networkPage("server-client");
 
@@ -22,6 +23,14 @@ export function NetworkServerClient() {
 
       <LessonBlock
         index="০১"
+        label="ব্রাউজার থেকে সার্ভার"
+        title="What happens when you visit a website?"
+      >
+        <BrowserJourney />
+      </LessonBlock>
+
+      <LessonBlock
+        index="০২"
         label="ইন্টারঅ্যাক্টিভ সিমুলেশন"
         title="ক্লায়েন্ট–সার্ভার সিমুলেশন"
         aside={
