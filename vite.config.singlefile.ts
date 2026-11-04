@@ -8,8 +8,9 @@ import baseConfig from "./vite.config";
  * `npm run build` is the default because code-splitting gives visitors a much
  * faster first paint; this variant trades that for a single artifact.
  *
- * The Earth textures in `public/textures/` are still copied next to the HTML —
- * they are binary assets served over HTTP, not part of the bundle.
+ * The Earth textures in `public/textures/` and the cable photographs in
+ * `public/media/` are still copied next to the HTML — they are binary assets
+ * served over HTTP, not part of the bundle.
  */
 export default defineConfig(
   mergeConfig(baseConfig as UserConfig, {

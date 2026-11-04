@@ -12,3 +12,5 @@ build/
 .env.*
 !.env.example
 
+# Scratch folder used while sourcing photographs for the network lab
+image-search/
