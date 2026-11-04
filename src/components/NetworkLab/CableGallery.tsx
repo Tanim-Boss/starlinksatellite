@@ -4,13 +4,9 @@ import { CABLES, MEDIA_CREDITS, cableById, mediaAsset, type CableSpec } from "@/
 import { cn } from "@/utils/cn";
 
 /*
- * Real photographs of the three cables, plus the connector that ends each one.
- *
- * The pictures are the lesson: a student who has only ever seen a diagram of a
- * "cable" should recognise the actual object in the school lab. Every card
- * pairs the cable photo with a close-up of its connector and a cutaway strip
- * that names the layers from outside in, so the photo and the theory refer to
- * the same three inches of hardware.
+ * Connector-free illustrations of the three cables, plus real photos of the
+ * connector that ends each one. Every card pairs the cable bundle with a close-
+ * up of its connector and a cutaway strip naming the layers from outside in.
  */
 
 function PhotoCard({ cable }: { cable: CableSpec }) {
@@ -43,7 +39,7 @@ function PhotoCard({ cable }: { cable: CableSpec }) {
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-linear-to-t from-[#04060d] to-transparent" />
         <span className="net-photo-tag">
           <Camera size={11} />
-          {isCable ? "আসল কেবল" : "আসল কানেক্টর"}
+          {isCable ? "কেবল — কানেক্টর নেই" : "আসল কানেক্টর"}
         </span>
         <div className="absolute right-2 bottom-2 flex gap-1.5" role="group" aria-label={`${cable.label} — ছবি বদলাও`}>
           {(
@@ -271,8 +267,8 @@ export function CableGallery({ className }: { className?: string }) {
           </div>
           <p className="bangla flex items-start gap-2 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-[11px] leading-relaxed text-faint">
             <Info size={13} className="mt-0.5 shrink-0 text-faint" />
-            ছবিগুলো বাস্তব কেবলের ফটো (Wikimedia Commons), রঙ ও আকার দেখে চেনা যায়। নিচে ছবির
-            ক্রেডিট দেওয়া আছে।
+            কেবলের ছবিগুলো কানেক্টরবিহীন AI-তৈরি নমুনা; কানেক্টরের ছবিগুলো বাস্তব। নিচে ছবির সূত্র ও
+            লাইসেন্স দেওয়া আছে।
           </p>
         </div>
       </div>
@@ -292,25 +288,33 @@ export function MediaCredits({ className }: { className?: string }) {
       <ul className="mt-3 space-y-2">
         {MEDIA_CREDITS.map((credit) => (
           <li key={credit.file} className="bangla text-[11.5px] leading-relaxed text-muted">
-            <a
-              href={credit.source}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="text-ink underline decoration-white/25 underline-offset-2 hover:text-signal"
-            >
-              {credit.title}
-            </a>
+            {credit.source ? (
+              <a
+                href={credit.source}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="text-ink underline decoration-white/25 underline-offset-2 hover:text-signal"
+              >
+                {credit.title}
+              </a>
+            ) : (
+              <span className="text-ink">{credit.title}</span>
+            )}
             {" — "}
             {credit.author}
             {" · "}
-            <a
-              href={credit.licenseUrl}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="text-faint underline decoration-white/20 underline-offset-2 hover:text-signal"
-            >
-              {credit.license}
-            </a>
+            {credit.licenseUrl ? (
+              <a
+                href={credit.licenseUrl}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="text-faint underline decoration-white/20 underline-offset-2 hover:text-signal"
+              >
+                {credit.license}
+              </a>
+            ) : (
+              <span className="text-faint">{credit.license}</span>
+            )}
           </li>
         ))}
       </ul>

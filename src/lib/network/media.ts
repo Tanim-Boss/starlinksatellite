@@ -3,9 +3,9 @@
  * wireless media that carry the same data with no wire at all.
  *
  * `copy.ts` owns the three-way comparison (twisted pair / fiber / Wi-Fi). This
- * file owns the catalogue beside it: one entry per cable with its real photo,
- * parts and connector, one entry per wireless medium, and the credits for the
- * photographs shipped in `public/media/`.
+ * file owns the catalogue beside it: one entry per cable with its connector-free
+ * illustrative photo, parts and connector, one entry per wireless medium, and
+ * the credits for the photographs shipped in `public/media/`.
  *
  * Bangla first, English technical term kept in Latin script, same as the rest
  * of the lab.
@@ -66,7 +66,7 @@ export const CABLES: CableSpec[] = [
     signal: "বৈদ্যুতিক (radio-frequency)",
     photo: "coax-cable.jpg",
     photoAlt:
-      "সাদা কোঅ্যাক্সিয়াল কেবলের প্রান্তে লাগানো ধাতব F কানেক্টর, পেছনে কাঠের টেবিল।",
+      "কাঠের টেবিলে রাখা একগুচ্ছ সাদা কোঅ্যাক্সিয়াল কেবল; কাটা প্রান্তে শিল্ড ও তামার কোর দেখা যাচ্ছে, কোনো কানেক্টর নেই।",
     whereUsed:
       "টিভি সংযোগের সাদা কেবল, বাসার ছাদে বসানো ডিশ ও পুরোনো কেবল-ইন্টারনেট লাইনে।",
     connector: {
@@ -98,7 +98,7 @@ export const CABLES: CableSpec[] = [
     summary: "আটটি প্যাঁচানো তামার তার, এক জোড়ায় পাঠানো আর এক জোড়ায় গ্রহণ।",
     signal: "বৈদ্যুতিক (differential voltage)",
     photo: "ethernet-cable.jpg",
-    photoAlt: "চারটি ধূসর Ethernet কেবলের প্রান্তে লাগানো স্বচ্ছ RJ-45 প্লাগ, পেছনে নীল কেবল।",
+    photoAlt: "একগুচ্ছ ধূসর Ethernet কেবল; কাটা প্রান্তে চার জোড়া রঙিন প্যাঁচানো তার দেখা যাচ্ছে, কোনো RJ-45 প্লাগ নেই।",
     whereUsed: "স্কুল ল্যাবের ডেস্কটপ থেকে সুইচ, বাসার রাউটার থেকে ল্যাপটপ, অফিসের প্যাচ প্যানেল।",
     connector: {
       name: "RJ-45 প্লাগ",
@@ -127,7 +127,7 @@ export const CABLES: CableSpec[] = [
     summary: "কাচের সরু কোরের ভেতর আলোর ঝলক — সবচেয়ে দ্রুত ও দূরগামী মাধ্যম।",
     signal: "আলো (light pulses)",
     photo: "fiber-cable.jpg",
-    photoAlt: "ফাইবার প্যাচ কর্ডের দুই প্রান্তে সাদা LC ডুপ্লেক্স কানেক্টর, তারে কমলা জ্যাকেট।",
+    photoAlt: "একগুচ্ছ কমলা ও হলুদ অপটিক্যাল ফাইবার কেবল; খোলা প্রান্তে সূক্ষ্ম কাচের ফাইবার দেখা যাচ্ছে, কোনো কানেক্টর নেই।",
     whereUsed: "ISP-র মেইন লাইন (FTTH), দেশের backbone, ডাটা সেন্টারের র‍্যাক-থেকে-র‍্যাক সংযোগ।",
     connector: {
       name: "LC / SC কানেক্টর",
@@ -292,24 +292,21 @@ export interface PhotoCredit {
   title: string;
   author: string;
   license: string;
-  licenseUrl: string;
-  source: string;
+  licenseUrl?: string;
+  source?: string;
 }
 
 /**
- * Every photograph in `public/media/` is from Wikimedia Commons or a
- * free-licence source, cropped and re-compressed but otherwise unedited.
- * Shown in the page's credits block so the licence attribution travels with
- * the images.
+ * Photo attributions are shown in the page so source and license information
+ * travels with the images. Cable-bundle images are AI-generated illustrations;
+ * connector close-ups and the remaining photos retain their source credits.
  */
 export const MEDIA_CREDITS: PhotoCredit[] = [
   {
     file: "coax-cable.jpg",
-    title: "F-Stecker und Kabel",
-    author: "Peter Trieb",
-    license: "Public domain",
-    licenseUrl: "https://creativecommons.org/publicdomain/mark/1.0/",
-    source: "https://commons.wikimedia.org/wiki/File:F-Stecker_und_Kabel.jpg",
+    title: "Coaxial cable bundle (connector-free illustration)",
+    author: "AI-generated for this project",
+    license: "AI-generated illustration",
   },
   {
     file: "coax-connector.jpg",
@@ -321,12 +318,9 @@ export const MEDIA_CREDITS: PhotoCredit[] = [
   },
   {
     file: "ethernet-cable.jpg",
-    title: "Cat-5e Ethernet network cable RJ45 end connectors",
-    author: "Disk Depot Ltd. (DiscDepotDundee.co.uk)",
-    license: "CC BY-SA 4.0",
-    licenseUrl: "https://creativecommons.org/licenses/by-sa/4.0/",
-    source:
-      "https://commons.wikimedia.org/wiki/File:Cat-5e_Ethernet_network_cable_RJ45_end_connectors.jpg",
+    title: "Ethernet cable bundle (connector-free illustration)",
+    author: "AI-generated for this project",
+    license: "AI-generated illustration",
   },
   {
     file: "ethernet-connector.jpg",
@@ -338,11 +332,9 @@ export const MEDIA_CREDITS: PhotoCredit[] = [
   },
   {
     file: "fiber-cable.jpg",
-    title: "LC-optical-fiber-connector-hdr-0a",
-    author: "Adamantios",
-    license: "CC BY-SA 3.0",
-    licenseUrl: "https://creativecommons.org/licenses/by-sa/3.0/",
-    source: "https://commons.wikimedia.org/wiki/File:LC-optical-fiber-connector-hdr-0a.jpg",
+    title: "Optical fiber bundle (connector-free illustration)",
+    author: "AI-generated for this project",
+    license: "AI-generated illustration",
   },
   {
     file: "fiber-connector.jpg",
