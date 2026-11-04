@@ -1,7 +1,7 @@
 {
-  "name": "nic-bangla-visual-guide",
+  "name": "starlink-field-guide",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.0.0",
   "type": "module",
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
@@ -10,21 +10,44 @@
     "dev": "vite",
     "typecheck": "tsc --noEmit",
     "build": "npm run typecheck && vite build",
-    "preview": "vite preview"
+    "build:single": "npm run typecheck && vite build --config vite.config.singlefile.ts",
+    "preview": "vite preview",
+    "test:smoke": "node scripts/smoke-test.mjs",
+    "test:sim": "node scripts/sim-ui-test.mjs",
+    "test:sim-math": "node scripts/_verify-sim-math.mjs",
+    "test:comparison": "node scripts/comparison-ui-test.mjs",
+    "test:network": "node scripts/network-ui-test.mjs",
+    "test": "npm run typecheck && npm run test:smoke && npm run test:lab && npm run test:lab-math && npm run test:sim && npm run test:sim-math && npm run test:comparison && npm run test:network",
+    "test:lab": "node scripts/lab-ui-test.mjs",
+    "test:lab-math": "node scripts/lab-math-test.mjs"
   },
   "dependencies": {
     "@fontsource/hind-siliguri": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
     "@fontsource/space-grotesk": "^5.3.0",
+    "@react-three/drei": "^10.7.9",
+    "@react-three/fiber": "^9.8.2",
+    "@react-three/postprocessing": "^3.2.2",
+    "clsx": "2.1.1",
     "lucide-react": "^1.66.0",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "tailwind-merge": "3.7.0",
+    "three": "^0.186.1",
+    "zustand": "^5.0.16"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "4.3.3",
     "@types/node": "26.6.6",
     "@types/react": "19.3.0",
-    "@types/react-dom": "^19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/three": "^0.186.0",
     "@vitejs/plugin-react": "6.1.2",
+    "esbuild": "^0.28.2",
+    "jsdom": "^30.1.3",
+    "tailwindcss": "4.3.3",
     "typescript": "7.0.2",
-    "vite": "8.3.5"
+    "vite": "8.3.5",
+    "vite-plugin-singlefile": "2.3.4"
   }
 }
