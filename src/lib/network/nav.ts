@@ -93,9 +93,18 @@ export const NETWORK_PAGES: NetworkPage[] = [
       "HTTP request-response অ্যানিমেশন, HTTPS-এর TLS handshake, পাশাপাশি দুই লেনে HTTP বনাম HTTPS এবং নিয়ম না মানলে কী হয় তার সিমুলেশন।",
   },
   {
+    id: "topology",
+    path: "/network/topology",
+    num: "08",
+    title: "টোপোলজি",
+    en: "Network Topology Simulation",
+    blurb:
+      "বাস, রিং, স্টার, ট্রি, ফুল ও পার্শিয়াল মেশ এবং হাইব্রিড — ডিভাইস বন্ধ করো, তার কাটো, terminator খোলো, তারপর কার কাছে প্যাকেট যাবে পাঠিয়ে দেখো সুবিধা-অসুবিধা ও বাস্তব ব্যবহার।",
+  },
+  {
     id: "learn",
     path: "/network/learn",
-    num: "08",
+    num: "09",
     title: "ধাপে ধাপে শেখা",
     en: "Guided Learning Mode",
     blurb:
@@ -104,7 +113,7 @@ export const NETWORK_PAGES: NetworkPage[] = [
   {
     id: "challenge",
     path: "/network/challenge",
-    num: "09",
+    num: "10",
     title: "চ্যালেঞ্জ মোড",
     en: "Challenge Mode",
     blurb:

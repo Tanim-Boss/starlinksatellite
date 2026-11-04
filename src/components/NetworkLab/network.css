@@ -554,3 +554,373 @@
     animation: none;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Topology laboratory                                                */
+/* ------------------------------------------------------------------ */
+
+/* Seven shapes, a shared cable, terminators and a moving packet need a bit
+   more room before the labels stop reading; below 768px the figure scrolls
+   sideways instead of shrinking the Bangla text away. */
+.topo-figure > svg {
+  min-width: 640px;
+}
+@media (min-width: 768px) {
+  .topo-figure > svg {
+    min-width: 0;
+  }
+}
+
+.topo-grid circle {
+  fill: rgba(148, 176, 224, 0.16);
+}
+
+.topo-figure-hint {
+  font-family: "Hind Siliguri", "Noto Sans Bengali", system-ui, sans-serif;
+  font-size: 10px;
+  fill: #697b98;
+}
+
+/* Devices ---------------------------------------------------------- */
+
+.topo-node {
+  cursor: pointer;
+  outline: none;
+}
+.topo-node-box {
+  fill: rgba(9, 15, 28, 0.92);
+  stroke: rgba(148, 176, 224, 0.32);
+  stroke-width: 1.5;
+  transition:
+    stroke 180ms ease,
+    fill 180ms ease,
+    opacity 180ms ease;
+}
+.topo-node:hover .topo-node-box {
+  stroke: rgba(159, 232, 255, 0.7);
+  fill: rgba(15, 26, 44, 0.95);
+}
+.topo-node:focus-visible .topo-node-box {
+  stroke: #3ddbd9;
+  stroke-width: 2.6;
+}
+.topo-node-glyph,
+.topo-glyph {
+  transition: opacity 180ms ease;
+}
+
+.topo-node--off .topo-node-box {
+  stroke: rgba(248, 113, 113, 0.65);
+  stroke-dasharray: 4 4;
+  fill: rgba(248, 113, 113, 0.08);
+}
+.topo-node--off .topo-glyph {
+  opacity: 0.35;
+}
+.topo-node--off .net-node-title {
+  fill: #fca5a5;
+}
+.topo-node--unreachable {
+  opacity: 0.32;
+}
+.topo-node--unreachable .topo-node-box {
+  stroke: rgba(148, 176, 224, 0.22);
+}
+
+.topo-node-ring {
+  fill: none;
+  stroke-width: 1.6;
+  stroke-dasharray: 5 4;
+}
+.topo-node-ring--source {
+  stroke: rgba(61, 219, 217, 0.85);
+}
+.topo-node-ring--target {
+  stroke: rgba(251, 191, 36, 0.9);
+}
+.topo-node--source .topo-node-box {
+  stroke: rgba(61, 219, 217, 0.85);
+  fill: rgba(61, 219, 217, 0.12);
+}
+.topo-node--target .topo-node-box {
+  stroke: rgba(251, 191, 36, 0.9);
+  fill: rgba(251, 191, 36, 0.1);
+}
+.topo-node--engaged .topo-node-ring {
+  animation: topo-ring-spin 6s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.topo-label-plate {
+  fill: rgba(4, 6, 13, 0.78);
+}
+
+.topo-node-tag {
+  font-family: var(--font-mono);
+  font-size: 7.5px;
+  letter-spacing: 0.14em;
+  fill: #697b98;
+}
+
+@keyframes topo-led {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+.topo-node-led {
+  animation: topo-led 2.4s ease-in-out infinite;
+}
+
+.topo-node-off-mark line {
+  stroke: rgba(248, 113, 113, 0.75);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+
+@keyframes topo-ring-spin {
+  to {
+    stroke-dashoffset: -60;
+  }
+}
+
+/* Cables ----------------------------------------------------------- */
+
+.topo-link {
+  stroke: rgba(159, 232, 255, 0.42);
+  stroke-width: 2;
+  fill: none;
+  transition: stroke 160ms ease;
+}
+.topo-link-hit:hover .topo-link {
+  stroke: rgba(159, 232, 255, 0.75);
+}
+.topo-link-hit:focus-visible {
+  outline: none;
+}
+.topo-link-hit:focus-visible .topo-link {
+  stroke: #3ddbd9;
+  stroke-width: 2.8;
+}
+.topo-link-hitline {
+  stroke: transparent;
+  stroke-width: 18;
+  fill: none;
+  pointer-events: stroke;
+}
+.topo-link-hit {
+  cursor: pointer;
+}
+.topo-link--cut {
+  stroke: rgba(248, 113, 113, 0.55);
+  stroke-dasharray: 4 5;
+}
+
+.topo-backbone {
+  stroke: rgba(159, 232, 255, 0.55);
+  stroke-width: 4.5;
+  stroke-linecap: round;
+  fill: none;
+}
+.topo-link-hit:hover .topo-backbone {
+  stroke: rgba(159, 232, 255, 0.8);
+}
+.topo-backbone--cut {
+  stroke: rgba(248, 113, 113, 0.6);
+  stroke-dasharray: 5 5;
+}
+
+.topo-drop {
+  stroke: rgba(159, 232, 255, 0.32);
+  stroke-width: 1.6;
+  stroke-dasharray: 4 4;
+}
+.topo-drop--off {
+  stroke: rgba(248, 113, 113, 0.45);
+}
+.topo-drop--corrupt {
+  stroke: rgba(248, 113, 113, 0.35);
+}
+
+.topo-tap {
+  fill: #0b1120;
+  stroke: rgba(159, 232, 255, 0.6);
+  stroke-width: 1.6;
+}
+.topo-tap--down {
+  stroke: rgba(248, 113, 113, 0.7);
+}
+
+/* Cut affordance --------------------------------------------------- */
+
+.topo-cut-badge {
+  opacity: 0;
+  transition: opacity 160ms ease;
+  pointer-events: none;
+}
+.topo-link-hit:hover .topo-cut-badge,
+.topo-link-hit:focus-visible .topo-cut-badge,
+.topo-cut-badge--on,
+.topo-link-hit--bus .topo-cut-badge {
+  opacity: 1;
+}
+.topo-link-hit--bus .topo-cut-badge {
+  opacity: 0.7;
+}
+
+.topo-cut-disc {
+  fill: rgba(4, 6, 13, 0.94);
+  stroke: rgba(148, 176, 224, 0.45);
+  stroke-width: 1.2;
+}
+.topo-link-hit:hover .topo-cut-disc {
+  stroke: #fbbf24;
+}
+.topo-cut-badge--on .topo-cut-disc {
+  stroke: #f87171;
+  fill: rgba(248, 113, 113, 0.16);
+}
+.topo-cut-icon {
+  fill: none;
+  stroke: #9fb2cf;
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+.topo-link-hit:hover .topo-cut-icon {
+  stroke: #fbbf24;
+}
+.topo-cut-badge--on .topo-cut-icon {
+  stroke: #f87171;
+}
+
+.topo-arrow-mark line {
+  stroke: rgba(159, 232, 255, 0.85);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.topo-link-hit:hover .topo-arrow-mark line {
+  stroke: #7ee7e2;
+}
+
+.topo-cut-mark line {
+  stroke: #f87171;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* Terminators ------------------------------------------------------ */
+
+.topo-terminal {
+  cursor: pointer;
+  outline: none;
+}
+.topo-terminal-body {
+  fill: rgba(148, 176, 224, 0.16);
+  stroke: rgba(159, 232, 255, 0.55);
+  stroke-width: 1.4;
+  transition:
+    stroke 160ms ease,
+    fill 160ms ease;
+}
+.topo-terminal:hover .topo-terminal-body,
+.topo-terminal:focus-visible .topo-terminal-body {
+  stroke: #3ddbd9;
+  fill: rgba(61, 219, 217, 0.18);
+}
+.topo-terminal--open .topo-terminal-body {
+  stroke: rgba(248, 113, 113, 0.7);
+  fill: rgba(248, 113, 113, 0.1);
+  stroke-dasharray: 4 3;
+}
+.topo-terminal-hatch line {
+  stroke: rgba(159, 232, 255, 0.45);
+  stroke-width: 1;
+}
+.topo-terminal-cross line {
+  stroke: rgba(248, 113, 113, 0.85);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+.topo-terminal-lead {
+  stroke: rgba(159, 232, 255, 0.55);
+  stroke-width: 2;
+}
+.topo-terminal-label {
+  font-family: var(--font-mono);
+  font-size: 7.5px;
+  letter-spacing: 0.1em;
+  fill: #8b9bb9;
+}
+.topo-terminal-state {
+  font-family: "Hind Siliguri", "Noto Sans Bengali", system-ui, sans-serif;
+  font-size: 8.5px;
+  fill: #697b98;
+}
+.topo-terminal-state--open {
+  fill: #fca5a5;
+}
+
+/* The plate under the bus cable ------------------------------------ */
+
+.topo-plate {
+  font-family: "Hind Siliguri", "Noto Sans Bengali", system-ui, sans-serif;
+  font-size: 10.5px;
+  fill: #8b9bb9;
+}
+.topo-plate--warm {
+  fill: rgba(251, 191, 36, 0.9);
+  font-size: 9.5px;
+}
+
+/* Packet + heard ripples ------------------------------------------- */
+
+@keyframes topo-packet-pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.7);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.2);
+  }
+}
+.topo-packet-halo {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: topo-packet-pulse 1s ease-in-out infinite;
+}
+
+@keyframes topo-heard-ring {
+  0% {
+    opacity: 0.7;
+    transform: scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+.topo-heard {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: topo-heard-ring 1.6s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topo-packet-halo,
+  .topo-heard,
+  .topo-node-led,
+  .topo-node--engaged .topo-node-ring {
+    animation: none;
+  }
+  .topo-node-box,
+  .topo-link,
+  .topo-cut-badge {
+    transition: none;
+  }
+}
