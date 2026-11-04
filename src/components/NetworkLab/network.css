@@ -297,6 +297,76 @@
   animation: hh-travel 2.1s cubic-bezier(0.32, 0, 0.24, 1) both;
 }
 
+/* The TLS sequence diagram: a small packet runs along the arrow of the step
+   being explained, so the eye follows the direction of the message. `--tls-span`
+   is the arrow length in SVG user units and is set inline by the component. */
+@keyframes tls-run-right {
+  0% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(var(--tls-span, 680px));
+    opacity: 0;
+  }
+}
+
+@keyframes tls-run-left {
+  0% {
+    transform: translateX(var(--tls-span, 680px));
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+}
+
+.tls-packet {
+  animation: tls-run-right 1.7s cubic-bezier(0.4, 0, 0.55, 1) infinite;
+}
+.tls-packet--left {
+  animation-name: tls-run-left;
+}
+
+/* Rows are clickable: clicking a message jumps the player to that step. */
+.tls-row {
+  cursor: pointer;
+}
+.tls-row:hover .tls-row-bg {
+  fill: rgba(61, 219, 217, 0.07);
+}
+
+/* A soft breathing halo marks the promise of the phase we are in. */
+@keyframes tls-breathe {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.94);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.06);
+  }
+}
+.tls-breathe {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: tls-breathe 2.6s ease-in-out infinite;
+}
+
 /* ------------------------------------------------------------------ */
 /* Reduced motion                                                     */
 /* ------------------------------------------------------------------ */
@@ -310,6 +380,10 @@
   .cs-blink,
   .cs-spin,
   .hh-packet {
+    animation: none;
+  }
+  .tls-packet,
+  .tls-breathe {
     animation: none;
   }
   .net-node-box,

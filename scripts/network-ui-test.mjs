@@ -530,6 +530,25 @@ assert(
 click(buttonWith("TLS স্তর বন্ধ"));
 await wait(60);
 
+// The same diagram at three reading depths
+assert(
+  "the depth switch offers all three levels",
+  Boolean(ariaButton("ব্যাখ্যার স্তর সহজ")) &&
+    Boolean(ariaButton("ব্যাখ্যার স্তর মাধ্যমিক")) &&
+    Boolean(ariaButton("ব্যাখ্যার স্তর বিস্তারিত")),
+);
+assert("the middle level explains the message in full", mainText().includes("ব্রাউজার বলে সে কোন TLS সংস্করণ বোঝে"));
+click(ariaButton("ব্যাখ্যার স্তর সহজ"));
+await wait(60);
+assert("the easy level keeps one short sentence", mainText().includes("ব্রাউজার সার্ভারকে বলে সে কোন নিয়মগুলো বোঝে"));
+assert("every level keeps the everyday analogy", mainText().includes("উপমা দিয়ে বুঝি"));
+click(ariaButton("ব্যাখ্যার স্তর বিস্তারিত"));
+await wait(60);
+assert("the deep level adds the wire-level detail", mainText().includes("supported_versions"));
+click(ariaButton("ব্যাখ্যার স্তর মাধ্যমিক"));
+await wait(60);
+assert("the three jobs are named beside the figure", mainText().includes("পরিচয় যাচাই") && mainText().includes("নিরাপদ টানেল"));
+
 // TLS handshake steps
 click(buttonWith("Certificate"));
 await wait(60);
@@ -553,6 +572,20 @@ await wait(60);
 click(buttonWith("এবার HTTP"));
 await wait(60);
 assert("the encrypted request is shown inside the tunnel", mainText().includes("GET /login → ciphertext"));
+
+// A broken certificate is not just a red badge: the later messages never happen
+click(buttonWith("বৈধ সার্টিফিকেট"));
+await wait(60);
+assert("a failed certificate rewinds to the verification step", mainText().includes("সার্টিফিকেট যাচাই — ব্রাউজারের নিজের কাজ"));
+click(buttonWith("এবার HTTP"));
+await wait(60);
+assert(
+  "stepping past the failure says nothing is sent",
+  mainText().includes("এখান থেকে আর কোনো বার্তা যায় না"),
+);
+click(buttonWith("জাল সার্টিফিকেট"));
+await wait(60);
+assert("turning the certificate back on resumes the walkthrough", mainText().includes("এবার HTTP — টানেলের ভেতরে"));
 
 /* -------------------------------------------------------------------------- */
 /* 9. Guided learning mode                                                     */

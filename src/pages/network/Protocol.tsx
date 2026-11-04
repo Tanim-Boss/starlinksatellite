@@ -94,12 +94,19 @@ export function NetworkProtocol() {
         index="০৪"
         label="TLS handshake"
         title="TLS handshake: চাবি কীভাবে ঠিক হয়"
-        aside={<span className="bangla text-[11.5px] text-faint">ধাপে ধাপে · সার্টিফিকেট পরীক্ষা</span>}
+        aside={
+          <span className="bangla text-[11.5px] text-faint">ধাপে ধাপে · সার্টিফিকেট পরীক্ষা · স্তর বেছে নাও</span>
+        }
       >
         <p className="bangla text-[13px] leading-relaxed text-muted">
           HTTPS শুরুর আগে ব্রাউজার আর সার্ভার কয়েকটি বার্তা বিনিময় করে। এই কথাবার্তার নামই TLS
-          handshake। এর কাজ দুটি: সার্ভারের পরিচয় যাচাই করা, আর দুই পক্ষের জন্য একটি গোপন
-          session key ঠিক করা। নিচের চিত্রে “পরের ধাপ” চেপে পুরো কথোপকথনটি দেখো।
+          handshake। এর কাজ তিনটি: সার্ভারের পরিচয় যাচাই করা, দুই পক্ষের জন্য একই গোপন session key
+          ঠিক করা, আর কেউ বার্তা বদলায়নি তা প্রমাণ করা।
+        </p>
+        <p className="bangla text-[13px] leading-relaxed text-muted">
+          নিচের সিমুলেশনে “সহজ / মাধ্যমিক / বিস্তারিত” থেকে নিজের শ্রেণি অনুযায়ী ব্যাখ্যা বেছে নাও —
+          চিত্র একই থাকে, শুধু ব্যাখ্যার গভীরতা বদলায়। তারপর “চালু করো” বা “পরের ধাপ” চেপে পুরো
+          কথোপকথনটি দেখো।
         </p>
         <TlsHandshake />
       </LessonBlock>
