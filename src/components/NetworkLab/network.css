@@ -272,6 +272,32 @@
 }
 
 /* ------------------------------------------------------------------ */
+/* HTTP vs HTTPS and the TLS handshake                                */
+/* ------------------------------------------------------------------ */
+
+/* These two figures carry two lanes and a sequence diagram, so the labels
+   need more pixels before they stop reading: scroll sideways on a phone
+   instead of shrinking the Bangla text away. */
+.net-figure--wide > svg {
+  min-width: 780px;
+}
+
+/* The packet chip crosses the wire from --hh-from to --hh-to. Both values
+   are set inline per lane, so one keyframe serves HTTP and HTTPS. */
+@keyframes hh-travel {
+  from {
+    transform: translate(var(--hh-from, 216px), var(--hh-y, 99px));
+  }
+  to {
+    transform: translate(var(--hh-to, 520px), var(--hh-y, 99px));
+  }
+}
+
+.hh-packet {
+  animation: hh-travel 2.1s cubic-bezier(0.32, 0, 0.24, 1) both;
+}
+
+/* ------------------------------------------------------------------ */
 /* Reduced motion                                                     */
 /* ------------------------------------------------------------------ */
 
@@ -282,7 +308,8 @@
   .net-wave,
   .net-travel,
   .cs-blink,
-  .cs-spin {
+  .cs-spin,
+  .hh-packet {
     animation: none;
   }
   .net-node-box,

@@ -511,6 +511,49 @@ click(ariaButton("পরের ধাপে যাও"));
 await wait(60);
 assert("the protocol steps advance", mainText().includes("request নেটওয়ার্ক দিয়ে সার্ভারে যাচ্ছে"));
 
+// HTTP vs HTTPS: the same message down two wires, with an attacker in the middle
+assert("HTTPS is explained as HTTP inside TLS", mainText().includes("HTTPS মানে নতুন কোনো প্রোটোকল নয়"));
+assert("the difference table gives the HTTPS port", mainText().includes("৪৪৩"));
+click(button("দুটি লেনে একই বার্তা পাঠাও"));
+await wait(1700);
+assert("the attacker reads the HTTP password in clear text", mainText().includes("password=rahim1234"));
+assert("the attacker only captures ciphertext from HTTPS", mainText().includes("শুধু এলোমেলো বাইট"));
+
+click(buttonWith("HTTPS লেনে TLS স্তর চালু"));
+await wait(60);
+click(button("দুটি লেনে একই বার্তা পাঠাও"));
+await wait(1700);
+assert(
+  "turning TLS off turns HTTPS back into plain text",
+  mainText().includes("TLS বন্ধ, তাই HTTPS-ও প্লেইন টেক্সট"),
+);
+click(buttonWith("TLS স্তর বন্ধ"));
+await wait(60);
+
+// TLS handshake steps
+click(buttonWith("Certificate"));
+await wait(60);
+assert("the certificate step shows the certificate", mainText().includes("সার্টিফিকেট পাঠায়"));
+assert("no session key exists before the key exchange", mainText().includes("চাবি এখনো তৈরি হয়নি"));
+click(buttonWith("Session key"));
+await wait(60);
+assert(
+  "both sides derive the same session key",
+  mainText().includes("4f 0b 9e 22 13 88") && mainText().includes("একই session key পেয়েছে"),
+);
+click(buttonWith("Finished"));
+await wait(60);
+assert("the tunnel is encrypted after Finished", mainText().includes("TLS tunnel চালু"));
+click(buttonWith("বৈধ সার্টিফিকেট"));
+await wait(60);
+assert("a forged certificate stops the handshake", mainText().includes("সংযোগ এখানেই বন্ধ"));
+assert("the forged certificate is named", mainText().includes("জাল সার্টিফিকেট"));
+click(buttonWith("জাল সার্টিফিকেট"));
+await wait(60);
+click(buttonWith("এবার HTTP"));
+await wait(60);
+assert("the encrypted request is shown inside the tunnel", mainText().includes("GET /login → ciphertext"));
+
 /* -------------------------------------------------------------------------- */
 /* 9. Guided learning mode                                                     */
 /* -------------------------------------------------------------------------- */
