@@ -430,15 +430,26 @@ assert("the quiz explains modulation density", mainText().includes("256-QAM ব�
 
 await goto("#/network/nic", "নেটওয়ার্ক ইন্টারফেস কার্ড");
 assert("the NIC is defined as hardware", mainText().includes("হার্ডওয়্যার ইন্টারফেস"));
-assert("Ethernet adapter starts selected", button("Ethernet NIC (তার)")?.getAttribute("aria-pressed") === "true");
-assert("the Ethernet port is labelled", mainText().includes("RJ-45 পোর্ট থাকে"));
-click(button("Wi-Fi adapter (বেতার)"));
+const nicPhotos = $$("main img").filter((img) => (img.getAttribute("src") ?? "").includes("nic-"));
+assert("four real NIC photographs are shown", nicPhotos.length === 4, `${nicPhotos.length} photos`);
+assert("every NIC photo has descriptive alt text", nicPhotos.every((img) => (img.getAttribute("alt") ?? "").length > 20));
+assert(
+  "modern device integration is explained with real examples",
+  mainText().includes("onboard বা integrated NIC") && mainText().includes("M.2 socket") && mainText().includes("ফোন বা ট্যাবলেটে আলাদা কার্ড"),
+);
+click(ariaButton("আলাদা PCIe Ethernet NIC—ছবি বড় করে দেখো"));
 await wait(60);
-assert("the Wi-Fi adapter has an antenna instead", mainText().includes("অ্যান্টেনা থাকে"));
-assert("Ethernet and Wi-Fi are compared", mainText().includes("Ethernet NIC ও Wi-Fi অ্যাডাপ্টারের তুলনা"));
-click(ariaButton("পরের ধাপে যাও"));
+assert("the hardware photograph opens in a lightbox", Boolean($("div[role='dialog']")));
+click(ariaButton("ছবি বন্ধ করো"));
 await wait(60);
-assert("the NIC journey can be stepped", mainText().includes("অপারেটিং সিস্টেম ও নেটওয়ার্ক স্ট্যাক প্রস্তুত করছে"));
+assert("the lightbox closes", !$("div[role='dialog']"));
+assert("sending starts selected", button("ডাটা পাঠানো")?.getAttribute("aria-pressed") === "true");
+click(buttonWith("NIC-এর জন্য frame প্রস্তুত"));
+await wait(60);
+assert("the NIC send journey can be stepped", mainText().includes("NIC ও তার driver-এর সমন্বয়ে"));
+click(button("ডাটা গ্রহণ"));
+await wait(60);
+assert("receiving explains the reverse signal path", mainText().includes("কেবল থেকে electrical signal"));
 
 /* -------------------------------------------------------------------------- */
 /* 6. Resources                                                                */
