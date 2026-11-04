@@ -163,7 +163,8 @@ no external font or texture host is required.
 src/pages/Hub.tsx     home page: the menu into both projects
 src/components/OrbitLab/  satellite landing-page shell, controls, styling and 3D scene
 src/pages/OrbitLab.tsx    satellite comparison, metrics and signal journey
-src/lib/network/      network lab data: page list and all Bangla copy
+src/lib/network/      network lab data: page list, Bangla copy and the cable /
+                      wireless media catalogue with its photo credits
 src/components/NetworkLab/
                         network lab simulations, diagrams and shared UI
 src/pages/network/    the ten network lab pages
@@ -174,6 +175,7 @@ src/components/SatelliteSimulation/
                           detailed legacy Starlink simulation
 src/pages/                legacy guide pages
 public/textures/          local Earth day, night and cloud maps
+public/media/             real photographs of cables, connectors and a router
 scripts/                  route, UI and orbital-math tests
 ```
 
@@ -187,3 +189,12 @@ scripts/                  route, UI and orbital-math tests
 - Typography: Space Grotesk and IBM Plex Mono, bundled locally through
   Fontsource; the Bangla lab uses Hind Siliguri, also bundled locally. Icons:
   Lucide.
+- Cable and connector photographs in `public/media/` are cropped and
+  re-compressed copies of Wikimedia Commons files: `coax-cable.jpg` (Peter
+  Trieb, public domain), `coax-connector.jpg` (Colin, CC BY-SA 3.0),
+  `ethernet-cable.jpg` (Disk Depot Ltd., CC BY-SA 4.0),
+  `ethernet-connector.jpg` (Khairil Yusof, CC BY 2.0), `fiber-cable.jpg`
+  (Adamantios, CC BY-SA 3.0), `fiber-connector.jpg` (CC BY-SA 3.0) and
+  `wireless-router.jpg` (Raimond Spekking, CC BY-SA 4.0). The exact source and
+  licence of each file is also listed on the lesson page and in
+  `src/lib/network/media.ts`.

@@ -368,6 +368,62 @@ await wait(80);
 assert("a close access point gives a strong signal", mainText().includes("চমৎকার"));
 assert("media is described as a medium only", mainText().includes("এটি সার্ভার নয়, ক্লায়েন্ট নয়, প্রোটোকলও নয়"));
 
+/* Real photographs: each cable has a cable photo and a connector photo. */
+const photos = $$("main img");
+assert("the media lesson shows real photographs", photos.length >= 4, `${photos.length} images`);
+assert(
+  "every photo resolves to an asset path",
+  photos.every((img) => /media\/[a-z-]+\.jpg$/.test(img.getAttribute("src") ?? "")),
+);
+assert(
+  "every photo has Bangla alt text",
+  photos.every((img) => (img.getAttribute("alt") ?? "").length > 10),
+);
+assert("the coax cable is photographed", photos.some((img) => (img.getAttribute("src") ?? "").includes("coax-cable.jpg")));
+assert("the RJ-45 connector is photographed", photos.some((img) => (img.getAttribute("src") ?? "").includes("ethernet-connector.jpg")));
+assert("the fiber connector is photographed", photos.some((img) => (img.getAttribute("src") ?? "").includes("fiber-connector.jpg")));
+assert("the connector can be swapped in the card", Boolean(button("কানেক্টর")));
+click(button("ফাইবার"));
+await wait(80);
+assert("a cable can be selected from the gallery", mainText().includes("কাচের কোর"));
+click(button("কোঅ্যাক্স"));
+await wait(80);
+assert("the cutaway explains the coax layers", mainText().includes("ব্রেইডেড শিল্ড"));
+const layers = $$("main .net-cutaway-layer");
+assert("cutaway layers are keyboard reachable", layers.length >= 3, `${layers.length} layers`);
+click(layers[0]);
+await wait(60);
+assert("a cutaway layer explains itself", mainText().includes("কেবলকে ভেজা ও ঘষা থেকে বাঁচায়"));
+
+/* Wireless: the same data with no wire. */
+assert("wireless section explains there is no cable", mainText().includes("NO CABLE — THE MEDIUM IS THE AIR"));
+assert("the wireless journey starts at the app", mainText().includes("অ্যাপ ডাটা তৈরি করল"));
+const wirelessNext = $$("button").filter((node) => node.getAttribute("aria-label") === "পরের ধাপে যাও");
+click(wirelessNext[wirelessNext.length - 1]);
+await wait(60);
+assert("the journey reaches the antenna and the wave", mainText().includes("তরঙ্গের ভাষায় বদলাল"));
+assert("modulation is explained", mainText().includes("BPSK") && mainText().includes("256-QAM"));
+click(button("256-QAM"));
+await wait(60);
+assert(
+  "a denser modulation packs more bits per symbol",
+  mainText().includes("৮ বিট") && mainText().includes("৩০ dB"),
+);
+assert("the wireless family includes satellite links", mainText().includes("স্যাটেলিয়ন") || mainText().includes("স্যাটেলাইট লিংক"));
+click(buttonWith("রেডিও তরঙ্গ"));
+await wait(60);
+assert("a wireless medium explains what blocks it", mainText().includes("দেয়াল, দূরত্ব"));
+assert("walls can be added to the air path", Boolean(button("দুই দেয়াল")));
+click(button("দুই দেয়াল"));
+await wait(60);
+assert("obstacles make the air path lossy", mainText().includes("প্রতিটি দেয়াল তরঙ্গ দুর্বল করে"));
+click(button("বাধা নেই"));
+await wait(60);
+assert("without walls the path is clear", mainText().includes("তরঙ্গ বাধাহীনভাবে"));
+assert("photo credits are published", mainText().includes("ছবির সূত্র ও লাইসেন্স"));
+assert("the quiz asks which connector ends an Ethernet cable", mainText().includes("Ethernet কেবলের প্রান্তে"));
+assert("the quiz explains modulation density", mainText().includes("256-QAM ব্যবহার করলে"));
+
 /* -------------------------------------------------------------------------- */
 /* 5. NIC                                                                      */
 /* -------------------------------------------------------------------------- */

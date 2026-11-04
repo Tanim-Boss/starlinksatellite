@@ -28,6 +28,16 @@
   font-family: var(--font-mono);
 }
 
+/* Diagrams that sit outside a .net-figure (inside an already bordered card)
+   still need the Bengali face for their labels. */
+.net-svg text {
+  font-family: "Hind Siliguri", "Noto Sans Bengali", "Nirmala UI", system-ui, sans-serif;
+}
+.net-svg text.net-node-sub,
+.net-svg text.net-figure-label {
+  font-family: var(--font-mono);
+}
+
 /* Diagrams scale with the column and scroll sideways on narrow screens
    instead of shrinking their labels away. */
 .net-figure {
@@ -278,5 +288,168 @@
   .net-node-box,
   .net-figure > svg * {
     transition: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Real photographs of cables and connectors                          */
+/* ------------------------------------------------------------------ */
+
+.net-photo-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 176, 224, 0.14);
+  background: linear-gradient(180deg, rgba(11, 17, 32, 0.92), rgba(4, 6, 13, 0.92));
+  transition:
+    border-color 180ms ease,
+    transform 180ms ease;
+}
+
+.net-photo-card:hover {
+  border-color: rgba(61, 219, 217, 0.4);
+}
+
+/* A neutral backdrop keeps both bright studio shots and dim table photos
+   reading as "here is the real object". */
+.net-photo {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: #0b1120;
+}
+
+/* The card keeps a fixed frame; the two photographs cross-fade inside it. */
+.net-photo--stack {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+.net-photo--on {
+  position: relative;
+  opacity: 1;
+}
+
+.net-photo-tag {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(4, 6, 13, 0.72);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #cfe9ff;
+  backdrop-filter: blur(6px);
+}
+
+.net-photo-switch {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(4, 6, 13, 0.75);
+  font-family: "Hind Siliguri", "Noto Sans Bengali", system-ui, sans-serif;
+  font-size: 11px;
+  color: #8b9bb9;
+  backdrop-filter: blur(6px);
+  transition:
+    color 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease;
+}
+.net-photo-switch:hover {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+.net-photo-switch--on {
+  border-color: rgba(61, 219, 217, 0.7);
+  background: rgba(61, 219, 217, 0.18);
+  color: #7ee7e2;
+}
+
+/* Cutaway layers respond to pointer and keyboard alike. */
+.net-cutaway-layer {
+  cursor: pointer;
+}
+.net-cutaway-layer:focus {
+  outline: none;
+}
+.net-cutaway-layer:focus-visible rect {
+  stroke: #3ddbd9;
+  stroke-width: 2.4;
+}
+
+/* ------------------------------------------------------------------ */
+/* Wireless scene                                                     */
+/* ------------------------------------------------------------------ */
+
+.net-device-box {
+  transition:
+    stroke 200ms ease,
+    fill 200ms ease;
+}
+
+/* Arcs leaving an antenna. Unlike .net-wave these grow from the antenna
+   edge, so the transform origin sits on the left. */
+@keyframes net-wave-arc {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.7);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+.net-wave-arc {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: net-wave-arc 1.9s ease-out infinite;
+}
+
+/* Dust motes standing in for "air" — nothing is carrying the signal
+   except the medium itself. */
+@keyframes net-air-mote {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+.net-air-mote {
+  animation: net-air-mote 2.4s ease-in-out infinite;
+}
+
+/* Packet crossing the air gap between the two antennas. */
+@keyframes net-travel-air {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(480px);
+  }
+}
+.net-travel-air {
+  animation: net-travel-air 3.2s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .net-wave-arc,
+  .net-air-mote,
+  .net-travel-air {
+    animation: none;
   }
 }
