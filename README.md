@@ -11,7 +11,7 @@ An interactive teaching site with two projects behind one home menu
    a moving satellite network.
 2. **Computer Network — Interactive Visual Learning Lab** (`#/network`) — a
    Bangla module for school and college students in Bangladesh. Server, client,
-   media, NIC, resources, user and protocol each get a plain-language
+   media, NIC, resources, user, protocol and topology each get a plain-language
    explanation, a clickable diagram or simulation, a real-life example and a
    short quiz.
 
@@ -37,6 +37,7 @@ telemetry, no real server and no real network traffic.
 | `#/network/resources` | Shared printer, shared file and email service |
 | `#/network/user` | User → browser → client device → network → server → back |
 | `#/network/protocol` | HTTP request/response, an HTTP-vs-HTTPS packet animation, a step-by-step TLS handshake and a protocol-rules simulation |
+| `#/network/topology` | Bus, ring, star, tree, full and partial mesh and a hybrid: cut cables (with real terminators on the bus), switch devices off and send a packet from any device to any other |
 | `#/network/learn` | Guided learning mode: the seven steps in order, with quizzes |
 | `#/network/challenge` | Challenge mode: order the download path, then five what-if scenarios |
 
@@ -109,6 +110,21 @@ real:
   later steps then collapse instead of pretending they happen.
   The difference table covers ports, plaintext vs ciphertext, identity, integrity,
   cost and where each protocol is used.
+- **Topology.** Seven network shapes share one stage: bus, ring, star, tree,
+  full mesh, partial mesh and a hybrid of a star, a ring and a core switch. The
+  bus is drawn as it really is — one coaxial cable, a tap and drop line per
+  device, and a 50 Ω terminator screwed onto each end. Every device can be
+  taken offline, every cable (and every bus segment) can be cut from the
+  drawing or from the chip list, and terminators can be removed one at a time.
+  A packet is only sent after the source and destination are chosen, so the
+  figure shows what actually happens: the shortest path on a star, tree, mesh
+  or ring (which sends one way), a hop-by-hop broadcast on a healthy bus, and a
+  reflection (echo) at a cut end or a missing terminator — which takes the whole
+  bus down, exactly as the physics demands. Devices that cannot be reached dim
+  out, the alternate-path check explains why a mesh survives what a star does
+  not, and the page closes each shape with its pros, cons and real deployments
+  (old 10BASE2 labs, car CAN buses, metro fibre rings, campus trees, the
+  internet backbone's partial mesh and Starlink's laser links).
 - **Guided mode** walks the seven topics in order with a question set each, and
   **challenge mode** asks for the download path in order (the router is optional,
   but only in the middle of the path) before five what-if scenarios.

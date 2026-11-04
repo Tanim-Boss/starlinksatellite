@@ -664,7 +664,157 @@ await wait(60);
 assert("scenario feedback explains the media", mainText().includes("কেবলই হলো মিডিয়া"));
 
 /* -------------------------------------------------------------------------- */
-/* 11. Reduced motion                                                          */
+/* 11. Topology lab                                                            */
+/* -------------------------------------------------------------------------- */
+
+await goto("#/network/topology", "টোপোলজি");
+assert("the topology page explains what a topology is", mainText().includes("সাজানোর আকারই টোপোলজি"));
+assert(
+  "all seven shapes are offered",
+  ["Bus", "Ring", "Star", "Tree", "Full Mesh", "Partial Mesh", "Hybrid"].every((name) =>
+    $$("button").some((node) => node.textContent.includes(name)),
+  ),
+);
+assert("the page explains the terminator", mainText().includes("টার্মিনেটর আসলে কী"));
+
+const ariaPrefix = (prefix) =>
+  $$('svg g[role="button"]').find((node) => node.getAttribute("aria-label")?.startsWith(prefix));
+const topologyButton = (en) => $$("button").find((node) => node.textContent.includes(en));
+const topoStatus = () => $("#topo-status")?.textContent ?? "";
+
+// The bus starts with a real terminator at each end.
+const terminatorButtons = $$('svg g[role="button"]').filter((node) =>
+  node.getAttribute("aria-label")?.includes("terminator"),
+);
+assert("the bus has two real terminators", terminatorButtons.length === 2, `${terminatorButtons.length}`);
+assert("the bus is drawn with clickable cables", $$('svg g[role="button"]').length >= 10);
+
+// Send a packet from PC1 to PC4 on the shared cable.
+assert(
+  "a destination can be picked",
+  Boolean(ariaButton("PC4 — গন্তব্য (প্রাপক) হিসেবে বেছে নাও")),
+);
+click(ariaButton("PC4 — গন্তব্য (প্রাপক) হিসেবে বেছে নাও"));
+await wait(60);
+click(button("প্যাকেট পাঠাও"));
+const busDelivered = await waitFor(() => topoStatus().includes("পৌঁছেছে"), 5000);
+assert("the packet is delivered along the bus", busDelivered);
+assert("the bus delivery explains the shared cable", topoStatus().includes("সব ডিভাইস শুনেছে"));
+
+// Cutting the cable without terminators echoes and corrupts the whole bus.
+const cutSegment = ariaPrefix("PC2 ↔ PC3");
+assert("a bus segment can be cut from the drawing", Boolean(cutSegment));
+click(cutSegment);
+await wait(80);
+assert("cutting the cable is announced", topoStatus().includes("তার কাটা গেল"));
+assert("the cut cable reports echo risk", topoStatus().includes("echo"));
+click(button("প্যাকেট পাঠাও"));
+const busFailed = await waitFor(() => topoStatus().includes("পুরো বাসের ডাটা নষ্ট"), 6000);
+assert("a cut bus reflects the signal instead of delivering", busFailed);
+assert("the whole bus goes down, not just one side", mainText().includes("১ / ৫"));
+
+// Repair everything, then remove a terminator: reflections again.
+click(button("সব ঠিক করো"));
+await wait(80);
+assert("everything can be restored", mainText().includes("সব ডিভাইস চালু"));
+click(ariaPrefix("বাম terminator"));
+await wait(80);
+assert("a terminator can be removed", topoStatus().includes("terminator খুলে ফেলা হলো"));
+click(button("প্যাকেট পাঠাও"));
+const echoAgain = await waitFor(() => topoStatus().includes("terminator নেই"), 6000);
+assert("a missing terminator echoes the signal", echoAgain);
+click(button("সব ঠিক করো"));
+await wait(60);
+
+// Star: one client fails alone, the centre takes everyone down.
+click(topologyButton("Star"));
+await wait(120);
+assert("the star stage renders its switch", Boolean(ariaButton("Switch — বন্ধ করো")));
+click(ariaButton("PC3 — বন্ধ করো"));
+await wait(60);
+click(button("প্যাকেট পাঠাও"));
+const starDelivered = await waitFor(() => topoStatus().includes("পৌঁছেছে"), 5000);
+assert("one offline client does not stop the rest of the star", starDelivered);
+click(ariaButton("PC3 — চালু করো"));
+await wait(60);
+click(ariaButton("Switch — বন্ধ করো"));
+await wait(60);
+assert("the centre switch is reported offline", mainText().includes("সংযোগযোগ্য ডিভাইস"));
+click(button("প্যাকেট পাঠাও"));
+const starFailed = await waitFor(() => topoStatus().includes("কোনো সচল পথ নেই"), 5000);
+assert("the centre switch is the star's single point of failure", starFailed);
+click(button("সব ঠিক করো"));
+await wait(60);
+
+// Ring: the packet follows one direction only.
+click(topologyButton("Ring"));
+await wait(120);
+assert("the ring shows a one-way cable", mainText().includes("এক দিকেই ঘোরে"));
+click(button("প্যাকেট পাঠাও"));
+const ringDelivered = await waitFor(() => topoStatus().includes("পৌঁছেছে"), 6000);
+assert("the ring delivers around the circle", ringDelivered);
+assert("the delivered route lists its hops", mainText().includes("hop"));
+
+// A cut on the canvas really blocks the route (not just the control chip).
+const ringCable = ariaPrefix("PC1 → PC2");
+click(ringCable);
+await wait(80);
+assert("a cut cable is marked on the drawing", ringCable?.getAttribute("aria-pressed") === "true");
+assert("the cut is reported", topoStatus().includes("তার কাটা গেল"));
+click(button("প্যাকেট পাঠাও"));
+const ringBlocked = await waitFor(() => topoStatus().includes("কোনো সচল পথ নেই"), 5000);
+assert("a cut ring cable blocks the packet", ringBlocked);
+click(button("সব ঠিক করো"));
+await wait(80);
+assert("the ring is repaired", !topoStatus().includes("কোনো সচল পথ নেই"));
+
+// Tree: cutting a branch keeps the other branch alive.
+click(topologyButton("Tree"));
+await wait(120);
+assert("the tree has a root switch", Boolean(ariaButton("Core — বন্ধ করো")));
+assert(
+  "the tree's branch switches are drawn too",
+  Boolean(ariaButton("SW1 — বন্ধ করো")) && Boolean(ariaButton("SW2 — বন্ধ করো")),
+);
+
+// Full mesh: two cut cables still leave a path.
+click(topologyButton("Full Mesh"));
+await wait(120);
+const meshCutA = ariaPrefix("PC1 ↔ PC2");
+const meshCutB = ariaPrefix("PC3 ↔ PC4");
+assert("mesh cables are cuttable", Boolean(meshCutA) && Boolean(meshCutB));
+click(meshCutA);
+await wait(60);
+click(meshCutB);
+await wait(80);
+assert(
+  "both mesh cuts are registered",
+  meshCutA?.getAttribute("aria-pressed") === "true" && meshCutB?.getAttribute("aria-pressed") === "true",
+);
+assert("the cut count is reported", mainText().includes("কাটা তার ২টি"));
+click(button("প্যাকেট পাঠাও"));
+const meshDelivered = await waitFor(() => topoStatus().includes("পৌঁছেছে"), 6000);
+assert("a full mesh keeps a path after two cuts", meshDelivered);
+assert("the mesh reports an alternate path", topoStatus().includes("বিকল্প পথ আছে"));
+
+// Partial mesh and hybrid both render.
+click(topologyButton("Partial Mesh"));
+await wait(120);
+assert("the partial mesh explains its trade-off", mainText().includes("সব জোড়া নয়"));
+click(topologyButton("Hybrid"));
+await wait(120);
+assert("the hybrid mixes a star and a ring", mainText().includes("বাঁ দিকে star"));
+assert("the hybrid keeps its ring one-way", Boolean(ariaPrefix("PC4 → PC5")));
+
+// The quiz answers and explains.
+assert("topology quiz answers correctly", choose('input[name="tp-1"][value="b"]'));
+await wait(60);
+assert("a correct topology answer explains itself", mainText().includes("ঠিক উত্তর!"));
+click(ariaButton("কুইজ আবার শুরু করো"));
+await wait(60);
+
+/* -------------------------------------------------------------------------- */
+/* 12. Reduced motion                                                          */
 /* -------------------------------------------------------------------------- */
 
 const reducedWindow = makeWindow(true, "#/network/playground");
@@ -690,6 +840,27 @@ reducedClick([...reducedWindow.document.querySelectorAll("button")].find((node) 
 await wait(120);
 assert("reduced motion users can still step by hand", reducedText().includes("প্যাকেটের ধাপসমূহ (২/৬)"));
 reducedWindow.close();
+
+// The topology lab skips its animation under reduced motion but still reports
+// the full result, so nothing is lost for visitors who cannot watch movement.
+const reducedTopology = makeWindow(true, "#/network/topology");
+const topologyReducedText = () => reducedTopology.document.querySelector("#main")?.textContent ?? "";
+await reducedWaitFor(() => topologyReducedText().includes("টোপোলজি ল্যাব"));
+await wait(150);
+const reducedSend = [...reducedTopology.document.querySelectorAll("button")].find(
+  (node) => node.textContent.trim() === "প্যাকেট পাঠাও",
+);
+reducedSend?.dispatchEvent(new reducedTopology.MouseEvent("click", { bubbles: true, cancelable: true }));
+await wait(400);
+assert(
+  "reduced motion still delivers a topology packet",
+  (reducedTopology.document.querySelector("#topo-status")?.textContent ?? "").includes("পৌঁছেছে"),
+);
+assert(
+  "reduced motion still lists the route",
+  (reducedTopology.document.querySelector("#main")?.textContent ?? "").includes("প্যাকেটের পথ"),
+);
+reducedTopology.close();
 
 assert("no runtime errors", errors.length === 0, errors.slice(0, 3).join(" | "));
 

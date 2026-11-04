@@ -48,6 +48,9 @@ const NetworkUser = lazy(() =>
 const NetworkProtocol = lazy(() =>
   import("@/pages/network/Protocol").then((m) => ({ default: m.NetworkProtocol })),
 );
+const NetworkTopology = lazy(() =>
+  import("@/pages/network/Topology").then((m) => ({ default: m.NetworkTopology })),
+);
 const NetworkLearn = lazy(() =>
   import("@/pages/network/Learn").then((m) => ({ default: m.NetworkLearn })),
 );
@@ -171,6 +174,8 @@ function renderRoute(path: string) {
       return <NetworkUser />;
     case "/network/protocol":
       return <NetworkProtocol />;
+    case "/network/topology":
+      return <NetworkTopology />;
     case "/network/learn":
       return <NetworkLearn />;
     case "/network/challenge":

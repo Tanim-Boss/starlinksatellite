@@ -26,6 +26,7 @@ const loaders: Record<string, Preloadable> = {
   "/network/resources": () => import("@/pages/network/Resources"),
   "/network/user": () => import("@/pages/network/User"),
   "/network/protocol": () => import("@/pages/network/Protocol"),
+  "/network/topology": () => import("@/pages/network/Topology"),
   "/network/learn": () => import("@/pages/network/Learn"),
   "/network/challenge": () => import("@/pages/network/Challenge"),
 };

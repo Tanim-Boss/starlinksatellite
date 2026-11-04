@@ -30,6 +30,7 @@ const ROUTES = [
   "/network/resources",
   "/network/user",
   "/network/protocol",
+  "/network/topology",
   "/network/learn",
   "/network/challenge",
 ];
@@ -50,6 +51,7 @@ const ROUTE_HEADINGS = {
   "/network/resources": "নেটওয়ার্ক রিসোর্স",
   "/network/user": "ইউজার, ক্লায়েন্ট ও সার্ভার",
   "/network/protocol": "প্রোটোকল",
+  "/network/topology": "টোপোলজি",
   "/network/learn": "ধাপে ধাপে শেখা",
   "/network/challenge": "চ্যালেঞ্জ মোড",
 };
