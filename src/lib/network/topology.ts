@@ -635,7 +635,9 @@ export function findRoute(
 /**
  * Every device the source can still reach, honouring offline devices and cut
  * cables. On a bus any cut or missing terminator takes the whole cable down,
- * because the unterminated ends echo the signal back into the segment.
+ * because the unterminated ends echo the signal back into the segment. A
+ * single (unprotected) ring is also one continuous transmission loop: one cut
+ * opens that loop, so the unterminated cut ends make the whole ring unusable.
  */
 export function reachableFrom(
   topo: Topology,
@@ -653,6 +655,12 @@ export function reachableFrom(
     }
     return new Set(topo.nodes.map((node) => node.id).filter((id) => !removed.has(id)));
   }
+
+  // This model is a basic single ring, not a self-healing dual ring. Even if
+  // two selected stations happen to sit before the cut in the arrow direction,
+  // the open loop has no terminator at its new ends; reflected/corrupt traffic
+  // therefore takes the entire ring down rather than leaving a usable chain.
+  if (topo.id === "ring" && cuts.size > 0) return new Set([from]);
 
   const graph = adjacency(topo, cuts);
   const seen = new Set<string>([from]);
@@ -762,6 +770,13 @@ export type SendOutcome =
       kind: "bus-echo";
       points: Point[];
       reason: "cut" | "terminator";
+      message: string;
+    }
+  | {
+      kind: "ring-echo";
+      path: string[];
+      points: Point[];
+      reason: "cut";
       message: string;
     }
   | {
@@ -886,6 +901,18 @@ export function planSend(
       ],
       hops: 1,
       broadcast: true,
+    };
+  }
+
+  if (topo.id === "ring" && cuts.size > 0) {
+    const frontier = frontierPath(topo, from, to, removed, cuts);
+    return {
+      kind: "ring-echo",
+      reason: "cut",
+      path: frontier,
+      points: routePoints(topo, frontier),
+      message:
+        "রিংয়ের একটি তার কাটা, তাই বদ্ধ লুপটি খুলে গেছে। কাটা প্রান্তে terminator নেই—সংকেত প্রতিফলিত (echo) হয়ে পুরো single ring অচল করেছে।",
     };
   }
 

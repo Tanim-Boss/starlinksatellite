@@ -199,9 +199,13 @@ export function TopologySim() {
       return;
     }
 
-    if (outcome.kind === "bus-echo") {
+    if (outcome.kind === "bus-echo" || outcome.kind === "ring-echo") {
       setPhase("running");
-      setStatus("প্যাকেট মূল তার বেয়ে যাচ্ছে…");
+      setStatus(
+        outcome.kind === "ring-echo"
+          ? "প্যাকেট রিং বেয়ে কাটা প্রান্তের দিকে যাচ্ছে…"
+          : "প্যাকেট মূল তার বেয়ে যাচ্ছে…",
+      );
       const arrived = await animate(outcome.points, HOP_MS);
       if (!arrived || token !== runRef.current) return;
       const end = outcome.points[outcome.points.length - 1];
@@ -416,7 +420,13 @@ export function TopologySim() {
                 source={source}
                 target={target}
                 onToggleCut={(edgeId, label) => {
-                  toggleCut(edgeId, `${label} তার কাটা গেল।`, `${label} তার আবার যুক্ত হলো।`);
+                  toggleCut(
+                    edgeId,
+                    topo.id === "ring"
+                      ? `${label} তার কাটা গেল — প্রান্তে terminator নেই, echo-র কারণে পুরো ring অচল।`
+                      : `${label} তার কাটা গেল।`,
+                    `${label} তার আবার যুক্ত হলো।`,
+                  );
                 }}
                 onToggleDevice={toggleDevice}
                 onKey={handleKey}
