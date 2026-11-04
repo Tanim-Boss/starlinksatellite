@@ -45,7 +45,7 @@ export const NETWORK_PAGES: NetworkPage[] = [
     title: "সার্ভার ও ক্লায়েন্ট",
     en: "Server and Client Simulation",
     blurb:
-      "একটি ইমেইল পাঠানোর গল্প দিয়ে দেখো কীভাবে ক্লায়েন্ট request তৈরি করে আর সার্ভার service দেয়।",
+      "ল্যাপটপ ও ডেস্কটপ ক্লায়েন্ট থেকে র‍্যাক সার্ভারে request পাঠাও — কিউ, latency, প্রসেসিং আর timeout লাইভ সিমুলেশনে দেখো।",
   },
   {
     id: "media",
