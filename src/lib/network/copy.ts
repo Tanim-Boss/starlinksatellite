@@ -1129,6 +1129,66 @@ export const QUIZZES: Record<string, Question[]> = {
       explain:
         "256-QAM-এ ২৫৬টি আলাদা প্রতীক, অর্থাৎ ২^৮ — এক প্রতীকে ৮ বিট। তবে এতে ভালো সংকেত (প্রায় ৩০ dB SNR) দরকার হয়।",
     },
+    {
+      id: "md-7",
+      prompt: "Hub-এ PC-01 থেকে PC-07-এর জন্য frame পাঠালে কী ঘটে?",
+      options: [
+        { id: "a", label: "Hub CAM table দেখে শুধু PC-07-এর port-এ পাঠায়" },
+        { id: "b", label: "Hub source বাদে সব port-এ কপি পাঠায়; শুধু PC-07-এর NIC MAC মিলিয়ে গ্রহণ করে" },
+        { id: "c", label: "Hub Destination IP দেখে অন্য নেটওয়ার্কে route করে" },
+      ],
+      answer: "b",
+      explain:
+        "Hub Layer-1 repeater—সে MAC পড়ে না। সবাই কপি পায়, কিন্তু Destination MAC শুধু PC-07-এর NIC-এর সঙ্গে মেলে বলে বাকিরা frame বাতিল করে।",
+    },
+    {
+      id: "md-8",
+      prompt: "Switch কী দেখে MAC address শেখে?",
+      options: [
+        { id: "a", label: "আসা frame-এর Source MAC ও যে port দিয়ে frame এল" },
+        { id: "b", label: "শুধু Destination IP address" },
+        { id: "c", label: "ডিভাইসের ব্যবহারকারীর নাম" },
+      ],
+      answer: "a",
+      explain:
+        "Switch CAM table-এ Source MAC → incoming port সংরক্ষণ করে। পরে ওই MAC Destination হিসেবে এলে সংরক্ষিত port দিয়েই frame পাঠানো হয়।",
+    },
+    {
+      id: "md-9",
+      prompt: "Switch-এর CAM table-এ Destination MAC না থাকলে প্রথম frame কী হয়?",
+      options: [
+        { id: "a", label: "সঙ্গে সঙ্গে স্থায়ীভাবে drop হয়ে যায়" },
+        { id: "b", label: "Router-এর কাছে পাঠিয়ে দেওয়া হয়" },
+        { id: "c", label: "Source port বাদে সব port-এ flood হয়; reply এলে switch ওই MAC শিখতে পারে" },
+      ],
+      answer: "c",
+      explain:
+        "Unknown unicast flooding সাময়িক ব্যবস্থা। প্রাপক reply দিলে তার Source MAC দেখে switch port শিখে নেয়, এরপরের frame শুধু ওই port-এ যায়।",
+    },
+    {
+      id: "md-10",
+      prompt: "একটি IP packet অনেক router পেরোনোর সময় সাধারণত কোনটি অপরিবর্তিত থাকে?",
+      options: [
+        { id: "a", label: "Destination IP address" },
+        { id: "b", label: "প্রতিটি লিংকের Layer-2 frame" },
+        { id: "c", label: "TTL-এর মান" },
+      ],
+      answer: "a",
+      explain:
+        "প্রতিটি hop-এ বাইরের frame বদলায় ও TTL কমে, কিন্তু IP packet-এর Destination IP শেষ পর্যন্ত একই থাকে। প্রতিটি router নিজের table দেখে শুধু next hop ঠিক করে।",
+    },
+    {
+      id: "md-11",
+      prompt: "Modulator-এর প্রধান কাজ কোনটি?",
+      options: [
+        { id: "a", label: "IP address দেখে best route বেছে নেওয়া" },
+        { id: "b", label: "Digital bit অনুযায়ী carrier wave-এর amplitude, frequency বা phase বদলানো" },
+        { id: "c", label: "MAC address CAM table-এ সংরক্ষণ করা" },
+      ],
+      answer: "b",
+      explain:
+        "Modulator bit-কে carrier wave-এর পরিবর্তনে এনকোড করে; Demodulator সেই পরিবর্তন মেপে আবার bit বের করে। Route বেছে নেওয়া router-এর, CAM table switch-এর কাজ।",
+    },
   ],
   nic: [
     {
@@ -1406,6 +1466,7 @@ export const GUIDED_STEPS: GuidedStep[] = [
     explanation: [
       "মিডিয়া হলো ডাটা বহনের মাধ্যম — তামার তার, কাচের ফাইবার বা বেতার তরঙ্গ।",
       "মিডিয়া নিজে সার্ভার, ক্লায়েন্ট বা প্রোটোকল নয়; এটি শুধু পথ।",
+      "এই পথের ওপর Hub signal repeat করে, Switch MAC দেখে port বেছে নেয়, Router IP দেখে next hop ঠিক করে, আর MODEM bit-কে carrier wave-এ বদলায়।",
       "মিডিয়া বিচ্ছিন্ন হলে প্যাকেট চলার পথই থাকে না, তখন সংযোগ বিচ্ছিন্ন দেখায়।",
     ],
     exampleLabel: "বাস্তব উদাহরণ",

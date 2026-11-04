@@ -54,7 +54,7 @@ export const NETWORK_PAGES: NetworkPage[] = [
     title: "নেটওয়ার্ক মিডিয়া",
     en: "Network Media Visualization",
     blurb:
-      "কোঅ্যাক্সিয়াল, ইথারনেট ও অপটিক্যাল কেবলের আসল ছবি ও কানেক্টর, সাথে তারহীন বেতার মাধ্যমে ডাটা চলার ধাপে ধাপে চিত্র।",
+      "Hub, Switch, Router ও MODEM-এর বাস্তব ছবি ও সিমুলেশন—১০টি ডিভাইসে MAC broadcast/unicast, CAM table, Internet routing, modulation; সাথে কেবল, কানেক্টর ও বেতার মাধ্যম।",
   },
   {
     id: "nic",
