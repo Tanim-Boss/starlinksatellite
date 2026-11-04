@@ -97,9 +97,16 @@ real:
   clear text and only ciphertext from the second; a switch turns the TLS layer
   off so HTTPS collapses back into HTTP. A TLS sequence diagram then walks the
   handshake (ClientHello, ServerHello, certificate, verification, ECDHE key
-  exchange, session key, Finished, encrypted HTTP) on a step player, with a
-  session-key panel that fills in only once both sides derive the same key and a
-  forged-certificate switch that stops the connection before any key exists.
+  exchange, session key, Finished, encrypted HTTP) on a step player: every row
+  carries the technical message name *and* its meaning in one Bangla line, the
+  eight messages are grouped into the three jobs they do (identity, key,
+  tunnel), and messages that have not happened yet stay visible as faint ghosts.
+  A reading-depth switch (সহজ / মাধ্যমিক / বিস্তারিত) swaps the explanation
+  without touching the diagram, so class 6 and class 12 read the same picture at
+  the depth they need, and every step keeps a real-life analogy. A session-key
+  panel fills in only once both sides derive the same key, and a
+  forged-certificate switch stops the connection before any key exists — the
+  later steps then collapse instead of pretending they happen.
   The difference table covers ports, plaintext vs ciphertext, identity, integrity,
   cost and where each protocol is used.
 - **Guided mode** walks the seven topics in order with a question set each, and

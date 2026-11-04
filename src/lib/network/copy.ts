@@ -644,12 +644,62 @@ export const HTTP_HTTPS_DIFF: DiffRow[] = [
 
 export type TlsDirection = "request" | "reply" | "both" | "local";
 
+/** The three jobs the handshake has to finish, in order. */
+export type TlsPhaseId = "identity" | "keys" | "tunnel";
+
+export interface TlsPhase {
+  id: TlsPhaseId;
+  /** Bangla name of the job. */
+  title: string;
+  /** The question this phase answers, in one line. */
+  question: string;
+  /** Hex accent shared with the diagram and the goal cards. */
+  color: string;
+}
+
+/**
+ * Read top to bottom, a handshake does three things. Every step below belongs
+ * to exactly one of them, which is what makes eight messages feel like three
+ * ideas instead of eight things to memorise.
+ */
+export const TLS_PHASES: TlsPhase[] = [
+  {
+    id: "identity",
+    title: "পরিচয় যাচাই",
+    question: "সামনের সার্ভারটি কি সত্যিই যাকে বলে সে-ই?",
+    color: "#3ddbd9",
+  },
+  {
+    id: "keys",
+    title: "গোপন চাবি",
+    question: "দুই পক্ষের কাছে একই চাবি হবে কীভাবে?",
+    color: "#a78bfa",
+  },
+  {
+    id: "tunnel",
+    title: "নিরাপদ টানেল",
+    question: "এখন সব কথা এনক্রিপ্টেড যাবে তো?",
+    color: "#fbbf24",
+  },
+];
+
 export interface TlsStep {
   id: string;
   title: string;
+  /** Which of the three jobs this message belongs to. */
+  phase: TlsPhaseId;
   /** Who is talking, in Bangla. */
   tag: string;
+  /** One sentence a younger student can hold on to. */
+  simple: string;
+  /** The full explanation for the middle school level. */
   body: string;
+  /** The wire-level detail for senior students. */
+  detail: string;
+  /** Everyday comparison — the same idea without any networking words. */
+  analogy: string;
+  /** Short Bangla meaning drawn under the arrow in the diagram. */
+  moment: string;
   /** The bytes on the wire, as simplified lines. */
   wire: string[];
   direction: TlsDirection;
@@ -662,16 +712,28 @@ export interface TlsStep {
  * in the open, then a symmetric session key for everything that follows. Real
  * TLS 1.3 encrypts the certificate and folds the key share into hello messages;
  * the note under the figure says so.
+ *
+ * Each step carries three depths of the same idea — `simple`, `body`,
+ * `detail` — so one diagram serves a class 6 reader and a class 12 reader
+ * without either of them feeling talked down to.
  */
 export const TLS_STEPS: TlsStep[] = [
   {
     id: "client-hello",
     title: "ClientHello — ব্রাউজার হাত বাড়াল",
+    phase: "identity",
     tag: "ক্লায়েন্ট → সার্ভার",
     direction: "request",
     encrypted: false,
+    moment: "আমি এই ভাষাগুলো বুঝি",
+    simple:
+      "ব্রাউজার সার্ভারকে বলে সে কোন নিয়মগুলো বোঝে, আর একটা এলোমেলো সংখ্যা পাঠায়। এই কথাটা সবাই শুনলেও ক্ষতি নেই।",
     body:
       "ব্রাউজার বলে সে কোন TLS সংস্করণ বোঝে, কোন কোন cipher (এনক্রিপশনের পদ্ধতি) সমর্থন করে এবং একটি random সংখ্যা পাঠায়। এই বার্তায় গোপন কিছু নেই, তাই এটি খোলা থাকলেও ক্ষতি নেই।",
+    detail:
+      "TLS 1.3-এ ClientHello-তে supported_versions, cipher_suites, client random এবং ECDHE key_share (পাবলিক key) থাকে। key share প্রথম বার্তাতেই যাওয়ায় আলাদা key exchange ধাপ লাগে না — তাই এক round trip-এ কাজ শেষ।",
+    analogy:
+      "দোকানে ঢুকে বললে — “আমি বাংলা আর ইংরেজি বুঝি, তুমি কোনটায় কথা বলবে?” পাশে দাঁড়ানো মানুষও শুনতে পায়, তাতে কোনো ক্ষতি নেই।",
     wire: [
       "ClientHello",
       "version: TLS 1.3",
@@ -682,11 +744,19 @@ export const TLS_STEPS: TlsStep[] = [
   {
     id: "server-hello",
     title: "ServerHello — সার্ভার পছন্দ জানাল",
+    phase: "identity",
     tag: "সার্ভার → ক্লায়েন্ট",
     direction: "reply",
     encrypted: false,
+    moment: "তাহলে এই ভাষাতেই চলো",
+    simple:
+      "সার্ভার একটা নিয়ম বেছে নেয়, নিজের এলোমেলো সংখ্যা দেয়, আর চাবি বানানোর প্রথম অংশ পাঠায়।",
     body:
       "সার্ভার একটি cipher বেছে নিয়ে জানায়, নিজের random সংখ্যা পাঠায় এবং ECDHE key share দেয়। দুই পক্ষের এই random পরে session key তৈরিতে মেশে।",
+    detail:
+      "সার্ভার cipher suite বেছে নেয় এবং server random ও নিজের ECDHE public share পাঠায়। এই দুটি পাবলিক মান থেকেই দুই পক্ষ আলাদাভাবে একই shared secret বের করতে পারবে।",
+    analogy:
+      "দোকানদার বলল — “ইংরেজি চলবে”, আর একটা টোকেন নম্বর দিল। এখন দুইজনের কাছেই একটা করে নম্বর আছে।",
     wire: [
       "ServerHello",
       "chosen: TLS_AES_128_GCM_SHA256",
@@ -697,11 +767,19 @@ export const TLS_STEPS: TlsStep[] = [
   {
     id: "certificate",
     title: "Certificate — সার্ভার পরিচয় দিল",
+    phase: "identity",
     tag: "সার্ভার → ক্লায়েন্ট",
     direction: "reply",
     encrypted: false,
+    moment: "এই যে আমার পরিচয়পত্র",
+    simple:
+      "সার্ভার তার সার্টিফিকেট পাঠায়। এটি সরকারি সিলমোহরের মতো — প্রমাণ করে সাইটটি সত্যিই bank.example, নকল নয়।",
     body:
       "সার্ভার তার সার্টিফিকেট পাঠায়। এতে ডোমেইনের নাম, পাবলিক কী এবং Certificate Authority (CA)-এর ডিজিটাল স্বাক্ষর থাকে — যা প্রমাণ করে সার্টিফিকেটটি জাল নয়।",
+    detail:
+      "সার্টিফিকেটে subject (CN/SAN), public key, বৈধতার মেয়াদ এবং issuer CA-র ডিজিটাল স্বাক্ষর থাকে। TLS 1.2-তে এটি খোলা থাকে; TLS 1.3-এ সার্টিফিকেটও হ্যান্ডশেক চাবিতে এনক্রিপ্ট হয়ে যায়।",
+    analogy:
+      "দোকানদার দেয়ালে সরকারি লাইসেন্স দেখাল, যাতে তুমি নিশ্চিত হও এটা আসল দোকান — পাশের গলির নকলটা নয়।",
     wire: [
       "Certificate",
       "CN: bank.example",
@@ -712,11 +790,19 @@ export const TLS_STEPS: TlsStep[] = [
   {
     id: "verify",
     title: "সার্টিফিকেট যাচাই — ব্রাউজারের নিজের কাজ",
+    phase: "identity",
     tag: "ক্লায়েন্ট · নিজের ভেতরে",
     direction: "local",
     encrypted: false,
+    moment: "সিলমোহরটা আসল তো?",
+    simple:
+      "ব্রাউজার নিজের ভেতরের বিশ্বস্ত তালিকা মিলিয়ে দেখে — সিলমোহর আসল কি না, নাম মিলছে কি না, মেয়াদ শেষ কি না। একটাও না মিললে সংযোগ এখানেই বন্ধ।",
     body:
       "ব্রাউজার নিজের ভেতরে রাখা বিশ্বস্ত CA-র তালিকা মিলিয়ে দেখে — স্বাক্ষর ঠিক আছে কি? ডোমেইন নাম মিলছে? মেয়াদ শেষ হয়নি? একটিও না মিললে সংযোগ এখানেই বাতিল হয়ে যায়।",
+    detail:
+      "ব্রাউজার trust store-এর root/intermediate CA দিয়ে certificate chain যাচাই করে, তারপর hostname (SAN) মেলায়, মেয়াদ ও revocation (CRL/OCSP) দেখে। যেকোনো একটি ব্যর্থ হলে handshake abort — কোনো চাবিই তৈরি হয় না।",
+    analogy:
+      "তুমি ফোনে সরকারি ওয়েবসাইটে গিয়ে লাইসেন্স নম্বরটা মিলিয়ে নিলে। নকল বেরোলে তুমি দোকানে ঢুকতেই না — টাকা দেওয়ার প্রশ্নই আসে না।",
     wire: [
       "signature → CA trusted ✓",
       "domain → bank.example ✓",
@@ -726,21 +812,37 @@ export const TLS_STEPS: TlsStep[] = [
   {
     id: "key-exchange",
     title: "Key exchange — দুই পক্ষ গোপন ভাগ তৈরি করল",
+    phase: "keys",
     tag: "দুই পক্ষ · ECDHE",
     direction: "both",
     encrypted: false,
+    moment: "গোপন সংখ্যাটা দুইজনে মিলল",
+    simple:
+      "দুই পক্ষ মিলে একটা গোপন সংখ্যা বানায়, কিন্তু সংখ্যাটা কেউ কাউকে পাঠায় না — নিজের নিজের হিসাব করে বের করে।",
     body:
       "ECDHE পদ্ধতিতে দুই পক্ষ key share বিনিময় করে এবং প্রত্যেকে আলাদাভাবে একই shared secret হিসাব করে। মাঝপথে কেউ বার্তা শুনলেও এই গণিত থেকে গোপন সংখ্যাটি বের করতে পারে না।",
+    detail:
+      "ECDHE-তে প্রত্যেকে ephemeral key pair বানায়, শুধু public share বিনিময় করে, তারপর নিজের private key দিয়ে একই shared secret পায়। Curve-এর discrete log উল্টো করা বাস্তবে অসম্ভব — তাই পথে সব দেখেও কেউ secret বের করতে পারে না।",
+    analogy:
+      "দুই বন্ধু আলাদা আলাদা রঙ মিশিয়ে হুবহু একই রঙ বানাল, কিন্তু কেউ কাউকে রেসিপি বলল না। পাশে দাঁড়ানো কেউ দুটো রঙ দেখলেও মিশ্রণটা জানে না।",
     wire: ["ECDHE key shares", "shared secret — কখনো পাঠানো হয় না"],
   },
   {
     id: "session-key",
     title: "Session key — একই চাবি দুই প্রান্তে",
+    phase: "keys",
     tag: "দুই পক্ষ · নিজের ভেতরে",
     direction: "local",
     encrypted: false,
+    moment: "দুইজনের হাতে একই চাবি",
+    simple:
+      "দুই এলোমেলো সংখ্যা আর গোপন সংখ্যা মিশিয়ে দুই পক্ষ একই চাবি বানায়। এরপর সব কথা এই চাবিতে তালাবন্ধ হবে।",
     body:
       "দুই random ও shared secret মিশিয়ে দুই পক্ষ আলাদাভাবে একই symmetric session key বানায়। এরপর সব ডাটা এনক্রিপ্ট হয় এই চাবিতে — symmetric বলে এটি খুব দ্রুত কাজ করে।",
+    detail:
+      "HKDF দিয়ে (client random + server random + shared secret) থেকে key block বের হয়; সেখান থেকেই session key, IV/nonce এবং MAC key আসে। প্রতি সংযোগে নতুন চাবি (forward secrecy), তাই পুরোনো চাবি ফাঁস হলেও আগের কথা পড়া যায় না।",
+    analogy:
+      "একই তালার দুটি চাবি — একটা তোমার পকেটে, একটা দোকানদারের পকেটে। তালাটা খুলতে দুজনকেই আলাদা করে চাবি বানাতে হলো, কিন্তু চাবি একই।",
     wire: [
       "client random + server random + secret",
       "→ session key: 4f 0b 9e 22 …",
@@ -749,23 +851,55 @@ export const TLS_STEPS: TlsStep[] = [
   {
     id: "finished",
     title: "Finished — কেউ বদলায়নি তা যাচাই",
+    phase: "tunnel",
     tag: "দুই পক্ষ",
     direction: "both",
     encrypted: true,
+    moment: "কেউ কিছু বদলায়নি তো?",
+    simple:
+      "দুই পক্ষ মিলিয়ে দেখে এতক্ষণের সব বার্তা অক্ষত আছে। মাঝপথে কেউ একটা অক্ষর বদলালেও ধরা পড়বে।",
     body:
       "দুই পক্ষ এতক্ষণের পুরো handshake-এর hash মিলিয়ে দেখে। মাঝপথের কেউ কোনো বার্তা বদলে দিলে এই হিসাব মিলবে না, সংযোগ ব্যর্থ হবে — অর্থাৎ অখণ্ডতাও রক্ষা পায়।",
+    detail:
+      "Finished বার্তায় handshake transcript-এর hash একটি AEAD tag/HMAC হিসেবে যায়। এক বাইট বদলালেই tag মিলবে না — তাই MITM-এর বদলানো বার্তা ধরার এটাই শেষ প্রহরী।",
+    analogy:
+      "তুমি আর দোকানদার মিলে পুরো কথোপকথনের একটা ছোট্ট সারমর্ম মিলিয়ে দেখলে। মাঝখানে কেউ একটা শব্দ বদলালে সারমর্মই আর মিলবে না।",
     wire: ["Finished (encrypted)", "handshake hash verified ✓"],
   },
   {
     id: "data",
     title: "এবার HTTP — টানেলের ভেতরে",
+    phase: "tunnel",
     tag: "দুই পক্ষ",
     direction: "both",
     encrypted: true,
+    moment: "এখন নিরাপদে কথা বলা যাবে",
+    simple:
+      "হ্যান্ডশেক শেষ, তালা বন্ধ। এখন স্বাভাবিক HTTP চলবে, কিন্তু প্রতিটি বাইট এনক্রিপ্ট হয়ে যাবে।",
     body:
       "handshake শেষ, তালা বন্ধ। এখন স্বাভাবিক HTTP request-response চলবে, কিন্তু প্রতিটি বাইট এনক্রিপ্টেড। ব্রাউজারের তালা আইকনটাই এই কথার সংকেত।",
+    detail:
+      "record layer-এ প্রতিটি application data TLS record হয়: AEAD (AES-GCM বা ChaCha20-Poly1305) দিয়ে encrypt হয় এবং auth tag যোগ হয়। HTTP-র অর্থ বা নিয়ম বদলায় না — শুধু বাইরের খোলস বদলায়।",
+    analogy:
+      "এরপর সব কথা কাগজে লিখে বাক্সে ভরে তালাবন্ধ করে পাঠানো — পথে কেউ বাক্স হাতে পেলেও খুলতে পারবে না।",
     wire: ["GET /login → ciphertext", "200 OK → ciphertext"],
   },
+];
+
+/** How deep the learner wants each step explained. */
+export type TlsLevel = "simple" | "medium" | "deep";
+
+export interface TlsLevelOption {
+  id: TlsLevel;
+  label: string;
+  /** Who the depth is written for. */
+  note: string;
+}
+
+export const TLS_LEVELS: TlsLevelOption[] = [
+  { id: "simple", label: "সহজ", note: "৬–৮ম শ্রেণি · এক বাক্যে মূল কথা" },
+  { id: "medium", label: "মাধ্যমিক", note: "৯–১০ম শ্রেণি · কী হচ্ছে ও কেন" },
+  { id: "deep", label: "বিস্তারিত", note: "একাদশ+ · বার্তার ভেতরের খুঁটিনাটি" },
 ];
 
 export const TLS_NOTE =
