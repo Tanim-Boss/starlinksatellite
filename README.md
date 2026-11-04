@@ -36,7 +36,7 @@ telemetry, no real server and no real network traffic.
 | `#/network/nic` | Inside one computer: where the NIC sits and what it does |
 | `#/network/resources` | Shared printer, shared file and email service |
 | `#/network/user` | User → browser → client device → network → server → back |
-| `#/network/protocol` | HTTP request/response plus a protocol-rules simulation |
+| `#/network/protocol` | HTTP request/response, an HTTP-vs-HTTPS packet animation, a step-by-step TLS handshake and a protocol-rules simulation |
 | `#/network/learn` | Guided learning mode: the seven steps in order, with quizzes |
 | `#/network/challenge` | Challenge mode: order the download path, then five what-if scenarios |
 
@@ -91,7 +91,17 @@ real:
   difference between a user and a client spelled out.
 - **Protocol.** A simplified HTTP message inspector fills in as the steps run,
   then a rules simulation accepts `GET /index.html HTTP/1.1` and rejects a
-  request with no path, an unknown version or an unknown method.
+  request with no path, an unknown version or an unknown method. Below that, the
+  same message is sent down two animated lanes at once — plain HTTP and HTTPS —
+  past an attacker sitting in the middle of the network who reads the first in
+  clear text and only ciphertext from the second; a switch turns the TLS layer
+  off so HTTPS collapses back into HTTP. A TLS sequence diagram then walks the
+  handshake (ClientHello, ServerHello, certificate, verification, ECDHE key
+  exchange, session key, Finished, encrypted HTTP) on a step player, with a
+  session-key panel that fills in only once both sides derive the same key and a
+  forged-certificate switch that stops the connection before any key exists.
+  The difference table covers ports, plaintext vs ciphertext, identity, integrity,
+  cost and where each protocol is used.
 - **Guided mode** walks the seven topics in order with a question set each, and
   **challenge mode** asks for the download path in order (the router is optional,
   but only in the middle of the path) before five what-if scenarios.

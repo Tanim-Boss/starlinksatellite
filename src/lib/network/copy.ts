@@ -537,6 +537,241 @@ export const PROTOCOL_CASES: RuleCase[] = [
 ];
 
 /* -------------------------------------------------------------------------- */
+/* HTTPS — the same HTTP inside a TLS tunnel                                  */
+/* -------------------------------------------------------------------------- */
+
+export const HTTPS_DEFINITION =
+  "HTTPS মানে নতুন কোনো প্রোটোকল নয় — HTTP-র নিয়মই, শুধু TLS নামের একটি নিরাপত্তা স্তরের ভেতর দিয়ে পাঠানো হয়। আগে TLS handshake-এ দুই পক্ষ একটি চাবি ঠিক করে, তারপর সেই চাবি দিয়ে প্রতিটি HTTP বার্তা এনক্রিপ্ট হয়।";
+
+export const HTTPS_NOTE =
+  "তালা (🔒) মানে এই নয় যে সার্ভার ভালো — এর মানে শুধু এই: যে সার্ভারের সঙ্গে কথা হচ্ছে তার পরিচয় সার্টিফিকেট দিয়ে যাচাই হয়েছে, আর মাঝপথে কেউ ডাটা পড়তে বা বদলাতে পারছে না।";
+
+export interface PayloadSample {
+  id: string;
+  /** What the user thinks they are sending. */
+  label: string;
+  /** The bytes as they leave over plain HTTP. */
+  plain: string;
+  /** The same request after TLS encryption. */
+  cipher: string;
+  /** Why leaking these particular bytes matters. */
+  risk: string;
+}
+
+/** Messages a student can "send" down both lanes in the comparison scene. */
+export const PAYLOAD_SAMPLES: PayloadSample[] = [
+  {
+    id: "password",
+    label: "লগইন পাসওয়ার্ড",
+    plain: "password=rahim1234",
+    cipher: "9f 3a c1 7e 04 bd 62 … e1 55 8a",
+    risk: "পাসওয়ার্ড পড়তে পারলে অন্য কেউ তোমার অ্যাকাউন্টে ঢুকে পড়তে পারে।",
+  },
+  {
+    id: "otp",
+    label: "ব্যাংকের OTP",
+    plain: "otp=482913",
+    cipher: "d2 71 0a 5c 88 3f … 96 b0 4e",
+    risk: "OTP হাতে পেলে টাকা সরিয়ে নেওয়া যায় — OTP কখনো কারো সঙ্গে ভাগ করো না।",
+  },
+  {
+    id: "exam",
+    label: "প্রশ্নপত্রের ফাইল",
+    plain: "GET /exam-2026.pdf",
+    cipher: "4e a7 b0 12 c9 03 … dd 7f 1a",
+    risk: "কেউ পড়ে ফেললে গোপন প্রশ্ন পরীক্ষার আগেই ছড়িয়ে যেতে পারে।",
+  },
+];
+
+export interface DiffRow {
+  id: string;
+  topic: string;
+  http: string;
+  https: string;
+}
+
+/** One row per difference shown in the comparison table. */
+export const HTTP_HTTPS_DIFF: DiffRow[] = [
+  {
+    id: "port",
+    topic: "ডিফল্ট পোর্ট",
+    http: "৮০",
+    https: "৪৪৩",
+  },
+  {
+    id: "wire",
+    topic: "তারে যা যায়",
+    http: "প্লেইন টেক্সট — যে কেউ পড়ে ফেলতে পারে",
+    https: "সাইফারটেক্সট — অর্থ বোঝা যায় না",
+  },
+  {
+    id: "start",
+    topic: "শুরুর কাজ",
+    http: "কোনো handshake নেই, সরাসরি request",
+    https: "TLS handshake — চাবি ঠিক করে এনক্রিপশন চালু",
+  },
+  {
+    id: "identity",
+    topic: "সার্ভারের পরিচয়",
+    http: "যাচাই হয় না — যে কেউ নিজেকে সার্ভার বলে বসতে পারে",
+    https: "CA-স্বাক্ষরিত সার্টিফিকেট দিয়ে যাচাই",
+  },
+  {
+    id: "integrity",
+    topic: "বার্তা বদলানো",
+    http: "মাঝপথে বদলে দেওয়া সম্ভব, ধরার উপায় নেই",
+    https: "MAC/AEAD যাচাই — বদলালে সংযোগ ব্যর্থ",
+  },
+  {
+    id: "browser",
+    topic: "ব্রাউজার যা দেখায়",
+    http: "“Not secure” সতর্কতা, খোলা তালা",
+    https: "https:// আর বন্ধ তালা 🔒",
+  },
+  {
+    id: "cost",
+    topic: "খরচ",
+    http: "বাড়তি কোনো ধাপ নেই, একটু দ্রুত",
+    https: "হ্যান্ডশেকের জন্য সামান্য বাড়তি সময় (~১ round trip)",
+  },
+  {
+    id: "use",
+    topic: "কোথায় ব্যবহার হয়",
+    http: "পুরোনো বা শিক্ষামূলক সাইট, খোলা ডকুমেন্ট",
+    https: "লগইন, ব্যাংক, ইমেইল — সব আধুনিক ওয়েবসাইট",
+  },
+];
+
+export type TlsDirection = "request" | "reply" | "both" | "local";
+
+export interface TlsStep {
+  id: string;
+  title: string;
+  /** Who is talking, in Bangla. */
+  tag: string;
+  body: string;
+  /** The bytes on the wire, as simplified lines. */
+  wire: string[];
+  direction: TlsDirection;
+  /** True once the message itself is encrypted. */
+  encrypted: boolean;
+}
+
+/**
+ * The TLS handshake, simplified for teaching: one round trip, certificate out
+ * in the open, then a symmetric session key for everything that follows. Real
+ * TLS 1.3 encrypts the certificate and folds the key share into hello messages;
+ * the note under the figure says so.
+ */
+export const TLS_STEPS: TlsStep[] = [
+  {
+    id: "client-hello",
+    title: "ClientHello — ব্রাউজার হাত বাড়াল",
+    tag: "ক্লায়েন্ট → সার্ভার",
+    direction: "request",
+    encrypted: false,
+    body:
+      "ব্রাউজার বলে সে কোন TLS সংস্করণ বোঝে, কোন কোন cipher (এনক্রিপশনের পদ্ধতি) সমর্থন করে এবং একটি random সংখ্যা পাঠায়। এই বার্তায় গোপন কিছু নেই, তাই এটি খোলা থাকলেও ক্ষতি নেই।",
+    wire: [
+      "ClientHello",
+      "version: TLS 1.3",
+      "ciphers: AES-128-GCM, CHACHA20",
+      "client random: a7 1f 9c 2b …",
+    ],
+  },
+  {
+    id: "server-hello",
+    title: "ServerHello — সার্ভার পছন্দ জানাল",
+    tag: "সার্ভার → ক্লায়েন্ট",
+    direction: "reply",
+    encrypted: false,
+    body:
+      "সার্ভার একটি cipher বেছে নিয়ে জানায়, নিজের random সংখ্যা পাঠায় এবং ECDHE key share দেয়। দুই পক্ষের এই random পরে session key তৈরিতে মেশে।",
+    wire: [
+      "ServerHello",
+      "chosen: TLS_AES_128_GCM_SHA256",
+      "server random: 3c 82 5e 11 …",
+      "key share: ECDHE P-256",
+    ],
+  },
+  {
+    id: "certificate",
+    title: "Certificate — সার্ভার পরিচয় দিল",
+    tag: "সার্ভার → ক্লায়েন্ট",
+    direction: "reply",
+    encrypted: false,
+    body:
+      "সার্ভার তার সার্টিফিকেট পাঠায়। এতে ডোমেইনের নাম, পাবলিক কী এবং Certificate Authority (CA)-এর ডিজিটাল স্বাক্ষর থাকে — যা প্রমাণ করে সার্টিফিকেটটি জাল নয়।",
+    wire: [
+      "Certificate",
+      "CN: bank.example",
+      "issuer: Trusted Root CA",
+      "signature: ED25519 …",
+    ],
+  },
+  {
+    id: "verify",
+    title: "সার্টিফিকেট যাচাই — ব্রাউজারের নিজের কাজ",
+    tag: "ক্লায়েন্ট · নিজের ভেতরে",
+    direction: "local",
+    encrypted: false,
+    body:
+      "ব্রাউজার নিজের ভেতরে রাখা বিশ্বস্ত CA-র তালিকা মিলিয়ে দেখে — স্বাক্ষর ঠিক আছে কি? ডোমেইন নাম মিলছে? মেয়াদ শেষ হয়নি? একটিও না মিললে সংযোগ এখানেই বাতিল হয়ে যায়।",
+    wire: [
+      "signature → CA trusted ✓",
+      "domain → bank.example ✓",
+      "expiry → valid ✓",
+    ],
+  },
+  {
+    id: "key-exchange",
+    title: "Key exchange — দুই পক্ষ গোপন ভাগ তৈরি করল",
+    tag: "দুই পক্ষ · ECDHE",
+    direction: "both",
+    encrypted: false,
+    body:
+      "ECDHE পদ্ধতিতে দুই পক্ষ key share বিনিময় করে এবং প্রত্যেকে আলাদাভাবে একই shared secret হিসাব করে। মাঝপথে কেউ বার্তা শুনলেও এই গণিত থেকে গোপন সংখ্যাটি বের করতে পারে না।",
+    wire: ["ECDHE key shares", "shared secret — কখনো পাঠানো হয় না"],
+  },
+  {
+    id: "session-key",
+    title: "Session key — একই চাবি দুই প্রান্তে",
+    tag: "দুই পক্ষ · নিজের ভেতরে",
+    direction: "local",
+    encrypted: false,
+    body:
+      "দুই random ও shared secret মিশিয়ে দুই পক্ষ আলাদাভাবে একই symmetric session key বানায়। এরপর সব ডাটা এনক্রিপ্ট হয় এই চাবিতে — symmetric বলে এটি খুব দ্রুত কাজ করে।",
+    wire: [
+      "client random + server random + secret",
+      "→ session key: 4f 0b 9e 22 …",
+    ],
+  },
+  {
+    id: "finished",
+    title: "Finished — কেউ বদলায়নি তা যাচাই",
+    tag: "দুই পক্ষ",
+    direction: "both",
+    encrypted: true,
+    body:
+      "দুই পক্ষ এতক্ষণের পুরো handshake-এর hash মিলিয়ে দেখে। মাঝপথের কেউ কোনো বার্তা বদলে দিলে এই হিসাব মিলবে না, সংযোগ ব্যর্থ হবে — অর্থাৎ অখণ্ডতাও রক্ষা পায়।",
+    wire: ["Finished (encrypted)", "handshake hash verified ✓"],
+  },
+  {
+    id: "data",
+    title: "এবার HTTP — টানেলের ভেতরে",
+    tag: "দুই পক্ষ",
+    direction: "both",
+    encrypted: true,
+    body:
+      "handshake শেষ, তালা বন্ধ। এখন স্বাভাবিক HTTP request-response চলবে, কিন্তু প্রতিটি বাইট এনক্রিপ্টেড। ব্রাউজারের তালা আইকনটাই এই কথার সংকেত।",
+    wire: ["GET /login → ciphertext", "200 OK → ciphertext"],
+  },
+];
+
+export const TLS_NOTE =
+  "এটি শেখানোর জন্য সরলীকৃত handshake — TLS 1.3-এ সার্টিফিকেটও এনক্রিপ্টেড হয় এবং key share hello বার্তার সঙ্গেই যায়। ধাপ ও ধারণা একই, শুধু বার্তার সংখ্যা কম।";
+
+/* -------------------------------------------------------------------------- */
 /* Quizzes                                                                    */
 /* -------------------------------------------------------------------------- */
 
@@ -836,6 +1071,54 @@ export const QUIZZES: Record<string, Question[]> = {
       answer: "a",
       explain:
         "প্রোটোকলের পুরো উদ্দেশ্যই হলো দুই প্রান্ত একই নিয়ম মেনে চলে। নিয়ম ভাঙলে বার্তা প্রত্যাখ্যাত হয়।",
+    },
+    {
+      id: "pr-4",
+      prompt: "HTTPS-এর ডিফল্ট পোর্ট কোনটি?",
+      options: [
+        { id: "a", label: "৮০" },
+        { id: "b", label: "৪৪৩" },
+        { id: "c", label: "২৫" },
+      ],
+      answer: "b",
+      explain:
+        "HTTP সাধারণত ৮০ পোর্টে চলে, HTTPS ৪৪৩-এ। পোর্ট বদলালেও প্রোটোকল একই থাকে — শুধু লুকানো (encrypted) হয়।",
+    },
+    {
+      id: "pr-5",
+      prompt: "TLS handshake-এর মূল কাজ কী?",
+      options: [
+        { id: "a", label: "সার্ভারের পরিচয় যাচাই করা আর দুই পক্ষের জন্য একটি গোপন session key ঠিক করা" },
+        { id: "b", label: "ওয়েবসাইটের ছবি সংকুচিত করা" },
+        { id: "c", label: "প্যাকেটকে ছোট ছোট টুকরো করা" },
+      ],
+      answer: "a",
+      explain:
+        "Handshake-এ সার্টিফিকেট দিয়ে সার্ভারকে চেনা হয়, তারপর দুই পক্ষ একই symmetric session key বানায় — সেই চাবিতেই বাকি সব ডাটা যায়।",
+    },
+    {
+      id: "pr-6",
+      prompt: "কে সার্ভারের সার্টিফিকেটে ডিজিটাল স্বাক্ষর দেয়?",
+      options: [
+        { id: "a", label: "ব্রাউজার নিজেই" },
+        { id: "b", label: "একটি বিশ্বস্ত Certificate Authority (CA)" },
+        { id: "c", label: "ইন্টারনেট সার্ভিস প্রোভাইডার" },
+      ],
+      answer: "b",
+      explain:
+        "CA তার নিজের গোপন চাবি দিয়ে স্বাক্ষর করে; ব্রাউজারে রাখা CA-র পাবলিক চাবি দিয়ে সেই স্বাক্ষর যাচাই হয়। তাই জাল সার্টিফিকেট ধরা পড়ে।",
+    },
+    {
+      id: "pr-7",
+      prompt: "HTTP-তে পাঠানো প্যাকেট মাঝপথে কেউ আটকে ফেললে সে কী দেখবে?",
+      options: [
+        { id: "a", label: "শুধু অর্থহীন সাইফারটেক্সট" },
+        { id: "b", label: "পুরো বার্তা প্লেইন টেক্সটে — পাসওয়ার্ডসহ" },
+        { id: "c", label: "কিছুই না, প্যাকেট দেখা যায় না" },
+      ],
+      answer: "b",
+      explain:
+        "HTTP-তে এনক্রিপশন নেই। তাই Wi-Fi, রাউটার বা ISP-র যে কেউ ট্রাফিক দেখলে লেখা, পাসওয়ার্ড, কুকি — সব পড়তে পারে। HTTPS-এ একই প্যাকেট শুধু সাইফারটেক্সট হয়।",
     },
   ],
   guided: [

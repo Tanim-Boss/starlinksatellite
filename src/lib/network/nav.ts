@@ -90,7 +90,7 @@ export const NETWORK_PAGES: NetworkPage[] = [
     title: "প্রোটোকল",
     en: "Protocol Visualization",
     blurb:
-      "HTTP request-response অ্যানিমেশন, সরল message inspector এবং নিয়ম না মানলে কী হয় তার সিমুলেশন।",
+      "HTTP request-response অ্যানিমেশন, HTTPS-এর TLS handshake, পাশাপাশি দুই লেনে HTTP বনাম HTTPS এবং নিয়ম না মানলে কী হয় তার সিমুলেশন।",
   },
   {
     id: "learn",
