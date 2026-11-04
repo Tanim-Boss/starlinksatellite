@@ -114,6 +114,15 @@ assert(
   "cutting one ring cable breaks the one-way circle",
   route("ring", "pc1", "pc2", new Set(), set("pc1--pc2")) === null,
 );
+const farRingCut = m.planSend(ring, "pc1", "pc2", new Set(), set("pc4--pc5"));
+assert(
+  "a cut anywhere makes the whole unterminated single ring echo and fail",
+  farRingCut.kind === "ring-echo" && farRingCut.reason === "cut",
+);
+assert(
+  "after any ring cut only the source is shown as reachable",
+  m.reachableFrom(ring, "pc1", new Set(), set("pc4--pc5")).size === 1,
+);
 assert("the ring needs five hops to go the wrong way round", m.topologyFacts(ring).maxHops === 5);
 assert(
   "a ring never offers a second path in the same direction",
