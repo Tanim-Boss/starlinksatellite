@@ -9,6 +9,7 @@ import {
 import { Callout, Definition, RealExample, SimNote } from "@/components/NetworkLab/ui/primitives";
 import { LabFooterNav, LabNav, LessonBlock, LessonHero } from "@/components/NetworkLab/ui/LessonPage";
 import { Quiz } from "@/components/NetworkLab/ui/Quiz";
+import { ProtocolJourney } from "@/components/NetworkLab/ProtocolJourney";
 import { ProtocolVisual } from "@/components/NetworkLab/ProtocolVisual";
 import { HttpHttpsDiffTable, HttpVsHttps } from "@/components/NetworkLab/HttpVsHttps";
 import { TlsHandshake } from "@/components/NetworkLab/TlsHandshake";
@@ -70,6 +71,7 @@ export function NetworkProtocol() {
           </span>
         }
       >
+        <ProtocolJourney />
         <ProtocolVisual />
       </LessonBlock>
 
