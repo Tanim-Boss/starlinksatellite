@@ -245,28 +245,83 @@ await wait(60);
 assert("the quiz can be reset", !mainText().includes("ঠিক উত্তর!"));
 
 /* -------------------------------------------------------------------------- */
-/* 3. Server and client email simulation                                       */
+/* 3. Client–server simulation (the whole page)                                 */
 /* -------------------------------------------------------------------------- */
 
 await goto("#/network/server-client", "সার্ভার ও ক্লায়েন্ট");
-assert("server and client are both defined", mainText().includes("যে কম্পিউটার বা সিস্টেম নেটওয়ার্কের মাধ্যমে") && mainText().includes("সার্ভিস ব্যবহার করার জন্য request করে"));
-assert("the email journey starts on the first step", mainText().includes("শিক্ষার্থী ইমেইল লিখছে") && mainText().includes("ধাপ ১ / ৬"));
-click(button("পরের ধাপ"));
+assert(
+  "the page holds only the new simulation",
+  mainText().includes("ক্লায়েন্ট–সার্ভার সিমুলেশন") &&
+    !mainText().includes("একটি ইমেইল পাঠানোর ছয় ধাপ") &&
+    !mainText().includes("সহজ ব্যাখ্যা: সার্ভার ও ক্লায়েন্ট") &&
+    !mainText().includes("নিজে যাচাই করো"),
+);
+assert(
+  "clients are drawn as real laptops and a desktop",
+  mainText().includes("Client A — ল্যাপটপ") &&
+    mainText().includes("Client B — ডেস্কটপ") &&
+    mainText().includes("Client C — ল্যাপটপ"),
+);
+assert("the server is drawn as a rack server", mainText().includes("RACK SERVER") && mainText().includes("অপেক্ষার কিউ"));
+assert("all three clients start idle", (mainText().match(/অপেক্ষায়(?![…·])/g) ?? []).length >= 3);
+assert("the log invites the first request", mainText().includes("একটা Client বেছে request পাঠাও।"));
+
+// speed the simulation up: shortest latency and processing time
+for (const selector of ["#cs-latency", "#cs-proc"]) {
+  const slider = $(selector);
+  Object.getOwnPropertyDescriptor(window_.HTMLInputElement.prototype, "value").set.call(slider, "300");
+  slider.dispatchEvent(new window_.Event("input", { bubbles: true }));
+  slider.dispatchEvent(new window_.Event("change", { bubbles: true }));
+}
 await wait(60);
-assert("the next step is the client request", mainText().includes("ক্লায়েন্ট request তৈরি করছে") && mainText().includes("ধাপ ২ / ৬"));
-click(button("আগের ধাপ"));
+assert("the sliders reach their fastest settings", mainText().includes("300 ms"));
+
+// one request end to end
+click(button("Client A পাঠাক"));
+await wait(80);
+assert("sending logs the request", mainText().includes("Client A → Server : GET /home"));
+assert("client A waits for the response", mainText().includes("অপেক্ষায়… GET /home"));
+const gotOk = await waitFor(() => mainText().includes("200 OK ·"), 8000);
+assert("the response returns with a round-trip time", gotOk);
+assert(
+  "the server logged processing and replying",
+  mainText().includes("Server প্রসেস করছে : GET /home (Client A)") &&
+    mainText().includes("Server → Client A : 200 OK"),
+);
+
+// everyone at once: the single-threaded server queues the extras
+click(button("সবাই একসাথে"));
+const queued = await waitFor(() => mainText().includes("কিউতে অপেক্ষা করছে"), 8000);
+assert("simultaneous requests queue up at the server", queued);
+const allOk = await waitFor(() => (mainText().match(/200 OK ·/g) ?? []).length >= 3, 10000);
+assert("every queued client eventually gets a response", allOk);
+
+// a heavier request type takes the same road
+click(button("GET /video (ভারী)"));
 await wait(60);
-assert("the previous step returns", mainText().includes("ধাপ ১ / ৬"));
-click(ariaButton("ইমেইল সিমুলেশন চালু করো"));
+click(button("Client B পাঠাক"));
+await wait(80);
+assert("a heavier request type can be sent", mainText().includes("Client B → Server : GET /video"));
+assert("client B waits for the video response", mainText().includes("অপেক্ষায়… GET /video"));
+const videoDone = await waitFor(() => !mainText().includes("অপেক্ষায়… GET /video"), 10000);
+assert("the heavy request completes too", videoDone);
+
+// server off: a request in flight is lost
+click(button("সার্ভার বন্ধ করো"));
 await wait(60);
-assert("the email simulation can play", Boolean(ariaButton("ইমেইল সিমুলেশন থামাও")));
-click(ariaButton("ইমেইল সিমুলেশন থামাও"));
+assert(
+  "the server can be turned off",
+  button("সার্ভার চালু করো") !== undefined && mainText().includes("Server বন্ধ করা হলো"),
+);
+click(button("Client C পাঠাক"));
+const lost = await waitFor(
+  () => mainText().includes("Server বন্ধ — Client C-এর request হারিয়ে গেল"),
+  8000,
+);
+assert("a request to a dead server is lost", lost);
+click(button("সার্ভার চালু করো"));
 await wait(60);
-assert("the email simulation can pause", Boolean(ariaButton("ইমেইল সিমুলেশন চালু করো")));
-click(ariaButton("ইমেইল সিমুলেশন রিসেট করো"));
-await wait(60);
-assert("the email simulation resets to step one", mainText().includes("ধাপ ১ / ৬"));
-assert("roles are explained as roles", mainText().includes("ভূমিকা (role)"));
+assert("the server can be turned back on", mainText().includes("Server আবার চালু"));
 
 /* -------------------------------------------------------------------------- */
 /* 4. Media                                                                    */

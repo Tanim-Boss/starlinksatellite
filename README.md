@@ -31,7 +31,7 @@ telemetry, no real server and no real network traffic.
 | `#/faq` | Common questions and sources |
 | `#/network` | Computer Network lab home: what a network is, plus every lesson |
 | `#/network/playground` | Interactive network playground: clients, switch, server, NIC, media, shared resource and a packet you can send |
-| `#/network/server-client` | Server and client, told as a six-step email scenario |
+| `#/network/server-client` | Live client–server simulation: laptop/desktop clients send requests to a rack server — queue, latency, processing time and timeouts |
 | `#/network/media` | Twisted pair, optical fiber and Wi-Fi carrying the same bits |
 | `#/network/nic` | Inside one computer: where the NIC sits and what it does |
 | `#/network/resources` | Shared printer, shared file and email service |

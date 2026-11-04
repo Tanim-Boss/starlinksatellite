@@ -217,6 +217,31 @@
   animation: net-travel var(--net-duration, 2.4s) linear infinite;
 }
 
+/* Client–server simulation: rack LEDs + the spinner on client screens. */
+@keyframes cs-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.15;
+  }
+}
+.cs-blink {
+  animation: cs-blink 0.7s ease-in-out infinite;
+}
+
+@keyframes cs-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.cs-spin {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cs-spin 0.9s linear infinite;
+}
+
 /* ------------------------------------------------------------------ */
 /* Message inspector (protocol lesson)                                */
 /* ------------------------------------------------------------------ */
@@ -245,7 +270,9 @@
   .net-packet-halo,
   .net-ping,
   .net-wave,
-  .net-travel {
+  .net-travel,
+  .cs-blink,
+  .cs-spin {
     animation: none;
   }
   .net-node-box,
