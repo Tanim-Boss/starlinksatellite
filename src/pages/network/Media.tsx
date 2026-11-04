@@ -6,8 +6,17 @@ import { Quiz } from "@/components/NetworkLab/ui/Quiz";
 import { MediaVisual } from "@/components/NetworkLab/MediaVisual";
 import { CableGallery, MediaCredits } from "@/components/NetworkLab/CableGallery";
 import { WirelessJourney } from "@/components/NetworkLab/WirelessJourney";
+import { HubStudy, ModemStudy, RouterStudy, SwitchStudy } from "@/components/NetworkLab/NetworkDevices";
+import { Link } from "@/lib/router";
 
 const PAGE = networkPage("media");
+
+const DEVICE_LINKS = [
+  { id: "hub", label: "Hub", note: "সবার কাছে broadcast" },
+  { id: "switch", label: "Switch", note: "MAC table দেখে unicast" },
+  { id: "router", label: "Router", note: "IP দেখে best next hop" },
+  { id: "modem", label: "MODEM", note: "Bit ↔ carrier wave" },
+];
 
 export function NetworkMedia() {
   return (
@@ -15,11 +24,11 @@ export function NetworkMedia() {
       <LabNav path={PAGE.path} />
       <LessonHero
         page={PAGE}
-        lede="ডাটা কোন পথে চলে? কোঅ্যাক্সিয়াল, ইথারনেট ও অপটিক্যাল কেবল হাতে-কলমে চিনে নাও, তারপর দেখো কীভাবে কোনো তার ছাড়াই বাতাস দিয়ে একই ডাটা যায়।"
-        objectives={["Coaxial cable", "Ethernet cable", "Optical fiber", "Connectors", "Wireless media"]}
+        lede="ডাটা কোন পথে চলে, আর পথে কোন যন্ত্র কী সিদ্ধান্ত নেয়? Hub, Switch, Router ও MODEM-এর আসল ছবি ও সিমুলেশন দেখো; তারপর কোঅ্যাক্সিয়াল, ইথারনেট, অপটিক্যাল কেবল ও তারহীন মাধ্যম চিনে নাও।"
+        objectives={["Hub", "Switch + MAC table", "Router + best path", "Modulator / Demodulator", "Cables + connectors", "Wireless media"]}
       />
 
-      <LessonBlock index="০১" label="সহজ ব্যাখ্যা" title="সহজ ব্যাখ্যা: মিডিয়া কী?">
+      <LessonBlock index="০১" label="সহজ ব্যাখ্যা" title="সহজ ব্যাখ্যা: মিডিয়া ও সংযোগ-যন্ত্র">
         <Definition
           term="নেটওয়ার্ক মিডিয়া"
           en="Media / transmission medium"
@@ -39,16 +48,76 @@ export function NetworkMedia() {
             </p>
           </Callout>
         </div>
-        <Callout tone="amber" title="মিডিয়া নিজে কিছুই ঠিক করে না">
+        <Callout tone="amber" title="মিডিয়া নিজে কিছুই ঠিক করে না—যন্ত্রেরা সিদ্ধান্ত নেয়">
           <p className="bangla">
             মিডিয়া শুধু মাধ্যম — এটি সার্ভার নয়, ক্লায়েন্ট নয়, প্রোটোকলও নয়। কোন ফরম্যাটে ডাটা যাবে
-            তা ঠিক করে প্রোটোকল, আর পথ ঠিক করে সুইচ বা রাউটার। মিডিয়া কেবল সংকেত বহন করে।
+            তা ঠিক করে প্রোটোকল, আর পথ ঠিক করে সুইচ বা রাউটার। মিডিয়া কেবল সংকেত বহন করে। এই পেজের
+            পরের চার অংশে সেই পথের ওপর কাজ করা চারটি গুরুত্বপূর্ণ যন্ত্রকে সিমুলেশনে দেখা হবে।
           </p>
         </Callout>
+        <nav aria-label="এই পেজের ডিভাইস সিমুলেশন" className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {DEVICE_LINKS.map((device) => (
+            <Link
+              key={device.id}
+              to={PAGE.path}
+              section={device.id}
+              className="panel panel-hover group p-4"
+              ariaLabel={`${device.label} অংশে যাও`}
+            >
+              <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-signal">{device.label}</span>
+              <span className="bangla mt-1.5 block text-[12px] leading-relaxed text-muted group-hover:text-ink">{device.note}</span>
+              <span className="bangla mt-2 block text-[10px] text-faint">আসল ছবি + সিমুলেশন ↓</span>
+            </Link>
+          ))}
+        </nav>
       </LessonBlock>
 
+      <div id="hub" className="scroll-mt-32">
+        <LessonBlock
+          index="০২"
+          label="Hub"
+          title="Hub: সবার কাছে একই Data"
+          aside={<span className="bangla text-[11.5px] text-faint">আসল ছবি · ১০ ডিভাইস · MAC সহ broadcast</span>}
+        >
+          <HubStudy />
+        </LessonBlock>
+      </div>
+
+      <div id="switch" className="scroll-mt-32">
+        <LessonBlock
+          index="০৩"
+          label="Switch"
+          title="Switch: MAC শিখে শুধু প্রাপকের কাছে"
+          aside={<span className="bangla text-[11.5px] text-faint">CAM table · flooding থেকে unicast</span>}
+        >
+          <SwitchStudy />
+        </LessonBlock>
+      </div>
+
+      <div id="router" className="scroll-mt-32">
+        <LessonBlock
+          index="০৪"
+          label="Router"
+          title="Router: নেটওয়ার্ক থেকে নেটওয়ার্কে Best Next Hop"
+          aside={<span className="bangla text-[11.5px] text-faint">Routing table · Dijkstra · লিংক কেটে দেখো</span>}
+        >
+          <RouterStudy />
+        </LessonBlock>
+      </div>
+
+      <div id="modem" className="scroll-mt-32">
+        <LessonBlock
+          index="০৫"
+          label="MODEM"
+          title="Modulator ও Demodulator: Bit থেকে ঢেউ, ঢেউ থেকে Bit"
+          aside={<span className="bangla text-[11.5px] text-faint">Embedded রূপ · ASK/FSK/PSK/QAM waveform</span>}
+        >
+          <ModemStudy />
+        </LessonBlock>
+      </div>
+
       <LessonBlock
-        index="০২"
+        index="০৬"
         label="আসল ছবি"
         title="আসল কেবল ও তাদের কানেক্টর"
         aside={
@@ -61,7 +130,7 @@ export function NetworkMedia() {
       </LessonBlock>
 
       <LessonBlock
-        index="০৩"
+        index="০৭"
         label="ইন্টারঅ্যাক্টিভ সিমুলেশন"
         title="তিনটি মিডিয়া, একই ডাটা"
         aside={
@@ -74,7 +143,7 @@ export function NetworkMedia() {
       </LessonBlock>
 
       <LessonBlock
-        index="০৪"
+        index="০৮"
         label="বেতার মাধ্যম"
         title="তার ছাড়া ডাটা কীভাবে যায়"
         aside={<span className="bangla text-[11.5px] text-faint">ধাপে ধাপে · modulation দেখো</span>}
@@ -88,11 +157,13 @@ export function NetworkMedia() {
         <WirelessJourney />
       </LessonBlock>
 
-      <LessonBlock index="০৫" label="বাস্তব উদাহরণ" title="বাস্তব উদাহরণ">
-        <RealExample title="একই ল্যাব, দুই ধরনের মিডিয়া">
-          ল্যাবের ডেস্কটপগুলো সুইচের সঙ্গে নীল Ethernet কেবলে যুক্ত, কারণ সেগুলো নড়বে না এবং
-          স্থিতিশীল সংযোগ দরকার। শিক্ষকের ল্যাপটপ একই নেটওয়ার্কে Wi-Fi দিয়ে যুক্ত, কারণ সেটি নিয়ে
-          ঘোরা দরকার। দুই ক্ষেত্রেই সার্ভার, প্রোটোকল ও কাজ একই — শুধু ডাটা চলার মাধ্যম বদলেছে।
+      <LessonBlock index="০৯" label="বাস্তব উদাহরণ" title="বাস্তব উদাহরণ">
+        <RealExample title="বাসা থেকে ওয়েবসাইট—সব যন্ত্র একসঙ্গে">
+          তুমি ল্যাপটপে একটি ওয়েবসাইট খুললে। Wi-Fi radio-তে modem অংশ bit-কে তরঙ্গে বদলায়; বাসার
+          gateway-র ভেতরের switch/Wi-Fi অংশ frame গ্রহণ করে; router অংশ Destination IP দেখে ISP-এর
+          দিকে next hop বেছে নেয়; তারপর অনেক ISP ও backbone router একে একে নিজের table দেখে packet
+          এগিয়ে দেয়। পুরোনো hub থাকলে প্রথম LAN-এই সবাই frame-এর কপি পেত—switch থাকায় তা শুধু
+          দরকারি port-এ যায়। মাঝের পথ কখনো তামার কেবল, কখনো ফাইবারে আলো, কখনো বাতাসে তরঙ্গ।
         </RealExample>
         <div className="grid gap-3 md:grid-cols-2">
           <Callout tone="violet" title="ফাইবার কেন দ্রুত ও দূরগামী?">
@@ -112,7 +183,7 @@ export function NetworkMedia() {
         </div>
       </LessonBlock>
 
-      <LessonBlock index="০৬" label="কুইজ" title="নিজে যাচাই করো">
+      <LessonBlock index="১০" label="কুইজ" title="নিজে যাচাই করো">
         <Quiz questions={QUIZZES.media} />
         <MediaCredits className="mt-4" />
         <SimNote className="mt-4" />

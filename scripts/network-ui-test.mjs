@@ -368,6 +368,174 @@ await wait(80);
 assert("a close access point gives a strong signal", mainText().includes("চমৎকার"));
 assert("media is described as a medium only", mainText().includes("এটি সার্ভার নয়, ক্লায়েন্ট নয়, প্রোটোকলও নয়"));
 
+/* Device simulations: hub, switch, router and modem on the same media page. */
+const devicePhotos = $$("main img").map((img) => img.getAttribute("src") ?? "");
+assert("a real hub photograph is shown", devicePhotos.some((src) => src.includes("hub-real.jpg")));
+assert("a real switch photograph is shown", devicePhotos.some((src) => src.includes("switch-real.jpg")));
+assert("real home and core router photographs are shown", devicePhotos.some((src) => src.includes("router-home-real.jpg")) && devicePhotos.some((src) => src.includes("router-core-real.jpg")));
+assert("embedded and external modem photographs are shown", devicePhotos.some((src) => src.includes("modem-phone-board-real.jpg")) && devicePhotos.some((src) => src.includes("modem-vdsl-real.jpg")));
+
+const stepUntil = async (nextButton, predicate, maxClicks = 28) => {
+  for (let i = 0; i < maxClicks && !predicate(); i += 1) {
+    click(nextButton());
+    await wait(35);
+  }
+  return predicate();
+};
+const hubStatus = () => $("#hub-status")?.textContent ?? "";
+assert(
+  "the hub frame shows data with both MAC addresses before sending",
+  mainText().includes("02:4A:9C:10:2B:01") &&
+    mainText().includes("02:4A:9C:10:2B:07") &&
+    mainText().includes("Hello from lab!"),
+);
+click(button("Hub দিয়ে Data পাঠাও"));
+await wait(50);
+click(ariaButton("Hub সিমুলেশন থামাও"));
+await wait(40);
+assert(
+  "the hub simulation reaches its no-lookup decision",
+  await stepUntil(
+    () => ariaButton("Hub সিমুলেশনের পরের ধাপ"),
+    () => hubStatus().includes("Hub কোনো lookup করে না"),
+    8,
+  ),
+);
+assert(
+  "the hub broadcasts nine copies and only the addressed NIC accepts",
+  await stepUntil(
+    () => ariaButton("Hub সিমুলেশনের পরের ধাপ"),
+    () =>
+      hubStatus().includes("মোট 9টি কপি") &&
+      mainText().includes("MAC মিলেছে—গ্রহণ") &&
+      mainText().includes("MAC মেলেনি—বাতিল"),
+    12,
+  ),
+);
+
+const switchStatus = () => $("#switch-status")?.textContent ?? "";
+assert("the switch CAM table starts empty", mainText().includes("CAM-এ শেখা আছে 0/১০টি MAC"));
+click(button("Switch দিয়ে Data পাঠাও"));
+await wait(50);
+click(ariaButton("Switch সিমুলেশন থামাও"));
+await wait(40);
+assert(
+  "an unknown destination is a CAM miss after the source is learned",
+  await stepUntil(
+    () => ariaButton("Switch সিমুলেশনের পরের ধাপ"),
+    () => switchStatus().includes("Destination MAC এখনো CAM table-এ নেই") && mainText().includes("Lookup miss"),
+    8,
+  ),
+);
+assert(
+  "reply traffic teaches the switch the receiver MAC and port",
+  await stepUntil(
+    () => ariaButton("Switch সিমুলেশনের পরের ধাপ"),
+    () => switchStatus().includes("Flooding থেকে learning শেষ") && mainText().includes("Reply frame-এর Source MAC"),
+    24,
+  ),
+);
+click(button("Switch দিয়ে Data পাঠাও"));
+await wait(50);
+click(ariaButton("Switch সিমুলেশন থামাও"));
+await wait(40);
+assert(
+  "the second send hits the CAM table and becomes unicast",
+  await stepUntil(
+    () => ariaButton("Switch সিমুলেশনের পরের ধাপ"),
+    () => switchStatus().includes("CAM table-এ Destination MAC পাওয়া গেছে"),
+    8,
+  ),
+);
+assert(
+  "known unicast leaves the other devices without a copy",
+  await stepUntil(
+    () => ariaButton("Switch সিমুলেশনের পরের ধাপ"),
+    () => switchStatus().includes("Switch unicast শেষ") && mainText().includes("কোনো কপি পায়নি"),
+    12,
+  ),
+);
+click(button("সবাইকে hello বলিয়ে Switch-কে শেখাও"));
+assert(
+  "hello frames teach the switch all ten MAC addresses",
+  await waitFor(() => mainText().includes("CAM-এ শেখা আছে 10/১০টি MAC"), 6500),
+);
+click(button("CAM table মুছে ফেলো"));
+await wait(60);
+assert("the CAM table can be cleared", mainText().includes("CAM-এ শেখা আছে 0/১০টি MAC"));
+
+const routerStatus = () => $("#router-status")?.textContent ?? "";
+assert(
+  "latency routing initially reaches Frankfurt through Chennai and Mumbai",
+  mainText().includes("মোট 128 ms") && mainText().includes("চেন্নাই") && mainText().includes("মুম্বাই"),
+);
+click(button("কম hop"));
+await wait(60);
+assert("hop-count routing changes the Frankfurt best path", mainText().includes("মোট 5 hop"));
+click(button("কম latency (ms)"));
+await wait(60);
+click(button("সিঙ্গাপুর সার্ভার"));
+await wait(60);
+assert("Singapore initially uses the direct submarine path", mainText().includes("মোট 48 ms"));
+const routerScenario = $("#router-scenario");
+Object.getOwnPropertyDescriptor(window_.HTMLSelectElement.prototype, "value").set.call(routerScenario, "Dhaka-sg-cut");
+routerScenario.dispatchEvent(new window_.Event("change", { bubbles: true }));
+await wait(80);
+assert("a cut Dhaka–Singapore link reroutes via Chattogram", mainText().includes("চট্টগ্রাম") && mainText().includes("মোট 50 ms"));
+click(button("সব লিংক ঠিক করো"));
+await wait(60);
+click(button("ফ্রাঙ্কফুর্ট সার্ভার"));
+await wait(60);
+click(button("Packet যাত্রা শুরু করো"));
+await wait(50);
+click(button("থামাও"));
+await wait(40);
+assert("the journey starts with the laptop choosing its default gateway", routerStatus().includes("গন্তব্য এই LAN-এ নেই"));
+assert(
+  "the packet reaches Dhaka ISP and its routing table picks Chennai",
+  await stepUntil(
+    () => button("পরের ধাপ / hop"),
+    () => routerStatus().includes("ঢাকা ISP: routing table lookup") && routerStatus().includes("চেন্নাই"),
+    14,
+  ),
+);
+assert(
+  "the packet crosses every router to Frankfurt",
+  await stepUntil(
+    () => button("পরের ধাপ / hop"),
+    () => routerStatus().includes("Packet সার্ভারে পৌঁছেছে"),
+    30,
+  ),
+);
+
+assert("the embedded modem guide starts inside a smartphone", mainText().includes("Mainboard-এ baseband modem"));
+click(button("ডেস্কটপের ভেতরে"));
+await wait(60);
+assert("an internal desktop modem card is explained", mainText().includes("Motherboard-এর PCI slot-এ internal modem card"));
+click(button("Home gateway-তে"));
+await wait(60);
+assert("a home gateway combines modem, router and switch", mainText().includes("এক বাক্সে modem + router + switch + Wi-Fi"));
+const modemStatus = () => $("#modem-status")?.textContent ?? "";
+click(button("Modulation শুরু করো"));
+await wait(50);
+click(button("থামাও"));
+await wait(40);
+assert("modulation starts symbol by symbol", modemStatus().includes("Symbol 1/16"));
+assert(
+  "demodulation finishes and compares recovered bits",
+  await stepUntil(
+    () => button("পরের symbol"),
+    () => modemStatus().includes("Demodulation শেষ"),
+    42,
+  ),
+);
+click(button("16-QAM · একসঙ্গে ৪ bit"));
+await wait(60);
+assert("16-QAM groups four bits into one symbol", mainText().includes("প্রতি ঘরে 4টি bit") && mainText().includes("৪ bit একসঙ্গে"));
+assert("the new device quiz questions answer correctly", choose('input[name="md-8"][value="a"]'));
+await wait(60);
+assert("the switch-learning quiz explains Source MAC learning", mainText().includes("Source MAC → incoming port"));
+
 /* Real photographs: each cable has a cable photo and a connector photo. */
 const photos = $$("main img");
 assert("the media lesson shows real photographs", photos.length >= 4, `${photos.length} images`);
@@ -762,11 +930,11 @@ await wait(80);
 assert("a cut cable is marked on the drawing", ringCable?.getAttribute("aria-pressed") === "true");
 assert("the cut is reported", topoStatus().includes("তার কাটা গেল"));
 click(button("প্যাকেট পাঠাও"));
-const ringBlocked = await waitFor(() => topoStatus().includes("কোনো সচল পথ নেই"), 5000);
+const ringBlocked = await waitFor(() => topoStatus().includes("পুরো single ring অচল"), 5000);
 assert("a cut ring cable blocks the packet", ringBlocked);
 click(button("সব ঠিক করো"));
 await wait(80);
-assert("the ring is repaired", !topoStatus().includes("কোনো সচল পথ নেই"));
+assert("the ring is repaired", !topoStatus().includes("পুরো single ring অচল"));
 
 // Tree: cutting a branch keeps the other branch alive.
 click(topologyButton("Tree"));
