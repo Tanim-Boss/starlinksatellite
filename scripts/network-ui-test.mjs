@@ -266,6 +266,24 @@ assert("the server is drawn as a rack server", mainText().includes("RACK SERVER"
 assert("all three clients start idle", (mainText().match(/অপেক্ষায়(?![…·])/g) ?? []).length >= 3);
 assert("the log invites the first request", mainText().includes("একটা Client বেছে request পাঠাও।"));
 
+// The browser journey keeps the illustration and page in sync with its steps.
+assert("a seated user is present at the laptop", Boolean($(".bj-user")));
+assert("the login page is hidden before the response", !$(".bj-login"));
+click(ariaButton("Go to step 7: Response"));
+await wait(60);
+assert("the response is still travelling before the login appears", Boolean($(".bj-packet.response")) && !$(".bj-login"));
+click(ariaButton("Go to step 8: Page render"));
+await wait(60);
+assert("the response renders the simulated Facebook login", Boolean($(".bj-login")) && mainText().includes("SIMULATION · NO REAL LOGIN"));
+assert("the simulation has no credential inputs", !$(".bj-login input") && !$(".bj-login form"));
+assert("the browser retains the domain after DNS", $(".bj-address-text")?.textContent.includes("facebook.com"));
+click(ariaButton("Replay from beginning"));
+await wait(80);
+assert("replay resets the page and starts the user's typing", !$(".bj-login") && Boolean($(".bj-user.is-typing")));
+click(ariaButton("Pause animation"));
+await wait(60);
+assert("pausing stops the user's typing", !$(".bj-user.is-typing"));
+
 // speed the simulation up: shortest latency and processing time
 for (const selector of ["#cs-latency", "#cs-proc"]) {
   const slider = $(selector);
