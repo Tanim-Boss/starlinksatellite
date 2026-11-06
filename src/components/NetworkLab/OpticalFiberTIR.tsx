@@ -92,7 +92,7 @@ export function OpticalFiberTIR() {
           ctx.strokeRect(bx, TOP_Y, SLAB_W, BOTTOM_Y - TOP_Y);
           ctx.fillStyle = "#94a3b8";
           ctx.font =
-            "11px Hind Siliguri, ui-sans-serif, system-ui, sans-serif";
+            "11px Kalpurush, ui-sans-serif, system-ui, sans-serif";
           ctx.fillText(`কাঁচ ব্লক ${k + 1}`, bx + 10, TOP_Y + 17);
         }
       }
@@ -110,7 +110,7 @@ export function OpticalFiberTIR() {
       ctx.fill();
       ctx.fillStyle = "#94a3b8";
       ctx.font =
-        "11px ui-monospace, SFMono-Regular, Menlo, monospace";
+        "11px Kalpurush, ui-monospace, SFMono-Regular, Menlo, monospace";
       ctx.fillText("লেজার", xStart - 42, cy + 20);
     };
 
@@ -159,7 +159,7 @@ export function OpticalFiberTIR() {
         ctx.shadowBlur = 0;
         ctx.fillStyle = "#94a3b8";
         ctx.font =
-          "12px ui-monospace, SFMono-Regular, Menlo, monospace";
+          "12px Kalpurush, ui-monospace, SFMono-Regular, Menlo, monospace";
         ctx.fillText("দূর প্রান্তে আলো পৌঁছেছে", chainEnd - 72, cy - 14);
       }
     };

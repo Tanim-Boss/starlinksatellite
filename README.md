@@ -220,8 +220,12 @@ scripts/                  route, UI and orbital-math tests
 - Earth day, night and cloud textures are based on the
   [three.js examples](https://github.com/mrdoob/three.js/tree/master/examples/textures/planets).
 - Typography: Space Grotesk and IBM Plex Mono, bundled locally through
-  Fontsource; the Bangla lab uses Hind Siliguri, also bundled locally. Icons:
-  Lucide.
+  Fontsource. All Bengali text, including navigation and diagram labels, uses
+  [Kalpurush](https://github.com/potasiyam/Kalpurush) 0.258 by Tanbin Islam
+  Siyam (OmicronLab), downloaded from the author's repository and self-hosted.
+  The original font, lossless WOFF2 conversion, licence and provenance are in
+  [`src/assets/fonts/`](src/assets/fonts/). Latin text keeps the existing fonts.
+  Icons: Lucide.
 - Cable and connector photographs in `public/media/` are cropped and
   re-compressed copies of Wikimedia Commons files: `coax-cable.jpg` (Peter
   Trieb, public domain), `coax-connector.jpg` (Colin, CC BY-SA 3.0),

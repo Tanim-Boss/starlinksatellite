@@ -16,7 +16,7 @@
   min-height: 100vh;
   background: radial-gradient(ellipse 80% 560px at 52% 0%, #101c2a 0%, #080e17 58%, #070c14 100%);
   color: var(--lab-ink);
-  font-family: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  font-family: "Kalpurush", "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 .lab-app *, .lab-app *::before, .lab-app *::after { box-sizing: border-box; }

@@ -1,17 +1,11 @@
 /*
  * Computer Network — Interactive Visual Learning Lab
  *
- * Only what Tailwind cannot express lives here: the Bengali webfont, the SVG
- * diagram furniture, and the handful of keyframes the simulations share.
+ * Only what Tailwind cannot express lives here: the SVG diagram furniture
+ * and the handful of keyframes the simulations share. Kalpurush is registered
+ * globally in index.css so every page uses the same locally bundled font.
  * Everything respects `prefers-reduced-motion` at the bottom.
  */
-
-@import "@fontsource/hind-siliguri/bengali-400.css";
-@import "@fontsource/hind-siliguri/bengali-500.css";
-@import "@fontsource/hind-siliguri/bengali-600.css";
-@import "@fontsource/hind-siliguri/bengali-700.css";
-@import "@fontsource/hind-siliguri/latin-400.css";
-@import "@fontsource/hind-siliguri/latin-600.css";
 
 /* ------------------------------------------------------------------ */
 /* Stage + diagram furniture                                          */
@@ -20,7 +14,7 @@
 /* Bangla labels inside the diagrams need the Bengali face; the mono strips
    (English technical tags) keep the monospace face. */
 .net-figure text {
-  font-family: "Hind Siliguri", "Noto Sans Bengali", "Nirmala UI", system-ui, sans-serif;
+  font-family: "Kalpurush", var(--font-sans);
 }
 .net-figure text.net-mono,
 .net-figure text.net-figure-label,
@@ -31,7 +25,7 @@
 /* Diagrams that sit outside a .net-figure (inside an already bordered card)
    still need the Bengali face for their labels. */
 .net-svg text {
-  font-family: "Hind Siliguri", "Noto Sans Bengali", "Nirmala UI", system-ui, sans-serif;
+  font-family: "Kalpurush", var(--font-sans);
 }
 .net-svg text.net-node-sub,
 .net-svg text.net-figure-label {
@@ -460,7 +454,7 @@
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(4, 6, 13, 0.75);
-  font-family: "Hind Siliguri", "Noto Sans Bengali", system-ui, sans-serif;
+  font-family: "Kalpurush", var(--font-sans);
   font-size: 11px;
   color: #8b9bb9;
   backdrop-filter: blur(6px);
@@ -576,7 +570,7 @@
 }
 
 .topo-figure-hint {
-  font-family: "Hind Siliguri", "Noto Sans Bengali", system-ui, sans-serif;
+  font-family: "Kalpurush", var(--font-sans);
   font-size: 10px;
   fill: #697b98;
 }
@@ -856,7 +850,7 @@
   fill: #8b9bb9;
 }
 .topo-terminal-state {
-  font-family: "Hind Siliguri", "Noto Sans Bengali", system-ui, sans-serif;
+  font-family: "Kalpurush", var(--font-sans);
   font-size: 8.5px;
   fill: #697b98;
 }
@@ -867,7 +861,7 @@
 /* The plate under the bus cable ------------------------------------ */
 
 .topo-plate {
-  font-family: "Hind Siliguri", "Noto Sans Bengali", system-ui, sans-serif;
+  font-family: "Kalpurush", var(--font-sans);
   font-size: 10.5px;
   fill: #8b9bb9;
 }

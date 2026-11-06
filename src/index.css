@@ -1,8 +1,24 @@
 @import "tailwindcss";
 
+/* Self-hosted Kalpurush 0.258 by Tanbin Islam Siyam (OmicronLab).
+   See assets/fonts/README.md for the source, conversion and licence.
+   The Unicode range keeps the existing Latin fonts unchanged, while Bengali
+   uses Kalpurush even inside monospace labels and mixed Bangla/English copy. */
+@font-face {
+  font-family: "Kalpurush";
+  src: url("./assets/fonts/kalpurush.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  /* Include the Bengali danda/double-danda (U+0964–U+0965) and the word
+     space; Chromium can otherwise render them as fallback boxes beside
+     Bengali glyphs. Latin letters still fall through to the existing faces. */
+  unicode-range: U+0020, U+0964-0965, U+0980-09FF, U+200C-200D, U+25CC;
+}
+
 @theme {
-  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: "Kalpurush", "Space Grotesk", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "Kalpurush", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --color-void: #04060d;
   --color-deep: #070b16;
@@ -355,12 +371,11 @@ body {
 /* Bangla copy                                                        */
 /* ------------------------------------------------------------------ */
 
-/* The display face (Space Grotesk) has no Bengali glyphs, so Bangla copy
-   falls back to the platform's Bengali face with a roomier line height —
-   matras collide at Latin line-heights. */
+/* Use the bundled Bengali face on every page, not just the visitor's OS.
+   Keep a roomier line height so Kalpurush's matras do not collide. These
+   helpers also cover Bangla outside the network lab's lang="bn" subtree. */
 .bangla {
-  font-family: "Noto Sans Bengali", "Hind Siliguri", "Baloo Da 2", "Nirmala UI",
-    "Bangla Sangam MN", "Kohinoor Bangla", "Noto Serif Bengali", system-ui, sans-serif;
+  font-family: "Kalpurush", var(--font-sans);
   letter-spacing: 0;
   line-height: 1.95;
   word-break: normal;
@@ -368,8 +383,7 @@ body {
 }
 
 .bangla-heading {
-  font-family: "Noto Sans Bengali", "Hind Siliguri", "Baloo Da 2", "Nirmala UI",
-    "Bangla Sangam MN", "Kohinoor Bangla", system-ui, sans-serif;
+  font-family: "Kalpurush", var(--font-sans);
   line-height: 1.5;
   letter-spacing: 0;
 }
