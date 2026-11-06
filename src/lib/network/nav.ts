@@ -57,9 +57,18 @@ export const NETWORK_PAGES: NetworkPage[] = [
       "Hub, Switch, Router ও MODEM-এর বাস্তব ছবি ও সিমুলেশন—১০টি ডিভাইসে MAC broadcast/unicast, CAM table, Internet routing, modulation; সাথে কেবল, কানেক্টর ও বেতার মাধ্যম।",
   },
   {
+    id: "optical-fiber",
+    path: "/network/optical-fiber",
+    num: "04",
+    title: "অপটিকাল ফাইবার",
+    en: "Optical Fiber Simulation",
+    blurb:
+      "পূর্ণ অভ্যন্তরীণ প্রতিফলনের মাধ্যমে ফাইবারের ভেতর আলো কীভাবে চলে, ফাইবারের ভেতর ও বাইরের কাঠামো এবং এক প্রান্তের ডাটা কীভাবে আলোর পルス হয়ে অন্য প্রান্তে পৌঁছায় — চারটি ইন্টারঅ্যাক্টিভ সিমুলেশন।",
+  },
+  {
     id: "nic",
     path: "/network/nic",
-    num: "04",
+    num: "05",
     title: "নেটওয়ার্ক ইন্টারফেস কার্ড (NIC)",
     en: "Network Interface Card",
     blurb:
@@ -68,7 +77,7 @@ export const NETWORK_PAGES: NetworkPage[] = [
   {
     id: "resources",
     path: "/network/resources",
-    num: "05",
+    num: "06",
     title: "নেটওয়ার্ক রিসোর্স",
     en: "Resources Visualization",
     blurb:
@@ -77,7 +86,7 @@ export const NETWORK_PAGES: NetworkPage[] = [
   {
     id: "user",
     path: "/network/user",
-    num: "06",
+    num: "07",
     title: "ইউজার, ক্লায়েন্ট ও সার্ভার",
     en: "User Visualization",
     blurb:
@@ -86,7 +95,7 @@ export const NETWORK_PAGES: NetworkPage[] = [
   {
     id: "protocol",
     path: "/network/protocol",
-    num: "07",
+    num: "08",
     title: "প্রোটোকল",
     en: "Protocol Visualization",
     blurb:
@@ -95,7 +104,7 @@ export const NETWORK_PAGES: NetworkPage[] = [
   {
     id: "topology",
     path: "/network/topology",
-    num: "08",
+    num: "09",
     title: "টোপোলজি",
     en: "Network Topology Simulation",
     blurb:
@@ -104,7 +113,7 @@ export const NETWORK_PAGES: NetworkPage[] = [
   {
     id: "learn",
     path: "/network/learn",
-    num: "09",
+    num: "10",
     title: "ধাপে ধাপে শেখা",
     en: "Guided Learning Mode",
     blurb:
@@ -113,7 +122,7 @@ export const NETWORK_PAGES: NetworkPage[] = [
   {
     id: "challenge",
     path: "/network/challenge",
-    num: "10",
+    num: "11",
     title: "চ্যালেঞ্জ মোড",
     en: "Challenge Mode",
     blurb:

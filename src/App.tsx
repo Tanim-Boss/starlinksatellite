@@ -38,6 +38,9 @@ const NetworkServerClient = lazy(() =>
 const NetworkMedia = lazy(() =>
   import("@/pages/network/Media").then((m) => ({ default: m.NetworkMedia })),
 );
+const NetworkOpticalFiber = lazy(() =>
+  import("@/pages/network/OpticalFiber").then((m) => ({ default: m.NetworkOpticalFiber })),
+);
 const NetworkNic = lazy(() => import("@/pages/network/Nic").then((m) => ({ default: m.NetworkNic })));
 const NetworkResources = lazy(() =>
   import("@/pages/network/Resources").then((m) => ({ default: m.NetworkResources })),
@@ -166,6 +169,8 @@ function renderRoute(path: string) {
       return <NetworkServerClient />;
     case "/network/media":
       return <NetworkMedia />;
+    case "/network/optical-fiber":
+      return <NetworkOpticalFiber />;
     case "/network/nic":
       return <NetworkNic />;
     case "/network/resources":
