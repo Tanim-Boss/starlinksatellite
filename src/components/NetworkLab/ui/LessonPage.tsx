@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { ArrowLeft, ArrowRight, House } from "lucide-react";
-/* The lab's stylesheet: Bengali webfont, SVG diagram furniture, keyframes.
+/* The lab's stylesheet: SVG diagram furniture, keyframes and layout helpers.
    Imported here (the shell every lab page renders) the way OrbitLab imports
    its own lab.css from LabShell. */
 import "../network.css";

@@ -211,7 +211,7 @@ export function OpticalFiberStructure() {
                 <line x1={cx + rClad} y1={cy + 18} x2={400} y2={240} />
                 <line x1={cx + rCore + 6} y1={cy + 42} x2={250} y2={300} />
               </g>
-              <g fontFamily="ui-sans-serif, system-ui, sans-serif" fontSize="13" fill="#94a3b8">
+              <g fontFamily="Kalpurush, ui-sans-serif, system-ui, sans-serif" fontSize="13" fill="#94a3b8">
                 <text x={255} y={98} fontWeight="600" fill="#fbbf24">
                   জ্যাকেট (Jacket)
                 </text>

@@ -168,7 +168,7 @@ export function OpticalFiberFlow() {
       drawTube();
 
       ctx.fillStyle = "#94a3b8";
-      ctx.font = "12px ui-monospace, SFMono-Regular, Menlo, monospace";
+      ctx.font = "12px Kalpurush, ui-monospace, SFMono-Regular, Menlo, monospace";
       ctx.fillText("প্রেরক (LED/লেজার)", p0.x - 50, p0.y + 10);
       ctx.fillText("গ্রাহক (ফটোডায়োড)", p3.x - 10, p3.y + 26);
 
